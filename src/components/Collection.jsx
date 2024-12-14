@@ -9,6 +9,11 @@ const COLLECTION_SUPPLIES = {
   ai_bitbots: 205
 };
 
+// Get the base API URL based on environment
+const API_BASE_URL = import.meta.env.PROD 
+  ? '/api' 
+  : 'http://localhost:3001/api';
+
 const Collection = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [collectionData, setCollectionData] = useState([]);
@@ -63,15 +68,17 @@ const Collection = () => {
       try {
         const fetchedData = await Promise.all(
           collections.map(async (collection) => {
-            const response = await fetch(`http://localhost:3001/api/collections/${collection.symbol}/stats`);
+            const response = await fetch(`${API_BASE_URL}/collections/${collection.symbol}/stats`);
             if (!response.ok) {
               throw new Error(`HTTP error! status: ${response.status}`);
             }
             const data = await response.json();
             
+            const floorPriceInSol = Number(data.floorPrice || 0) / 1000000000;
+            
             return {
               ...collection,
-              floorPrice: (data.floorPrice / 1000000000).toFixed(2),
+              floorPrice: isNaN(floorPriceInSol) ? '0.00' : floorPriceInSol.toFixed(2),
               totalSupply: COLLECTION_SUPPLIES[collection.symbol].toLocaleString()
             };
           })
@@ -82,7 +89,7 @@ const Collection = () => {
         console.error('Error fetching collection data:', error);
         setCollectionData(collections.map(collection => ({
           ...collection,
-          floorPrice: '...',
+          floorPrice: '0.00',
           totalSupply: COLLECTION_SUPPLIES[collection.symbol].toLocaleString()
         })));
         setLoading(false);
@@ -97,9 +104,11 @@ const Collection = () => {
       try {
         const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd');
         const data = await response.json();
-        setSolPrice(data.solana.usd);
+        const price = Number(data.solana?.usd || 0);
+        setSolPrice(isNaN(price) ? 0 : price);
       } catch (error) {
         console.error('Error fetching SOL price:', error);
+        setSolPrice(0);
       }
     };
     fetchSolPrice();
@@ -165,7 +174,9 @@ const Collection = () => {
                       <p className="text-white font-bold">
                         {collection.floorPrice} SOL
                         <span className="text-gray-400 text-sm ml-1">
-                          (${(collection.floorPrice * solPrice).toFixed(2)})
+                          {solPrice > 0 ? (
+                            `($${(Number(collection.floorPrice) * solPrice).toFixed(2)})`
+                          ) : ''}
                         </span>
                       </p>
                     </div>
