@@ -7,9 +7,11 @@ const Header = () => {
 
   return (
     <header className="fixed w-full bg-black/80 backdrop-blur-sm z-50">
-      <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <nav className="max-w-7xl mx-auto px-8 sm:px-12 lg:px-16 py-4">
         <div className="flex items-center justify-between">
-          <Logo />
+          <div className="flex-shrink-0 -ml-2 sm:ml-0">
+            <Logo />
+          </div>
           
           {/* Mobile menu button */}
           <div className="md:hidden">

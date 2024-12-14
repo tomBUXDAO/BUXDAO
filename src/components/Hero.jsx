@@ -10,32 +10,37 @@ const Hero = () => {
     '/gifs/mm3d.gif'
   ];
 
-  return (
-    <section className="min-h-screen pt-20 bg-gradient-to-b from-black to-purple-900">
-      {/* Scrolling GIFs Section - Moved to top for mobile */}
-      <div className="w-full bg-gray-950/80 border-t border-b border-gray-800">
-        <div className="py-4 sm:py-6 overflow-hidden">
-          <div className="relative">
-            <div className="flex animate-scroll gap-4 sm:gap-6 md:gap-8 lg:gap-12 whitespace-nowrap">
-              {[...gifs, ...gifs].map((gif, index) => (
-                <div 
-                  key={index} 
-                  className="w-32 h-32 sm:w-48 sm:h-48 md:w-56 md:h-56 lg:w-64 lg:h-64 flex-shrink-0 rounded-xl overflow-hidden bg-gray-900 shadow-xl transform hover:scale-105 transition-transform duration-300"
-                >
-                  <img 
-                    src={gif} 
-                    alt={`BUXDAO NFT ${index + 1}`}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              ))}
-            </div>
+  const GallerySection = () => (
+    <div className="w-full bg-gray-950/80 border-t border-b border-gray-800">
+      <div className="py-4 sm:py-6 overflow-hidden">
+        <div className="relative">
+          <div className="flex animate-scroll gap-4 sm:gap-6 md:gap-8 lg:gap-12 whitespace-nowrap">
+            {[...gifs, ...gifs].map((gif, index) => (
+              <div 
+                key={index} 
+                className="w-32 h-32 sm:w-48 sm:h-48 md:w-56 md:h-56 lg:w-64 lg:h-64 flex-shrink-0 rounded-xl overflow-hidden bg-gray-900 shadow-xl transform hover:scale-105 transition-transform duration-300"
+              >
+                <img 
+                  src={gif} 
+                  alt={`BUXDAO NFT ${index + 1}`}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            ))}
           </div>
         </div>
       </div>
+    </div>
+  );
+
+  return (
+    <section className="min-h-screen pt-20 bg-gradient-to-b from-black to-purple-900">
+      {/* Gallery appears at top only in mobile portrait */}
+      <div className="block sm:hidden">
+        <GallerySection />
+      </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-16">
-        {/* Mobile: Single column, Desktop: 70/30 split */}
         <div className="grid grid-cols-1 lg:grid-cols-10 gap-8">
           {/* Text and buttons */}
           <div className="lg:col-span-7 lg:pr-8">
@@ -102,6 +107,11 @@ const Hero = () => {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Gallery appears at bottom in tablet and desktop */}
+      <div className="hidden sm:block">
+        <GallerySection />
       </div>
     </section>
   );

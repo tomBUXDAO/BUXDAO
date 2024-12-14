@@ -4,7 +4,7 @@ import Collection from './components/Collection';
 
 function App() {
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen bg-black overflow-x-hidden relative w-full">
       <Header />
       <Hero />
       <Collection />
