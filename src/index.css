@@ -2,4 +2,23 @@
 
 @tailwind base;
 @tailwind components;
-@tailwind utilities; 
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply overflow-x-hidden;
+    position: fixed;
+    width: 100%;
+  }
+  
+  body {
+    @apply overflow-x-hidden overflow-y-auto;
+    position: relative;
+    width: 100%;
+  }
+
+  #root {
+    @apply overflow-x-hidden;
+    position: relative;
+  }
+} 
