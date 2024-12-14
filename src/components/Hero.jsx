@@ -15,34 +15,23 @@ const Hero = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="grid grid-cols-10 gap-8">
           <div className="col-span-7 pr-8">
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6">
-              BUXDAO is 100% community owned,
-              <span className="block mt-2 text-2xl sm:text-3xl md:text-4xl lg:text-5xl">
-                the team give their time on a voluntary basis
-              </span>
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-6">
+              BUXDAO is a community owned enterprise focused on providing passive income for holding members
             </h1>
             <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-semibold text-gray-300 mb-6">
-              All profits generated are shared with holding members by way of tokenised daily rewards
+              100% revenue share through daily tokenised rewards
             </h2>
             <p className="text-sm sm:text-base md:text-lg lg:text-xl text-gray-300 mb-6">
-              Holders can connect their discord profile and wallet to start earning
-              <br />
-              or explore our unique digital artwork collections and join the future of digital collectibles
+              Connect your wallet and discord profile to be autoassigned holder based server roles and unlock holder-only content
             </p>
             <div className="flex space-x-4 mb-4">
               <button className="flex items-center space-x-2 bg-[#5865F2] px-4 sm:px-6 md:px-8 py-2 sm:py-3 rounded-full text-white text-sm sm:text-base md:text-lg hover:opacity-90 transition-opacity">
                 <DiscordIcon className="h-5 w-5" />
                 <span>Login with Discord</span>
               </button>
-              <a 
-                href="https://magiceden.io/creators/bux_dao"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center space-x-2 bg-gradient-to-r from-purple-500 to-pink-500 px-4 sm:px-6 md:px-8 py-2 sm:py-3 rounded-full text-white text-sm sm:text-base md:text-lg hover:opacity-90 transition-opacity"
-              >
-                <MagicEdenIcon className="h-5 w-5" />
-                <span>Magic Eden</span>
-              </a>
+              <button className="border-2 border-white px-4 sm:px-6 md:px-8 py-2 sm:py-3 rounded-full text-white text-sm sm:text-base md:text-lg hover:bg-white hover:text-black transition-all">
+                Learn More
+              </button>
             </div>
           </div>
           <div className="col-span-3 flex flex-col justify-center space-y-4 sm:space-y-6">
