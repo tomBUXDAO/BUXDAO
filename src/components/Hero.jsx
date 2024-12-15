@@ -54,7 +54,7 @@ const Hero = () => {
                 100% revenue share paid out through daily token-based rewards
               </span>
             </h2>
-            <div className="inline-flex items-center gap-8">
+            <div className="inline-flex items-center gap-4">
               <button className="flex items-center justify-center space-x-3 bg-[#5865F2] px-8 py-3 rounded-full text-white text-base sm:text-lg hover:opacity-90 transition-opacity border-2 border-white shadow-[0_0_15px_rgba(0,0,0,0.5)] whitespace-nowrap">
                 <DiscordIcon className="h-5 w-5 sm:h-6 sm:w-6" />
                 <span>Holder verify</span>
