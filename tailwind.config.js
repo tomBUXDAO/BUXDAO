@@ -12,11 +12,11 @@ export default {
       keyframes: {
         scroll: {
           '0%': { transform: 'translateX(0)' },
-          '100%': { transform: 'translateX(-50%)' }
+          '100%': { transform: 'translateX(calc(-250px * 5))' }
         }
       },
       animation: {
-        scroll: 'scroll 10s linear infinite'
+        scroll: 'scroll 8s linear infinite'
       }
     },
   },
