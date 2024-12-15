@@ -59,7 +59,7 @@ const Hero = () => {
                 <DiscordIcon className="h-5 w-5 sm:h-6 sm:w-6" />
                 <span>Holder verify</span>
               </button>
-              <p className="text-sm sm:text-base md:text-lg lg:text-xl text-gray-300">
+              <p className="text-sm sm:text-xs md:text-base lg:text-lg text-gray-300">
                 to be autoassigned holder based roles in our discord server and start earning rewards
               </p>
             </div>
