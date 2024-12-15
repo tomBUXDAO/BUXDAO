@@ -1,5 +1,5 @@
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 const COLLECTION_SUPPLIES = {
   fcked_catz: 1184,
@@ -19,7 +19,10 @@ const Collection = () => {
   const [collectionData, setCollectionData] = useState([]);
   const [solPrice, setSolPrice] = useState(0);
   const [loading, setLoading] = useState(true);
-  
+  const [touchStart, setTouchStart] = useState(null);
+  const [touchEnd, setTouchEnd] = useState(null);
+  const containerRef = useRef(null);
+
   const collections = [
     { 
       id: 1, 
@@ -115,16 +118,71 @@ const Collection = () => {
   }, []);
 
   const nextSlide = () => {
-    setCurrentIndex((prevIndex) => 
-      prevIndex + 1 >= collectionData.length - 2 ? 0 : prevIndex + 1
-    );
+    setCurrentIndex((prevIndex) => {
+      const newIndex = prevIndex - 1;
+      return newIndex < 0 ? collectionData.length - 1 : newIndex;
+    });
   };
 
   const prevSlide = () => {
-    setCurrentIndex((prevIndex) => 
-      prevIndex - 1 < 0 ? collectionData.length - 3 : prevIndex - 1
-    );
+    setCurrentIndex((prevIndex) => {
+      const newIndex = prevIndex + 1;
+      return newIndex >= collectionData.length ? 0 : newIndex;
+    });
   };
+
+  // Handle touch events
+  const handleTouchStart = (e) => {
+    setTouchStart(e.touches[0].clientX);
+  };
+
+  const handleTouchMove = (e) => {
+    setTouchEnd(e.touches[0].clientX);
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    
+    const distance = touchStart - touchEnd;
+    const minSwipeDistance = 50;
+
+    if (Math.abs(distance) < minSwipeDistance) return;
+
+    if (distance > 0) {
+      // Swiped left
+      nextSlide();
+    } else {
+      // Swiped right
+      prevSlide();
+    }
+
+    setTouchStart(null);
+    setTouchEnd(null);
+  };
+
+  // Handle scroll events
+  const handleWheel = (e) => {
+    if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+      e.preventDefault();
+      if (e.deltaX > 0) {
+        nextSlide();
+      } else {
+        prevSlide();
+      }
+    }
+  };
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (container) {
+      container.addEventListener('wheel', handleWheel, { passive: false });
+    }
+    return () => {
+      if (container) {
+        container.removeEventListener('wheel', handleWheel);
+      }
+    };
+  }, []);
 
   if (loading) {
     return (
@@ -148,72 +206,83 @@ const Collection = () => {
           Featured Collections
         </h2>
         
-        <div className="relative">
-          <button 
-            onClick={prevSlide}
-            className="hidden sm:block absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 lg:-translate-x-12 bg-white/10 p-2 rounded-full hover:bg-white/20 transition-colors"
-          >
-            <ChevronLeftIcon className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
-          </button>
+        <div 
+          ref={containerRef}
+          className="relative touch-pan-x"
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
+          <div className="relative">
+            <button 
+              onClick={prevSlide}
+              className="hidden sm:block absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 lg:-translate-x-12 bg-white/10 p-2 rounded-full hover:bg-white/20 transition-all duration-300"
+            >
+              <ChevronLeftIcon className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
+            </button>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-8">
-            {collectionData.slice(currentIndex, currentIndex + (window.innerWidth >= 1024 ? 3 : 2)).map((collection) => (
-              <div key={collection.id} className="bg-gray-900 rounded-xl overflow-hidden hover:transform hover:scale-105 transition-transform duration-300">
-                <div className="aspect-square">
-                  <img 
-                    src={collection.image} 
-                    alt={collection.title}
-                    className="w-full h-full object-cover" 
-                  />
-                </div>
-                <div className="p-4 sm:p-6">
-                  <h3 className="text-lg sm:text-xl font-semibold text-white mb-4">{collection.title}</h3>
-                  <div className="flex justify-between mb-6">
-                    <div>
-                      <p className="text-gray-400 text-sm">Floor Price</p>
-                      <p className="text-white font-bold">
-                        {collection.floorPrice} SOL
-                        <span className="text-gray-400 text-sm ml-1">
-                          {solPrice > 0 ? (
-                            `($${(Number(collection.floorPrice) * solPrice).toFixed(2)})`
-                          ) : ''}
-                        </span>
-                      </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-8 transition-all duration-500 ease-in-out">
+              {[...collectionData, ...collectionData].slice(
+                currentIndex,
+                currentIndex + (window.innerWidth >= 1024 ? 3 : 2)
+              ).map((collection) => (
+                <div key={`${collection.id}-${currentIndex}`} className="bg-gray-900 rounded-xl overflow-hidden hover:transform hover:scale-105 transition-transform duration-300">
+                  <div className="aspect-square">
+                    <img 
+                      src={collection.image} 
+                      alt={collection.title}
+                      className="w-full h-full object-cover" 
+                    />
+                  </div>
+                  <div className="p-4 sm:p-6">
+                    <h3 className="text-lg sm:text-xl font-semibold text-white mb-4">{collection.title}</h3>
+                    <div className="flex justify-between mb-6">
+                      <div>
+                        <p className="text-gray-400 text-sm">Floor Price</p>
+                        <p className="text-white font-bold">
+                          {collection.floorPrice} SOL
+                          <span className="text-gray-400 text-sm ml-1">
+                            {solPrice > 0 ? (
+                              `($${(Number(collection.floorPrice) * solPrice).toFixed(2)})`
+                            ) : ''}
+                          </span>
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-gray-400 text-sm">Total Supply</p>
+                        <p className="text-white font-bold">{collection.totalSupply}</p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-gray-400 text-sm">Total Supply</p>
-                      <p className="text-white font-bold">{collection.totalSupply}</p>
+                    <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
+                      <a 
+                        href={collection.magicEdenUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="w-full bg-gradient-to-r from-purple-500 to-pink-500 px-4 py-2 rounded-full text-white hover:opacity-90 transition-opacity text-center text-sm sm:text-base"
+                      >
+                        Magic Eden
+                      </a>
+                      <a 
+                        href={collection.tensorUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="w-full border border-white px-4 py-2 rounded-full text-white hover:bg-white hover:text-black transition-all text-center text-sm sm:text-base"
+                      >
+                        Tensor
+                      </a>
                     </div>
                   </div>
-                  <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
-                    <a 
-                      href={collection.magicEdenUrl} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="w-full bg-gradient-to-r from-purple-500 to-pink-500 px-4 py-2 rounded-full text-white hover:opacity-90 transition-opacity text-center text-sm sm:text-base"
-                    >
-                      Magic Eden
-                    </a>
-                    <a 
-                      href={collection.tensorUrl} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="w-full border border-white px-4 py-2 rounded-full text-white hover:bg-white hover:text-black transition-all text-center text-sm sm:text-base"
-                    >
-                      Tensor
-                    </a>
-                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
+
+            <button 
+              onClick={nextSlide}
+              className="hidden sm:block absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 lg:translate-x-12 bg-white/10 p-2 rounded-full hover:bg-white/20 transition-all duration-300"
+            >
+              <ChevronRightIcon className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
+            </button>
           </div>
-
-          <button 
-            onClick={nextSlide}
-            className="hidden sm:block absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 lg:translate-x-12 bg-white/10 p-2 rounded-full hover:bg-white/20 transition-colors"
-          >
-            <ChevronRightIcon className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
-          </button>
         </div>
       </div>
     </section>
