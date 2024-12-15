@@ -44,12 +44,12 @@ const Hero = () => {
         <div className="max-w-7xl mx-auto px-8 sm:px-12 lg:px-16 py-8 sm:py-16">
           {/* Change to 2 columns on mobile landscape */}
           <div className="grid grid-cols-1 landscape:grid-cols-10 sm:grid-cols-10 gap-8">
-            <div className="landscape:col-span-7 sm:col-span-7 sm:pr-8 landscape:flex landscape:flex-col landscape:justify-between">
-              <div>
-                <h1 className="text-2xl landscape:text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold mb-8 sm:mb-10 bg-gradient-to-r from-purple-400 to-pink-400 text-transparent bg-clip-text">
+            <div className="landscape:col-span-7 sm:col-span-7 sm:pr-8 landscape:flex landscape:flex-col landscape:justify-between landscape:gap-8">
+              <div className="landscape:flex landscape:flex-col landscape:gap-8">
+                <h1 className="text-2xl landscape:text-2xl sm:text-2xl md:text-3xl lg:text-4xl font-bold mb-8 landscape:mb-0 sm:mb-10 bg-gradient-to-r from-purple-400 to-pink-400 text-transparent bg-clip-text">
                   BUXDAO is a community owned NFT project focused on providing passive income for holding members
                 </h1>
-                <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold text-gray-300 mb-8 sm:mb-10">
+                <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold text-gray-300 mb-8 landscape:mb-0 sm:mb-10">
                   <span className="inline-flex items-center gap-4">
                     <ChartBarIcon className="h-10 w-10 landscape:h-8 landscape:w-8 sm:h-10 sm:w-10 text-white" />
                     100% revenue share paid out through daily token-based rewards
