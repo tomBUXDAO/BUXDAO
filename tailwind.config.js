@@ -1,5 +1,5 @@
 /** @type {import('tailwindcss').Config} */
-export default {
+module.exports = {
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
@@ -17,7 +17,10 @@ export default {
       },
       animation: {
         scroll: 'scroll 10s linear infinite'
-      }
+      },
+      screens: {
+        'portrait': {'raw': '(min-width: 640px) and (max-width: 1023px) and (orientation: portrait)'},
+      },
     },
   },
   future: {
