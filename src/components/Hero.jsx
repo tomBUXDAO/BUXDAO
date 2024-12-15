@@ -1,5 +1,5 @@
-import { LockClosedIcon, BanknotesIcon, PhotoIcon, CircleStackIcon } from '@heroicons/react/24/outline';
-import { DiscordIcon, MagicEdenIcon } from './Icons';
+import { LockClosedIcon, ChartBarIcon, PhotoIcon, CircleStackIcon, WalletIcon, CurrencyDollarIcon } from '@heroicons/react/24/outline';
+import { DiscordIcon } from './Icons';
 
 const Hero = () => {
   const gifs = [
@@ -35,31 +35,35 @@ const Hero = () => {
 
   return (
     <section className="min-h-screen pt-20 bg-gradient-to-b from-black to-purple-900">
-      {/* Gallery appears at top only in mobile portrait */}
+      {/* Gallery at top for mobile */}
       <div className="block sm:hidden">
         <GallerySection />
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-16">
+      {/* Main content - update padding to match header */}
+      <div className="max-w-7xl mx-auto px-8 sm:px-12 lg:px-16 py-8 sm:py-16">
         <div className="grid grid-cols-1 lg:grid-cols-10 gap-8">
           {/* Text and buttons */}
           <div className="lg:col-span-7 lg:pr-8">
-            <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-4 sm:mb-6">
-              BUXDAO is a community owned enterprise focused on providing passive income for holding members
+            <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold mb-4 sm:mb-6 bg-gradient-to-r from-purple-400 to-pink-400 text-transparent bg-clip-text">
+              BUXDAO is a community owned NFT project focused on providing passive income for holding members
             </h1>
             <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold text-gray-300 mb-4 sm:mb-6">
-              100% revenue share through daily tokenised rewards
+              <span className="inline-flex items-center gap-4">
+                <ChartBarIcon className="h-8 w-8 sm:h-10 sm:w-10 text-white" />
+                100% revenue share paid out through daily token-based rewards
+              </span>
             </h2>
             <p className="text-sm sm:text-base md:text-lg lg:text-xl text-gray-300 mb-4 sm:mb-6">
-              Connect your wallet and discord profile to be autoassigned holder based server roles and unlock holder-only content
+              <span className="inline-flex items-center gap-4">
+                <WalletIcon className="h-8 w-8 sm:h-10 sm:w-10 text-white" />
+                Holder verify to be autoassigned holder based roles in our discord server and start earning rewards
+              </span>
             </p>
-            <div className="flex flex-col sm:flex-row gap-3 sm:space-x-4 mb-8 lg:mb-0">
-              <button className="flex items-center justify-center space-x-2 bg-[#5865F2] px-4 py-2 rounded-full text-white text-sm sm:text-base hover:opacity-90 transition-opacity">
+            <div className="flex items-center">
+              <button className="flex items-center justify-center space-x-2 bg-[#5865F2] px-6 py-2 rounded-full text-white text-sm sm:text-base hover:opacity-90 transition-opacity">
                 <DiscordIcon className="h-4 w-4 sm:h-5 sm:w-5" />
-                <span>Login with Discord</span>
-              </button>
-              <button className="border-2 border-white px-4 py-2 rounded-full text-white text-sm sm:text-base hover:bg-white hover:text-black transition-all text-center">
-                Learn more about $BUX token
+                <span>Holder verify</span>
               </button>
             </div>
           </div>
@@ -78,7 +82,7 @@ const Hero = () => {
 
             <div className="flex items-center space-x-3">
               <div className="bg-white/10 p-2 rounded-xl">
-                <BanknotesIcon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                <CurrencyDollarIcon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
               </div>
               <div>
                 <h3 className="text-yellow-400 font-semibold text-sm">Daily BUX Rewards</h3>
@@ -109,7 +113,7 @@ const Hero = () => {
         </div>
       </div>
 
-      {/* Gallery appears at bottom in tablet and desktop */}
+      {/* Gallery at bottom for tablet/desktop */}
       <div className="hidden sm:block">
         <GallerySection />
       </div>
