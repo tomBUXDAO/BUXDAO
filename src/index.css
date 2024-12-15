@@ -5,20 +5,9 @@
 @tailwind utilities;
 
 @layer base {
-  html {
-    @apply overflow-x-hidden;
-    width: 100%;
-  }
-  
-  body {
+  html, body {
     @apply overflow-x-hidden;
     position: relative;
     width: 100%;
-  }
-
-  #root {
-    @apply overflow-x-hidden;
-    position: relative;
-    min-height: 100vh;
   }
 } 

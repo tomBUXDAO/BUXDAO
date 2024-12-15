@@ -1,6 +1,6 @@
 const Logo = () => {
   return (
-    <div className="relative w-[200px] h-12 flex items-center justify-center pl-2">
+    <div className="relative flex items-center w-fit mx-auto sm:mx-0">
       <div className="absolute inset-0 flex items-center justify-center">
         <img 
           src="/logo.png" 
@@ -8,7 +8,7 @@ const Logo = () => {
           className="h-12 w-auto object-contain filter blur-[1px] opacity-85 transition-all duration-300 hover:opacity-100 hover:blur-0" 
         />
       </div>
-      <div className="absolute inset-0 flex items-center justify-center">
+      <div className="relative">
         <span 
           className="whitespace-nowrap font-poppins text-3xl font-bold tracking-normal z-10"
           style={{
