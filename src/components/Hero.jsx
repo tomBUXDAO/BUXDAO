@@ -59,13 +59,13 @@ const Hero = () => {
               
               {/* Center button and text section */}
               <div className="flex flex-col items-center w-full">
-                <div className="flex flex-col items-center gap-4 w-full landscape:items-center sm:items-start">
-                  <div className="flex flex-col items-center w-full landscape:items-center sm:items-start gap-4">
+                <div className="flex flex-col items-center gap-4 w-full sm:items-start">
+                  <div className="flex flex-col items-center w-full sm:items-start gap-4">
                     <button className="flex items-center justify-center space-x-3 bg-[#5865F2] px-8 py-3 rounded-full text-white text-base sm:text-lg hover:opacity-90 transition-opacity border-2 border-white shadow-[0_0_15px_rgba(0,0,0,0.5)] whitespace-nowrap">
                       <DiscordIcon className="h-5 w-5 sm:h-6 sm:w-6" />
                       <span>Holder verify</span>
                     </button>
-                    <p className="text-xs landscape:text-sm sm:text-base md:text-lg lg:text-xl text-gray-300 text-center landscape:text-center sm:text-left whitespace-nowrap">
+                    <p className="text-xs sm:text-base md:text-lg lg:text-xl text-gray-300 text-center sm:text-left whitespace-nowrap">
                       to get your discord roles and start earning rewards
                     </p>
                   </div>
