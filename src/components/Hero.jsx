@@ -14,16 +14,36 @@ const Hero = () => {
     <div className="w-full bg-gray-950/80 border-t border-b border-gray-800">
       <div className="py-4 sm:py-6 overflow-hidden">
         <div className="relative">
-          <div className="flex animate-scroll gap-4 sm:gap-6 md:gap-8 lg:gap-12 whitespace-nowrap">
-            {[...gifs, ...gifs].map((gif, index) => (
+          <div className="flex animate-scroll">
+            {/* Original set */}
+            {gifs.map((gif, index) => (
               <div 
-                key={index} 
-                className="w-32 h-32 sm:w-48 sm:h-48 md:w-56 md:h-56 lg:w-64 lg:h-64 flex-shrink-0 rounded-xl overflow-hidden bg-gray-900 shadow-xl transform hover:scale-105 transition-transform duration-300"
+                key={`original-${index}`}
+                className="w-32 h-32 sm:w-48 sm:h-48 md:w-56 md:h-56 lg:w-64 lg:h-64 flex-shrink-0 rounded-xl overflow-hidden bg-gray-900 shadow-xl transform hover:scale-105 transition-transform duration-300 mx-2 sm:mx-3"
               >
                 <img 
                   src={gif} 
                   alt={`BUXDAO NFT ${index + 1}`}
                   className="w-full h-full object-cover"
+                  loading="eager"
+                  decoding="async"
+                  fetchpriority="high"
+                />
+              </div>
+            ))}
+            {/* Duplicate set for seamless loop */}
+            {gifs.map((gif, index) => (
+              <div 
+                key={`duplicate-${index}`}
+                className="w-32 h-32 sm:w-48 sm:h-48 md:w-56 md:h-56 lg:w-64 lg:h-64 flex-shrink-0 rounded-xl overflow-hidden bg-gray-900 shadow-xl transform hover:scale-105 transition-transform duration-300 mx-2 sm:mx-3"
+              >
+                <img 
+                  src={gif} 
+                  alt={`BUXDAO NFT ${index + 1}`}
+                  className="w-full h-full object-cover"
+                  loading="eager"
+                  decoding="async"
+                  fetchpriority="high"
                 />
               </div>
             ))}
