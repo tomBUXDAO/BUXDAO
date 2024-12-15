@@ -227,9 +227,9 @@ const Collection = () => {
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
           >
-            {collectionData.map((collection) => (
+            {[...collectionData, ...collectionData, ...collectionData].map((collection, index) => (
               <div 
-                key={collection.id}
+                key={`${collection.id}-${index}`}
                 className="w-full sm:w-1/2 lg:w-1/3 flex-shrink-0"
               >
                 <div className="bg-gray-900 rounded-xl overflow-hidden hover:transform hover:scale-105 transition-transform duration-300">
