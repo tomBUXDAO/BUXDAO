@@ -44,18 +44,19 @@ const Hero = () => {
         <div className="max-w-7xl mx-auto px-8 sm:px-12 lg:px-16 py-8 sm:py-16">
           {/* Change to 2 columns on mobile landscape */}
           <div className="grid grid-cols-1 landscape:grid-cols-10 sm:grid-cols-10 gap-8">
-            <div className="landscape:col-span-7 sm:col-span-7 sm:pr-8">
-              {/* Bigger text on mobile portrait */}
-              <h1 className="text-2xl landscape:text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold mb-8 sm:mb-10 bg-gradient-to-r from-purple-400 to-pink-400 text-transparent bg-clip-text">
-                BUXDAO is a community owned NFT project focused on providing passive income for holding members
-              </h1>
-              <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold text-gray-300 mb-8 sm:mb-10">
-                <span className="inline-flex items-center gap-4">
-                  {/* Bigger icon on mobile portrait */}
-                  <ChartBarIcon className="h-10 w-10 landscape:h-8 landscape:w-8 sm:h-10 sm:w-10 text-white" />
-                  100% revenue share paid out through daily token-based rewards
-                </span>
-              </h2>
+            <div className="landscape:col-span-7 sm:col-span-7 sm:pr-8 landscape:flex landscape:flex-col landscape:justify-between">
+              <div>
+                <h1 className="text-2xl landscape:text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold mb-8 sm:mb-10 bg-gradient-to-r from-purple-400 to-pink-400 text-transparent bg-clip-text">
+                  BUXDAO is a community owned NFT project focused on providing passive income for holding members
+                </h1>
+                <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold text-gray-300 mb-8 sm:mb-10">
+                  <span className="inline-flex items-center gap-4">
+                    <ChartBarIcon className="h-10 w-10 landscape:h-8 landscape:w-8 sm:h-10 sm:w-10 text-white" />
+                    100% revenue share paid out through daily token-based rewards
+                  </span>
+                </h2>
+              </div>
+              
               {/* Center button and text section */}
               <div className="flex flex-col items-center w-full">
                 <div className="flex flex-col items-center gap-4 w-full landscape:items-center sm:items-start">
@@ -73,7 +74,7 @@ const Hero = () => {
             </div>
 
             {/* Icons grid */}
-            <div className="landscape:col-span-3 sm:col-span-3 grid grid-cols-2 landscape:grid-cols-1 sm:grid-cols-1 gap-4 sm:gap-6">
+            <div className="landscape:col-span-3 sm:col-span-3 grid grid-cols-2 landscape:grid-cols-1 sm:grid-cols-1 gap-4 sm:gap-6 landscape:h-full landscape:justify-center">
               <div className="flex items-center space-x-3">
                 <div className="bg-white/10 p-2 rounded-xl">
                   <LockClosedIcon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
