@@ -33,11 +33,17 @@ const Header = () => {
               <a href="#home" className="text-gray-300 hover:text-white transition-colors">
                 Home
               </a>
-              <a href="#collection" className="text-gray-300 hover:text-white transition-colors">
-                Collection
+              <a href="#collections" className="text-gray-300 hover:text-white transition-colors">
+                Collections
               </a>
-              <a href="#roadmap" className="text-gray-300 hover:text-white transition-colors">
-                Roadmap
+              <a href="#bux" className="text-gray-300 hover:text-white transition-colors">
+                $BUX
+              </a>
+              <a href="#collabs" className="text-gray-300 hover:text-white transition-colors">
+                A.I. Collabs
+              </a>
+              <a href="#soon" className="text-gray-300 hover:text-white transition-colors">
+                Coming Soon
               </a>
               <button className="bg-gradient-to-r from-purple-500 to-pink-500 px-6 py-2 rounded-full text-white hover:opacity-90 transition-opacity">
                 Connect Wallet
@@ -53,11 +59,17 @@ const Header = () => {
               <a href="#home" className="text-gray-300 hover:text-white transition-colors">
                 Home
               </a>
-              <a href="#collection" className="text-gray-300 hover:text-white transition-colors">
-                Collection
+              <a href="#collections" className="text-gray-300 hover:text-white transition-colors">
+                Collections
               </a>
-              <a href="#roadmap" className="text-gray-300 hover:text-white transition-colors">
-                Roadmap
+              <a href="#bux" className="text-gray-300 hover:text-white transition-colors">
+                $BUX
+              </a>
+              <a href="#collabs" className="text-gray-300 hover:text-white transition-colors">
+                A.I. Collabs
+              </a>
+              <a href="#soon" className="text-gray-300 hover:text-white transition-colors">
+                Coming Soon
               </a>
               <button className="bg-gradient-to-r from-purple-500 to-pink-500 px-6 py-2 rounded-full text-white hover:opacity-90 transition-opacity">
                 Connect Wallet
