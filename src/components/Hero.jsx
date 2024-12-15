@@ -3,13 +3,6 @@ import { DiscordIcon } from './Icons';
 import { useState } from 'react';
 
 const Hero = () => {
-  const [gifsLoaded, setGifsLoaded] = useState(0);
-  const totalGifs = gifs.length * 2; // Original + duplicate set
-
-  const handleGifLoad = () => {
-    setGifsLoaded(prev => prev + 1);
-  };
-
   const gifs = [
     '/gifs/bitbot.gif',
     '/gifs/catz.gif',
@@ -17,6 +10,13 @@ const Hero = () => {
     '/gifs/mm.gif',
     '/gifs/mm3d.gif'
   ];
+
+  const [gifsLoaded, setGifsLoaded] = useState(0);
+  const totalGifs = gifs.length * 2;
+
+  const handleGifLoad = () => {
+    setGifsLoaded(prev => prev + 1);
+  };
 
   const GallerySection = () => (
     <div className="w-full bg-gray-950/80 border-t border-b border-gray-800">
