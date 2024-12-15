@@ -58,7 +58,7 @@ const Hero = () => {
               </div>
               
               {/* Center button and text section */}
-              <div className="flex flex-col items-center w-full">
+              <div className="flex flex-col items-center w-full lg:items-center">
                 <div className="flex flex-col items-center gap-4 w-full">
                   <div className="flex flex-col items-center w-full gap-4">
                     <button className="flex items-center justify-center space-x-3 bg-[#5865F2] px-8 py-3 rounded-full text-white text-base sm:text-lg hover:opacity-90 transition-opacity border-2 border-white shadow-[0_0_15px_rgba(0,0,0,0.5)] whitespace-nowrap">
