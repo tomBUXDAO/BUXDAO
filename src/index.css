@@ -10,4 +10,10 @@
     position: relative;
     width: 100%;
   }
+}
+
+/* Remove problematic styles */
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 } 
