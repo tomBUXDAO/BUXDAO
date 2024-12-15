@@ -45,26 +45,23 @@ const Hero = () => {
         <div className="grid grid-cols-1 lg:grid-cols-10 gap-8">
           {/* Text and buttons */}
           <div className="lg:col-span-7 lg:pr-8">
-            <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold mb-4 sm:mb-6 bg-gradient-to-r from-purple-400 to-pink-400 text-transparent bg-clip-text">
+            <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold mb-8 sm:mb-10 bg-gradient-to-r from-purple-400 to-pink-400 text-transparent bg-clip-text">
               BUXDAO is a community owned NFT project focused on providing passive income for holding members
             </h1>
-            <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold text-gray-300 mb-4 sm:mb-6">
+            <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold text-gray-300 mb-8 sm:mb-10">
               <span className="inline-flex items-center gap-4">
                 <ChartBarIcon className="h-8 w-8 sm:h-10 sm:w-10 text-white" />
                 100% revenue share paid out through daily token-based rewards
               </span>
             </h2>
-            <p className="text-sm sm:text-base md:text-lg lg:text-xl text-gray-300 mb-8 sm:mb-10">
-              <span className="inline-flex items-center gap-4">
-                <WalletIcon className="h-8 w-8 sm:h-10 sm:w-10 text-white" />
-                Holder verify to be autoassigned holder based roles in our discord server and start earning rewards
-              </span>
-            </p>
-            <div className="flex items-center justify-center">
-              <button className="flex items-center justify-center space-x-3 bg-[#5865F2] px-12 py-3 rounded-full text-white text-base sm:text-lg hover:opacity-90 transition-opacity border-2 border-white shadow-[0_0_15px_rgba(0,0,0,0.5)]">
+            <div className="inline-flex items-center gap-8">
+              <button className="flex items-center justify-center space-x-3 bg-[#5865F2] px-8 py-3 rounded-full text-white text-base sm:text-lg hover:opacity-90 transition-opacity border-2 border-white shadow-[0_0_15px_rgba(0,0,0,0.5)] whitespace-nowrap">
                 <DiscordIcon className="h-5 w-5 sm:h-6 sm:w-6" />
                 <span>Holder verify</span>
               </button>
+              <p className="text-sm sm:text-base md:text-lg lg:text-xl text-gray-300">
+                to be autoassigned holder based roles in our discord server and start earning rewards
+              </p>
             </div>
           </div>
 
