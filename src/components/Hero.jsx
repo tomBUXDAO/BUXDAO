@@ -63,8 +63,9 @@ const Hero = () => {
                     <DiscordIcon className="h-5 w-5 sm:h-6 sm:w-6" />
                     <span>Holder verify</span>
                   </button>
-                  <p className="text-sm sm:text-base md:text-lg lg:text-xl text-gray-300 text-center landscape:text-left sm:text-left w-[fit-content]">
-                    to get your discord roles and start earning rewards
+                  <p className="text-sm sm:text-base md:text-lg lg:text-xl text-gray-300 text-center landscape:text-left sm:text-left">
+                    <span className="block landscape:inline sm:inline">to get your discord roles</span>
+                    <span className="block landscape:inline sm:inline landscape:before:content-[' '] sm:before:content-[' ']">and start earning rewards</span>
                   </p>
                 </div>
               </div>
