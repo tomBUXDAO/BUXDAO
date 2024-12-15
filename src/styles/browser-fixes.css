@@ -1,0 +1,10 @@
+/* Browser compatibility fixes */
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Optimize text rendering */
+html {
+  text-rendering: optimizeLegibility;
+} 
