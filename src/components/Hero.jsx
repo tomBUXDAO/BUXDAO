@@ -61,7 +61,7 @@ const Hero = () => {
               </span>
             </p>
             <div className="flex items-center justify-center">
-              <button className="flex items-center justify-center space-x-3 bg-[#5865F2] px-8 py-3 rounded-full text-white text-base sm:text-lg hover:opacity-90 transition-opacity border-2 border-white shadow-[0_0_15px_rgba(0,0,0,0.5)]">
+              <button className="flex items-center justify-center space-x-3 bg-[#5865F2] px-12 py-3 rounded-full text-white text-base sm:text-lg hover:opacity-90 transition-opacity border-2 border-white shadow-[0_0_15px_rgba(0,0,0,0.5)]">
                 <DiscordIcon className="h-5 w-5 sm:h-6 sm:w-6" />
                 <span>Holder verify</span>
               </button>
