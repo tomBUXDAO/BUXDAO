@@ -195,10 +195,7 @@ const Collection = () => {
         
         <div 
           ref={containerRef}
-          className="relative touch-pan-x overflow-hidden"
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
+          className="relative overflow-hidden"
         >
           <button 
             onClick={prevSlide}
@@ -208,60 +205,64 @@ const Collection = () => {
           </button>
 
           <div 
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-8 transition-all duration-500 ease-out"
+            className="flex gap-4 sm:gap-8 transition-transform duration-300 ease-out"
             style={{
-              transform: `translateX(${dragPosition + (-currentIndex * tileWidth.current)}px)`,
-              willChange: 'transform'
+              transform: `translateX(${dragPosition - (currentIndex * (100 / (window.innerWidth >= 1024 ? 3 : 2)))}%)`,
             }}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
           >
-            {[...collectionData, ...collectionData].slice(
-              currentIndex,
-              currentIndex + (window.innerWidth >= 1024 ? 3 : 2)
-            ).map((collection) => (
-              <div key={`${collection.id}-${currentIndex}`} className="bg-gray-900 rounded-xl overflow-hidden hover:transform hover:scale-105 transition-transform duration-300">
-                <div className="aspect-square">
-                  <img 
-                    src={collection.image} 
-                    alt={collection.title}
-                    className="w-full h-full object-cover" 
-                  />
-                </div>
-                <div className="p-4 sm:p-6">
-                  <h3 className="text-lg sm:text-xl font-semibold text-white mb-4">{collection.title}</h3>
-                  <div className="flex justify-between mb-6">
-                    <div>
-                      <p className="text-gray-400 text-sm">Floor Price</p>
-                      <p className="text-white font-bold">
-                        {collection.floorPrice} SOL
-                        <span className="text-gray-400 text-sm ml-1">
-                          {solPrice > 0 ? (
-                            `($${(Number(collection.floorPrice) * solPrice).toFixed(2)})`
-                          ) : ''}
-                        </span>
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-gray-400 text-sm">Total Supply</p>
-                      <p className="text-white font-bold">{collection.totalSupply}</p>
-                    </div>
+            {collectionData.map((collection) => (
+              <div 
+                key={collection.id}
+                className="w-full sm:w-1/2 lg:w-1/3 flex-shrink-0"
+              >
+                <div className="bg-gray-900 rounded-xl overflow-hidden hover:transform hover:scale-105 transition-transform duration-300">
+                  <div className="aspect-square">
+                    <img 
+                      src={collection.image} 
+                      alt={collection.title}
+                      className="w-full h-full object-cover" 
+                    />
                   </div>
-                  <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
-                    <a 
-                      href={collection.magicEdenUrl} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="w-full bg-gradient-to-r from-purple-500 to-pink-500 px-4 py-2 rounded-full text-white hover:opacity-90 transition-opacity text-center text-sm sm:text-base"
-                    >
-                      Magic Eden
-                    </a>
-                    <a 
-                      href={collection.tensorUrl} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="w-full border border-white px-4 py-2 rounded-full text-white hover:bg-white hover:text-black transition-all text-center text-sm sm:text-base"
-                    >
-                      Tensor
-                    </a>
+                  <div className="p-4 sm:p-6">
+                    <h3 className="text-lg sm:text-xl font-semibold text-white mb-4">{collection.title}</h3>
+                    <div className="flex justify-between mb-6">
+                      <div>
+                        <p className="text-gray-400 text-sm">Floor Price</p>
+                        <p className="text-white font-bold">
+                          {collection.floorPrice} SOL
+                          <span className="text-gray-400 text-sm ml-1">
+                            {solPrice > 0 ? (
+                              `($${(Number(collection.floorPrice) * solPrice).toFixed(2)})`
+                            ) : ''}
+                          </span>
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-gray-400 text-sm">Total Supply</p>
+                        <p className="text-white font-bold">{collection.totalSupply}</p>
+                      </div>
+                    </div>
+                    <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
+                      <a 
+                        href={collection.magicEdenUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="w-full bg-gradient-to-r from-purple-500 to-pink-500 px-4 py-2 rounded-full text-white hover:opacity-90 transition-opacity text-center text-sm sm:text-base"
+                      >
+                        Magic Eden
+                      </a>
+                      <a 
+                        href={collection.tensorUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="w-full border border-white px-4 py-2 rounded-full text-white hover:bg-white hover:text-black transition-all text-center text-sm sm:text-base"
+                      >
+                        Tensor
+                      </a>
+                    </div>
                   </div>
                 </div>
               </div>
