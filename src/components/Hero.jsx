@@ -54,15 +54,15 @@ const Hero = () => {
                 100% revenue share paid out through daily token-based rewards
               </span>
             </h2>
-            <p className="text-sm sm:text-base md:text-lg lg:text-xl text-gray-300 mb-4 sm:mb-6">
+            <p className="text-sm sm:text-base md:text-lg lg:text-xl text-gray-300 mb-8 sm:mb-10">
               <span className="inline-flex items-center gap-4">
                 <WalletIcon className="h-8 w-8 sm:h-10 sm:w-10 text-white" />
                 Holder verify to be autoassigned holder based roles in our discord server and start earning rewards
               </span>
             </p>
-            <div className="flex items-center">
-              <button className="flex items-center justify-center space-x-2 bg-[#5865F2] px-6 py-2 rounded-full text-white text-sm sm:text-base hover:opacity-90 transition-opacity">
-                <DiscordIcon className="h-4 w-4 sm:h-5 sm:w-5" />
+            <div className="flex items-center justify-center">
+              <button className="flex items-center justify-center space-x-3 bg-[#5865F2] px-8 py-3 rounded-full text-white text-base sm:text-lg hover:opacity-90 transition-opacity border-2 border-white shadow-[0_0_15px_rgba(0,0,0,0.5)]">
+                <DiscordIcon className="h-5 w-5 sm:h-6 sm:w-6" />
                 <span>Holder verify</span>
               </button>
             </div>
