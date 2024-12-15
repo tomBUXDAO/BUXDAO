@@ -35,16 +35,16 @@ const Hero = () => {
 
   return (
     <section className="min-h-screen pt-20 bg-gradient-to-b from-black to-purple-900">
-      {/* Gallery at top for mobile */}
+      {/* Gallery at top only for mobile */}
       <div className="block sm:hidden">
         <GallerySection />
       </div>
 
-      {/* Main content - update padding to match header */}
       <div className="max-w-7xl mx-auto px-8 sm:px-12 lg:px-16 py-8 sm:py-16">
-        <div className="grid grid-cols-1 lg:grid-cols-10 gap-8">
-          {/* Text and buttons */}
-          <div className="lg:col-span-7 lg:pr-8">
+        {/* Change grid breakpoint from lg to sm */}
+        <div className="grid grid-cols-1 sm:grid-cols-10 gap-8">
+          {/* Change col-span breakpoint from lg to sm */}
+          <div className="sm:col-span-7 sm:pr-8">
             <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold mb-8 sm:mb-10 bg-gradient-to-r from-purple-400 to-pink-400 text-transparent bg-clip-text">
               BUXDAO is a community owned NFT project focused on providing passive income for holding members
             </h1>
@@ -65,8 +65,8 @@ const Hero = () => {
             </div>
           </div>
 
-          {/* Icons grid - 2x2 on mobile, vertical on desktop */}
-          <div className="lg:col-span-3 grid grid-cols-2 lg:grid-cols-1 gap-4 lg:gap-6">
+          {/* Change col-span and grid-cols breakpoints from lg to sm */}
+          <div className="sm:col-span-3 grid grid-cols-2 sm:grid-cols-1 gap-4 sm:gap-6">
             <div className="flex items-center space-x-3">
               <div className="bg-white/10 p-2 rounded-xl">
                 <LockClosedIcon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
@@ -110,7 +110,7 @@ const Hero = () => {
         </div>
       </div>
 
-      {/* Gallery at bottom for tablet/desktop */}
+      {/* Gallery at bottom for tablet and desktop */}
       <div className="hidden sm:block">
         <GallerySection />
       </div>
