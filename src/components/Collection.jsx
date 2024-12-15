@@ -135,14 +135,25 @@ const Collection = () => {
 
   const handleTouchMove = (e) => {
     if (!isDragging) return;
+    
+    // Calculate movement with reduced sensitivity
     const currentPosition = e.touches[0].clientX - startPosition;
-    setDragPosition(currentPosition);
+    const sensitivity = 0.5; // Reduce movement by half
+    const maxDrag = tileWidth.current * 0.8; // Limit maximum drag distance
+    
+    // Limit the drag distance and apply sensitivity
+    const limitedDrag = Math.max(
+      Math.min(currentPosition * sensitivity, maxDrag),
+      -maxDrag
+    );
+    
+    setDragPosition(limitedDrag);
   };
 
   const handleTouchEnd = () => {
     if (!isDragging) return;
     
-    const moveThreshold = tileWidth.current / 2;
+    const moveThreshold = tileWidth.current * 0.3; // Reduce threshold to 30% of tile width
     const movement = dragPosition;
 
     if (Math.abs(movement) > moveThreshold) {
@@ -153,8 +164,11 @@ const Collection = () => {
       }
     }
     
-    setIsDragging(false);
-    setDragPosition(0);
+    // Add a small delay before resetting position for smoother transition
+    setTimeout(() => {
+      setIsDragging(false);
+      setDragPosition(0);
+    }, 50);
   };
 
   const nextSlide = () => {
