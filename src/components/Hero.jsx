@@ -34,85 +34,86 @@ const Hero = () => {
   );
 
   return (
-    <section className="min-h-fit sm:min-h-screen pt-20 bg-gradient-to-b from-black to-purple-900">
-      {/* Gallery at top only for mobile */}
-      <div className="block sm:hidden">
-        <GallerySection />
-      </div>
+    <section className="bg-gradient-to-b from-black to-purple-900">
+      <div className="pt-20">
+        {/* Gallery at top only for mobile */}
+        <div className="block sm:hidden">
+          <GallerySection />
+        </div>
 
-      <div className="max-w-7xl mx-auto px-8 sm:px-12 lg:px-16 py-8 sm:py-16">
-        {/* Change grid breakpoint from lg to sm */}
-        <div className="grid grid-cols-1 sm:grid-cols-10 gap-8">
-          {/* Change col-span breakpoint from lg to sm */}
-          <div className="sm:col-span-7 sm:pr-8">
-            <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold mb-8 sm:mb-10 bg-gradient-to-r from-purple-400 to-pink-400 text-transparent bg-clip-text">
-              BUXDAO is a community owned NFT project focused on providing passive income for holding members
-            </h1>
-            <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold text-gray-300 mb-8 sm:mb-10">
-              <span className="inline-flex items-center gap-4">
-                <ChartBarIcon className="h-8 w-8 sm:h-10 sm:w-10 text-white" />
-                100% revenue share paid out through daily token-based rewards
-              </span>
-            </h2>
-            <div className="inline-flex items-center gap-4">
-              <button className="flex items-center justify-center space-x-3 bg-[#5865F2] px-8 py-3 rounded-full text-white text-base sm:text-lg hover:opacity-90 transition-opacity border-2 border-white shadow-[0_0_15px_rgba(0,0,0,0.5)] whitespace-nowrap">
-                <DiscordIcon className="h-5 w-5 sm:h-6 sm:w-6" />
-                <span>Holder verify</span>
-              </button>
-              <p className="text-sm sm:text-base md:text-lg lg:text-xl text-gray-300">
-                to get your discord roles and start earning rewards
-              </p>
-            </div>
-          </div>
-
-          {/* Change col-span and grid-cols breakpoints from lg to sm */}
-          <div className="sm:col-span-3 grid grid-cols-2 sm:grid-cols-1 gap-4 sm:gap-6">
-            <div className="flex items-center space-x-3">
-              <div className="bg-white/10 p-2 rounded-xl">
-                <LockClosedIcon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
-              </div>
-              <div>
-                <h3 className="text-yellow-400 font-semibold text-sm">Community Driven</h3>
-                <p className="text-gray-300 text-xs">Unlock holder only content</p>
+        <div className="max-w-7xl mx-auto px-8 sm:px-12 lg:px-16 py-8 sm:py-16">
+          <div className="grid grid-cols-1 sm:grid-cols-10 gap-8">
+            {/* Change col-span breakpoint from lg to sm */}
+            <div className="sm:col-span-7 sm:pr-8">
+              <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold mb-8 sm:mb-10 bg-gradient-to-r from-purple-400 to-pink-400 text-transparent bg-clip-text">
+                BUXDAO is a community owned NFT project focused on providing passive income for holding members
+              </h1>
+              <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold text-gray-300 mb-8 sm:mb-10">
+                <span className="inline-flex items-center gap-4">
+                  <ChartBarIcon className="h-8 w-8 sm:h-10 sm:w-10 text-white" />
+                  100% revenue share paid out through daily token-based rewards
+                </span>
+              </h2>
+              <div className="inline-flex items-center gap-4">
+                <button className="flex items-center justify-center space-x-3 bg-[#5865F2] px-8 py-3 rounded-full text-white text-base sm:text-lg hover:opacity-90 transition-opacity border-2 border-white shadow-[0_0_15px_rgba(0,0,0,0.5)] whitespace-nowrap">
+                  <DiscordIcon className="h-5 w-5 sm:h-6 sm:w-6" />
+                  <span>Holder verify</span>
+                </button>
+                <p className="text-sm sm:text-base md:text-lg lg:text-xl text-gray-300">
+                  to get your discord roles and start earning rewards
+                </p>
               </div>
             </div>
 
-            <div className="flex items-center space-x-3">
-              <div className="bg-white/10 p-2 rounded-xl">
-                <CurrencyDollarIcon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+            {/* Change col-span and grid-cols breakpoints from lg to sm */}
+            <div className="sm:col-span-3 grid grid-cols-2 sm:grid-cols-1 gap-4 sm:gap-6">
+              <div className="flex items-center space-x-3">
+                <div className="bg-white/10 p-2 rounded-xl">
+                  <LockClosedIcon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-yellow-400 font-semibold text-sm">Community Driven</h3>
+                  <p className="text-gray-300 text-xs">Unlock holder only content</p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-yellow-400 font-semibold text-sm">Daily BUX Rewards</h3>
-                <p className="text-gray-300 text-xs">Link Discord & wallet to claim</p>
-              </div>
-            </div>
 
-            <div className="flex items-center space-x-3">
-              <div className="bg-white/10 p-2 rounded-xl">
-                <PhotoIcon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+              <div className="flex items-center space-x-3">
+                <div className="bg-white/10 p-2 rounded-xl">
+                  <CurrencyDollarIcon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-yellow-400 font-semibold text-sm">Daily BUX Rewards</h3>
+                  <p className="text-gray-300 text-xs">Link Discord & wallet to claim</p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-yellow-400 font-semibold text-sm">Unique Art</h3>
-                <p className="text-gray-300 text-xs">Trade on the Solana blockchain</p>
-              </div>
-            </div>
 
-            <div className="flex items-center space-x-3">
-              <div className="bg-white/10 p-2 rounded-xl">
-                <CircleStackIcon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+              <div className="flex items-center space-x-3">
+                <div className="bg-white/10 p-2 rounded-xl">
+                  <PhotoIcon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-yellow-400 font-semibold text-sm">Unique Art</h3>
+                  <p className="text-gray-300 text-xs">Trade on the Solana blockchain</p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-yellow-400 font-semibold text-sm">Community Poker</h3>
-                <p className="text-gray-300 text-xs">Win NFT and $BUX prizes</p>
+
+              <div className="flex items-center space-x-3">
+                <div className="bg-white/10 p-2 rounded-xl">
+                  <CircleStackIcon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-yellow-400 font-semibold text-sm">Community Poker</h3>
+                  <p className="text-gray-300 text-xs">Win NFT and $BUX prizes</p>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Gallery at bottom for tablet and desktop */}
-      <div className="hidden sm:block">
-        <GallerySection />
+        {/* Gallery at bottom for tablet and desktop */}
+        <div className="hidden sm:block">
+          <GallerySection />
+        </div>
       </div>
     </section>
   );
