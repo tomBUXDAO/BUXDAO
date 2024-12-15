@@ -1,6 +1,5 @@
 import { LockClosedIcon, ChartBarIcon, PhotoIcon, CircleStackIcon, WalletIcon, CurrencyDollarIcon } from '@heroicons/react/24/outline';
 import { DiscordIcon } from './Icons';
-import { useState, useEffect, useRef } from 'react';
 
 const Hero = () => {
   const gifs = [
@@ -11,54 +10,15 @@ const Hero = () => {
     '/gifs/mm3d.gif'
   ];
 
-  const scrollRef = useRef(null);
-  const [gifsLoaded, setGifsLoaded] = useState(0);
-  const totalGifs = gifs.length * 2;
-
-  useEffect(() => {
-    let animationFrameId;
-    let position = 0;
-    const speed = 1; // Adjust speed as needed
-    
-    const animate = () => {
-      if (scrollRef.current) {
-        position -= speed;
-        const resetPoint = -(scrollRef.current.firstChild.offsetWidth * gifs.length);
-        
-        if (position <= resetPoint) {
-          position = 0;
-        }
-        
-        scrollRef.current.style.transform = `translateX(${position}px)`;
-      }
-      animationFrameId = requestAnimationFrame(animate);
-    };
-
-    if (gifsLoaded === totalGifs) {
-      animationFrameId = requestAnimationFrame(animate);
-    }
-
-    return () => {
-      if (animationFrameId) {
-        cancelAnimationFrame(animationFrameId);
-      }
-    };
-  }, [gifsLoaded]);
-
   const GallerySection = () => (
     <div className="w-full bg-gray-950/80 border-t border-b border-gray-800">
       <div className="py-4 sm:py-6 overflow-hidden">
         <div className="relative">
-          <div 
-            ref={scrollRef}
-            className={`flex transition-opacity duration-500 ${
-              gifsLoaded < totalGifs ? 'opacity-0' : 'opacity-100'
-            }`}
-          >
+          <div className="flex animate-scroll gap-4 sm:gap-6 md:gap-8">
             {[...gifs, ...gifs].map((gif, index) => (
               <div 
                 key={`gif-${index}`}
-                className="w-32 h-32 sm:w-48 sm:h-48 md:w-56 md:h-56 lg:w-64 lg:h-64 flex-shrink-0 rounded-xl overflow-hidden bg-gray-900 shadow-xl transform hover:scale-105 transition-transform duration-300 mx-2 sm:mx-3"
+                className="w-32 h-32 sm:w-48 sm:h-48 md:w-56 md:h-56 lg:w-64 lg:h-64 flex-shrink-0 rounded-xl overflow-hidden bg-gray-900 shadow-xl transform hover:scale-105 transition-transform duration-300"
               >
                 <img 
                   src={gif} 
@@ -66,7 +26,6 @@ const Hero = () => {
                   className="w-full h-full object-cover"
                   loading="eager"
                   decoding="async"
-                  onLoad={() => setGifsLoaded(prev => prev + 1)}
                 />
               </div>
             ))}

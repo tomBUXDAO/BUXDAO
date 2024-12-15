@@ -12,16 +12,13 @@ export default {
       keyframes: {
         scroll: {
           '0%': { transform: 'translateX(0)' },
-          '100%': { transform: 'translateX(calc(-250px * 5))' }
+          '100%': { transform: 'translateX(calc(-100% - 2rem))' }
         }
       },
       animation: {
         scroll: 'scroll 8s linear infinite'
       }
     },
-  },
-  future: {
-    hoverOnlyWhenSupported: true,
   },
   plugins: [],
 } 
