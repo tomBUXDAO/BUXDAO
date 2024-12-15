@@ -58,13 +58,15 @@ const Hero = () => {
               </h2>
               {/* Center button and stack text on mobile portrait */}
               <div className="flex flex-col landscape:flex-row sm:flex-row items-center gap-4">
-                <button className="flex items-center justify-center space-x-3 bg-[#5865F2] px-8 py-3 rounded-full text-white text-base sm:text-lg hover:opacity-90 transition-opacity border-2 border-white shadow-[0_0_15px_rgba(0,0,0,0.5)] whitespace-nowrap">
-                  <DiscordIcon className="h-5 w-5 sm:h-6 sm:w-6" />
-                  <span>Holder verify</span>
-                </button>
-                <p className="text-sm sm:text-base md:text-lg lg:text-xl text-gray-300 text-center landscape:text-left sm:text-left">
-                  to get your discord roles and start earning rewards
-                </p>
+                <div className="flex flex-col items-center gap-4 landscape:block sm:block">
+                  <button className="flex items-center justify-center space-x-3 bg-[#5865F2] px-8 py-3 rounded-full text-white text-base sm:text-lg hover:opacity-90 transition-opacity border-2 border-white shadow-[0_0_15px_rgba(0,0,0,0.5)] whitespace-nowrap">
+                    <DiscordIcon className="h-5 w-5 sm:h-6 sm:w-6" />
+                    <span>Holder verify</span>
+                  </button>
+                  <p className="text-sm sm:text-base md:text-lg lg:text-xl text-gray-300 text-center landscape:text-left sm:text-left w-[fit-content]">
+                    to get your discord roles and start earning rewards
+                  </p>
+                </div>
               </div>
             </div>
 
