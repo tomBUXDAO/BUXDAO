@@ -34,7 +34,7 @@ const Hero = () => {
   );
 
   return (
-    <section className="min-h-screen pt-20 bg-gradient-to-b from-black to-purple-900">
+    <section className="min-h-fit sm:min-h-screen pt-20 bg-gradient-to-b from-black to-purple-900">
       {/* Gallery at top only for mobile */}
       <div className="block sm:hidden">
         <GallerySection />
