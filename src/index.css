@@ -5,15 +5,12 @@
 @tailwind utilities;
 
 @layer base {
-  html, body {
+  html {
     @apply overflow-x-hidden;
-    position: relative;
-    width: 100%;
+  }
+  
+  body {
+    @apply overflow-x-hidden;
+    text-rendering: optimizeLegibility;
   }
 }
-
-/* Remove problematic styles */
-* {
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-} 
