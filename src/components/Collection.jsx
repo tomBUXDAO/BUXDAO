@@ -19,8 +19,11 @@ const Collection = () => {
   const [collectionData, setCollectionData] = useState([]);
   const [solPrice, setSolPrice] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [touchStart, setTouchStart] = useState(null);
-  const [touchEnd, setTouchEnd] = useState(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragPosition, setDragPosition] = useState(0);
+  const [startPosition, setStartPosition] = useState(0);
+  
+  const tileWidth = useRef(0);
   const containerRef = useRef(null);
 
   const collections = [
@@ -117,72 +120,56 @@ const Collection = () => {
     fetchSolPrice();
   }, []);
 
-  const nextSlide = () => {
-    setCurrentIndex((prevIndex) => {
-      const newIndex = prevIndex - 1;
-      return newIndex < 0 ? collectionData.length - 1 : newIndex;
-    });
+  useEffect(() => {
+    if (containerRef.current) {
+      const containerWidth = containerRef.current.offsetWidth;
+      const numColumns = window.innerWidth >= 1024 ? 3 : 2;
+      tileWidth.current = containerWidth / numColumns;
+    }
+  }, []);
+
+  const handleTouchStart = (e) => {
+    setIsDragging(true);
+    setStartPosition(e.touches[0].clientX - dragPosition);
   };
 
-  const prevSlide = () => {
+  const handleTouchMove = (e) => {
+    if (!isDragging) return;
+    const currentPosition = e.touches[0].clientX - startPosition;
+    setDragPosition(currentPosition);
+  };
+
+  const handleTouchEnd = () => {
+    if (!isDragging) return;
+    
+    const moveThreshold = tileWidth.current / 2;
+    const movement = dragPosition;
+
+    if (Math.abs(movement) > moveThreshold) {
+      if (movement > 0) {
+        prevSlide();
+      } else {
+        nextSlide();
+      }
+    }
+    
+    setIsDragging(false);
+    setDragPosition(0);
+  };
+
+  const nextSlide = () => {
     setCurrentIndex((prevIndex) => {
       const newIndex = prevIndex + 1;
       return newIndex >= collectionData.length ? 0 : newIndex;
     });
   };
 
-  // Handle touch events
-  const handleTouchStart = (e) => {
-    setTouchStart(e.touches[0].clientX);
+  const prevSlide = () => {
+    setCurrentIndex((prevIndex) => {
+      const newIndex = prevIndex - 1;
+      return newIndex < 0 ? collectionData.length - 1 : newIndex;
+    });
   };
-
-  const handleTouchMove = (e) => {
-    setTouchEnd(e.touches[0].clientX);
-  };
-
-  const handleTouchEnd = () => {
-    if (!touchStart || !touchEnd) return;
-    
-    const distance = touchStart - touchEnd;
-    const minSwipeDistance = 50;
-
-    if (Math.abs(distance) < minSwipeDistance) return;
-
-    if (distance > 0) {
-      // Swiped left
-      nextSlide();
-    } else {
-      // Swiped right
-      prevSlide();
-    }
-
-    setTouchStart(null);
-    setTouchEnd(null);
-  };
-
-  // Handle scroll events
-  const handleWheel = (e) => {
-    if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
-      e.preventDefault();
-      if (e.deltaX > 0) {
-        nextSlide();
-      } else {
-        prevSlide();
-      }
-    }
-  };
-
-  useEffect(() => {
-    const container = containerRef.current;
-    if (container) {
-      container.addEventListener('wheel', handleWheel, { passive: false });
-    }
-    return () => {
-      if (container) {
-        container.removeEventListener('wheel', handleWheel);
-      }
-    };
-  }, []);
 
   if (loading) {
     return (
@@ -208,7 +195,7 @@ const Collection = () => {
         
         <div 
           ref={containerRef}
-          className="relative touch-pan-x"
+          className="relative touch-pan-x overflow-hidden"
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
@@ -220,7 +207,13 @@ const Collection = () => {
             <ChevronLeftIcon className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
           </button>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-8 transition-all duration-500 ease-in-out">
+          <div 
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-8 transition-all duration-500 ease-out"
+            style={{
+              transform: `translateX(${dragPosition + (-currentIndex * tileWidth.current)}px)`,
+              willChange: 'transform'
+            }}
+          >
             {[...collectionData, ...collectionData].slice(
               currentIndex,
               currentIndex + (window.innerWidth >= 1024 ? 3 : 2)
