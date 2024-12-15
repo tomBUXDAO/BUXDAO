@@ -1,7 +1,15 @@
 import { LockClosedIcon, ChartBarIcon, PhotoIcon, CircleStackIcon, WalletIcon, CurrencyDollarIcon } from '@heroicons/react/24/outline';
 import { DiscordIcon } from './Icons';
+import { useState } from 'react';
 
 const Hero = () => {
+  const [gifsLoaded, setGifsLoaded] = useState(0);
+  const totalGifs = gifs.length * 2; // Original + duplicate set
+
+  const handleGifLoad = () => {
+    setGifsLoaded(prev => prev + 1);
+  };
+
   const gifs = [
     '/gifs/bitbot.gif',
     '/gifs/catz.gif',
@@ -14,7 +22,7 @@ const Hero = () => {
     <div className="w-full bg-gray-950/80 border-t border-b border-gray-800">
       <div className="py-4 sm:py-6 overflow-hidden">
         <div className="relative">
-          <div className="flex animate-scroll">
+          <div className={`flex animate-scroll ${gifsLoaded < totalGifs ? 'opacity-0' : 'opacity-100'} transition-opacity duration-500`}>
             {/* Original set */}
             {gifs.map((gif, index) => (
               <div 
@@ -28,10 +36,11 @@ const Hero = () => {
                   loading="eager"
                   decoding="async"
                   fetchpriority="high"
+                  onLoad={handleGifLoad}
                 />
               </div>
             ))}
-            {/* Duplicate set for seamless loop */}
+            {/* Duplicate set */}
             {gifs.map((gif, index) => (
               <div 
                 key={`duplicate-${index}`}
@@ -44,6 +53,7 @@ const Hero = () => {
                   loading="eager"
                   decoding="async"
                   fetchpriority="high"
+                  onLoad={handleGifLoad}
                 />
               </div>
             ))}
