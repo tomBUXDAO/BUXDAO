@@ -1,6 +1,7 @@
 import Header from './components/Header';
 import Hero from './components/Hero';
 import Collection from './components/Collection';
+import BuxInfo from './components/BuxInfo';
 
 function App() {
   return (
@@ -8,6 +9,7 @@ function App() {
       <Header />
       <Hero />
       <Collection />
+      <BuxInfo />
     </div>
   );
 }
