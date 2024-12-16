@@ -82,7 +82,7 @@ const BuxInfo = () => {
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Token Valuation */}
-          <div className="bg-gray-100/90 backdrop-blur-sm rounded-2xl p-8 shadow-xl hover:shadow-2xl transition-shadow duration-300">
+          <div className="bg-gradient-to-br from-purple-200 to-purple-300/90 backdrop-blur-sm rounded-2xl p-8 shadow-xl hover:shadow-2xl transition-shadow duration-300">
             <h3 className="text-xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 mb-8">
               Token Metrics
             </h3>
@@ -107,7 +107,7 @@ const BuxInfo = () => {
           </div>
 
           {/* Revenue Sources */}
-          <div className="bg-gray-100/90 backdrop-blur-sm rounded-2xl p-8 shadow-xl hover:shadow-2xl transition-shadow duration-300">
+          <div className="bg-gradient-to-br from-purple-200 to-purple-300/90 backdrop-blur-sm rounded-2xl p-8 shadow-xl hover:shadow-2xl transition-shadow duration-300">
             <h3 className="text-xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 mb-6">
               Revenue Sources
             </h3>
@@ -122,7 +122,7 @@ const BuxInfo = () => {
           </div>
 
           {/* Top Holders */}
-          <div className="bg-gray-100/90 backdrop-blur-sm rounded-2xl p-8 shadow-xl hover:shadow-2xl transition-shadow duration-300">
+          <div className="bg-gradient-to-br from-purple-200 to-purple-300/90 backdrop-blur-sm rounded-2xl p-8 shadow-xl hover:shadow-2xl transition-shadow duration-300">
             <h3 className="text-xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 mb-8">
               Top Holders
             </h3>
