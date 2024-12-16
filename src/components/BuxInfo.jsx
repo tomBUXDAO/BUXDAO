@@ -3,7 +3,11 @@ import {
   XCircleIcon, 
   ShieldCheckIcon, 
   BanknotesIcon, 
-  UsersIcon 
+  UsersIcon,
+  TagIcon,
+  TicketIcon,
+  WrenchScrewdriverIcon,
+  SparklesIcon
 } from '@heroicons/react/24/outline';
 
 const BuxInfo = () => {
@@ -18,19 +22,29 @@ const BuxInfo = () => {
   const revenueSources = [
     {
       title: 'NFT Sales Royalties',
-      description: '8% of all 5 main collection NFT sales and 4% of all collab collection sales (providing royalties are paid)'
+      description: '8% of all 5 main collection NFT sales and 4% of all collab collection sales (providing royalties are paid)',
+      icon: TagIcon
     },
     {
-      title: 'SLOTTO.gg (launching Q1 2025)',
-      description: '2% of all weekly lottery ticket sales'
+      title: (
+        <>
+          SLOTTO.gg
+          <br />
+          <span className="text-sm font-normal">(launching Q1 2025)</span>
+        </>
+      ),
+      description: '2% of all weekly lottery ticket sales',
+      icon: TicketIcon
     },
     {
       title: 'Services',
-      description: 'Profits from dev/artwork produced for other projects'
+      description: 'Profits from dev/artwork produced for other projects',
+      icon: WrenchScrewdriverIcon
     },
     {
       title: 'NEW mints',
-      description: 'A new collection is planned for launch in 2025 with all mint fees being added to the pot'
+      description: 'A new collection is planned for launch in 2025 with all mint fees being added to the pot',
+      icon: SparklesIcon
     }
   ];
 
@@ -114,8 +128,13 @@ const BuxInfo = () => {
             <div className="space-y-4">
               {revenueSources.map((source, index) => (
                 <div key={index} className="border-b border-gray-300 last:border-0 pb-4 last:pb-0">
-                  <h4 className="text-gray-900 font-semibold mb-1">{source.title}</h4>
-                  <p className="text-gray-700 text-sm leading-tight">{source.description}</p>
+                  <div className="flex items-start gap-3">
+                    <source.icon className="w-5 h-5 text-purple-600 flex-shrink-0 mt-1" />
+                    <div>
+                      <h4 className="text-gray-900 font-semibold mb-1">{source.title}</h4>
+                      <p className="text-gray-700 text-sm leading-tight">{source.description}</p>
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
