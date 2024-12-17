@@ -61,13 +61,13 @@ const CollabCollections = () => {
                 <SparklesIcon className="w-10 h-10 text-purple-400 flex-shrink-0 mt-1" />
                 <div>
                   <p className="mb-4">
-                    We have launched 6 successful A.I. art collections through collaborations with other projects
+                    Periodically we team up with partner projects to produce bonus A.I. generated collections based on the partners original artwork
                   </p>
                   <p className="mb-4">
-                    Each collection is airdropped to both our A.I. BitBots holders and the partner project's community
+                    The collections are sent out as free airdrops exclusively to holders of A.I. BitBots and the partner project's community
                   </p>
                   <p>
-                    We aim to continue producing new collaborative collections throughout each year
+                    After airdrops are completed, the collection management is passed to the partner project. The NFTs then adopt additional utility within both communities
                   </p>
                 </div>
               </div>
