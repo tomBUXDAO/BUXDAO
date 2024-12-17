@@ -2,6 +2,7 @@ import Header from './components/Header';
 import Hero from './components/Hero';
 import Collection from './components/Collection';
 import BuxInfo from './components/BuxInfo';
+import CollabCollections from './components/CollabCollections';
 
 function App() {
   return (
@@ -10,6 +11,7 @@ function App() {
       <Hero />
       <Collection />
       <BuxInfo />
+      <CollabCollections />
     </div>
   );
 }
