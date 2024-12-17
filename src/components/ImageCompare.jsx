@@ -5,34 +5,70 @@ const ImageCompare = () => {
   const [position, setPosition] = useState(50);
   const containerRef = useRef(null);
 
-  const handleMouseDown = (e) => {
-    setIsResizing(true);
-    e.preventDefault();
-  };
-
-  const handleMouseUp = () => {
-    setIsResizing(false);
-  };
-
-  const handleMouseMove = (e) => {
+  const handleMove = (clientX) => {
     if (!isResizing || !containerRef.current) return;
 
     const container = containerRef.current;
     const rect = container.getBoundingClientRect();
-    const x = e.clientX - rect.left;
+    const x = clientX - rect.left;
     const containerWidth = container.offsetWidth;
 
     const newPosition = Math.min(Math.max((x / containerWidth) * 100, 0), 100);
     setPosition(newPosition);
   };
 
+  const handleStart = (clientX) => {
+    setIsResizing(true);
+    handleMove(clientX);
+  };
+
+  const handleEnd = () => {
+    setIsResizing(false);
+  };
+
+  // Mouse events
+  const handleMouseDown = (e) => {
+    e.preventDefault();
+    handleStart(e.clientX);
+  };
+
+  const handleMouseMove = (e) => {
+    handleMove(e.clientX);
+  };
+
+  const handleMouseUp = () => {
+    handleEnd();
+  };
+
+  // Touch events
+  const handleTouchStart = (e) => {
+    e.preventDefault();
+    const touch = e.touches[0];
+    handleStart(touch.clientX);
+  };
+
+  const handleTouchMove = (e) => {
+    const touch = e.touches[0];
+    handleMove(touch.clientX);
+  };
+
+  const handleTouchEnd = () => {
+    handleEnd();
+  };
+
   useEffect(() => {
-    document.addEventListener('mouseup', handleMouseUp);
-    document.addEventListener('mousemove', handleMouseMove);
+    if (isResizing) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+      window.addEventListener('touchmove', handleTouchMove);
+      window.addEventListener('touchend', handleTouchEnd);
+    }
 
     return () => {
-      document.removeEventListener('mouseup', handleMouseUp);
-      document.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleTouchEnd);
     };
   }, [isResizing]);
 
@@ -41,6 +77,7 @@ const ImageCompare = () => {
       ref={containerRef}
       className="relative aspect-square w-full select-none border border-gray-700 rounded-lg overflow-hidden"
       onMouseDown={handleMouseDown}
+      onTouchStart={handleTouchStart}
     >
       {/* After Image (Background) */}
       <div className="absolute inset-0">
