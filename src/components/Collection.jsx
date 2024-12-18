@@ -126,11 +126,11 @@ const Collection = () => {
       const containerWidth = containerRef.current.offsetWidth;
       let tileWidth;
       
-      if (screenWidth < 768) {  // Mobile
+      if (screenWidth < 768) {  // Mobile - one full width tile
         tileWidth = containerWidth;
-      } else if (screenWidth < 1024) {  // Tablet
+      } else if (screenWidth < 1024) {  // Tablet - two half width tiles
         tileWidth = containerWidth / 2;
-      } else {  // Desktop
+      } else {  // Desktop - three tiles
         tileWidth = containerWidth / 3;
       }
       
