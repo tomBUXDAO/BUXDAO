@@ -253,7 +253,7 @@ const Collection = () => {
             <ChevronLeftIcon className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
           </button>
 
-          <div className="overflow-hidden" ref={containerRef}>
+          <div className="overflow-hidden w-screen -mx-4 sm:-mx-6 lg:-mx-8" ref={containerRef}>
             <div 
               className="flex transition-transform duration-500 ease-in-out"
               style={{
@@ -264,7 +264,7 @@ const Collection = () => {
               {repeatedCollections.map((collection, index) => (
                 <div 
                   key={`${collection.id}-${index}`} 
-                  className="w-[100vw] md:w-[50vw] lg:w-1/3 px-4"
+                  className="w-[100vw] md:w-[50vw] lg:w-1/3 px-4 md:px-6 lg:px-8"
                 >
                   <div className="bg-gray-900 rounded-xl overflow-hidden hover:transform hover:scale-105 transition-transform duration-300">
                     <div className="aspect-square">
