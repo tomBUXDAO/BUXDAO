@@ -185,31 +185,17 @@ const Collection = () => {
     const containerWidth = containerRef.current.offsetWidth;
     let tileWidth;
     
+    // Calculate tile width including padding
     if (window.innerWidth < 768) {
-      tileWidth = window.innerWidth; // Use viewport width for mobile
+      tileWidth = containerWidth; // Full width for mobile
     } else if (window.innerWidth < 1024) {
-      tileWidth = window.innerWidth / 2; // Use half viewport width for tablet
+      tileWidth = containerWidth / 2; // Exactly half width for tablet
     } else {
-      tileWidth = containerWidth / 3; // Keep desktop as is
+      tileWidth = containerWidth / 3;
     }
     
     setCurrentIndex((prevIndex) => {
-      const newIndex = direction === 'next' ? prevIndex + tileWidth : prevIndex - tileWidth;
-      
-      // Calculate total width of all tiles
-      const totalWidth = tileWidth * collectionData.length;
-      
-      // If we've moved past the end, loop to start
-      if (newIndex >= totalWidth) {
-        return 0;
-      }
-      
-      // If we've moved before start, loop to end
-      if (newIndex < 0) {
-        return totalWidth - tileWidth;
-      }
-      
-      return newIndex;
+      return direction === 'next' ? prevIndex + tileWidth : prevIndex - tileWidth;
     });
   };
 
@@ -253,7 +239,7 @@ const Collection = () => {
             <ChevronLeftIcon className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
           </button>
 
-          <div className="overflow-hidden w-screen -mx-4 sm:-mx-6 lg:-mx-8" ref={containerRef}>
+          <div className="overflow-hidden relative -mx-4 sm:-mx-6 lg:-mx-8" ref={containerRef}>
             <div 
               className="flex transition-transform duration-500 ease-in-out"
               style={{
@@ -264,7 +250,7 @@ const Collection = () => {
               {repeatedCollections.map((collection, index) => (
                 <div 
                   key={`${collection.id}-${index}`} 
-                  className="w-[100vw] md:w-[50vw] lg:w-1/3 px-4 md:px-6 lg:px-8"
+                  className="w-full md:w-1/2 lg:w-1/3 px-4 sm:px-6 lg:px-8"
                 >
                   <div className="bg-gray-900 rounded-xl overflow-hidden hover:transform hover:scale-105 transition-transform duration-300">
                     <div className="aspect-square">
