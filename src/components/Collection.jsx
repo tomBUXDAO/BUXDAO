@@ -122,19 +122,21 @@ const Collection = () => {
 
   useEffect(() => {
     if (containerRef.current) {
-      // Calculate number of visible tiles based on screen width
       const screenWidth = window.innerWidth;
       let visibleTiles;
+      let containerWidth = containerRef.current.offsetWidth;
+      let tileWidth;
       
-      if (screenWidth < 640) {  // Mobile portrait
-        visibleTiles = 1;
-      } else if (screenWidth < 1024) {  // Tablet portrait
+      if (screenWidth < 1024) {  // Portrait (mobile & tablet)
         visibleTiles = 2;
-      } else {  // Desktop
+        // Each tile should be 50% of container minus padding (8px * 2)
+        tileWidth = (containerWidth / 2);
+      } else {  // Landscape/Desktop
         visibleTiles = 3;
+        // Each tile should be 33.333% of container minus padding
+        tileWidth = (containerWidth / 3);
       }
       
-      const tileWidth = containerRef.current.offsetWidth / visibleTiles;
       setCurrentIndex(5 * tileWidth);
     }
   }, [loading]);
@@ -252,7 +254,7 @@ const Collection = () => {
               {repeatedCollections.map((collection, index) => (
                 <div 
                   key={`${collection.id}-${index}`} 
-                  className="min-w-[320px] w-full sm:w-1/2 lg:w-1/3 px-4"
+                  className="w-1/2 lg:w-1/3 px-4"
                 >
                   <div className="bg-gray-900 rounded-xl overflow-hidden hover:transform hover:scale-105 transition-transform duration-300">
                     <div className="aspect-square">
