@@ -186,15 +186,30 @@ const Collection = () => {
     let tileWidth;
     
     if (window.innerWidth < 768) {
-      tileWidth = containerWidth; // Full container width
+      tileWidth = window.innerWidth; // Use viewport width for mobile
     } else if (window.innerWidth < 1024) {
-      tileWidth = containerWidth / 2; // Half container width
+      tileWidth = window.innerWidth / 2; // Use half viewport width for tablet
     } else {
-      tileWidth = containerWidth / 3; // Third container width
+      tileWidth = containerWidth / 3; // Keep desktop as is
     }
     
     setCurrentIndex((prevIndex) => {
-      return direction === 'next' ? prevIndex + tileWidth : prevIndex - tileWidth;
+      const newIndex = direction === 'next' ? prevIndex + tileWidth : prevIndex - tileWidth;
+      
+      // Calculate total width of all tiles
+      const totalWidth = tileWidth * collectionData.length;
+      
+      // If we've moved past the end, loop to start
+      if (newIndex >= totalWidth) {
+        return 0;
+      }
+      
+      // If we've moved before start, loop to end
+      if (newIndex < 0) {
+        return totalWidth - tileWidth;
+      }
+      
+      return newIndex;
     });
   };
 
@@ -249,7 +264,7 @@ const Collection = () => {
               {repeatedCollections.map((collection, index) => (
                 <div 
                   key={`${collection.id}-${index}`} 
-                  className="w-full md:w-1/2 lg:w-1/3 px-4"
+                  className="w-[100vw] md:w-[50vw] lg:w-1/3 px-4"
                 >
                   <div className="bg-gray-900 rounded-xl overflow-hidden hover:transform hover:scale-105 transition-transform duration-300">
                     <div className="aspect-square">
@@ -260,7 +275,9 @@ const Collection = () => {
                       />
                     </div>
                     <div className="p-4 sm:p-6">
-                      <h3 className="text-lg sm:text-xl font-semibold text-white mb-4">{collection.title}</h3>
+                      <h3 className="text-lg sm:text-xl font-semibold text-white mb-4 whitespace-nowrap overflow-hidden text-ellipsis">
+                        {collection.title}
+                      </h3>
                       <div className="flex justify-between mb-6">
                         <div>
                           <p className="text-gray-400 text-sm">Floor Price</p>
@@ -281,13 +298,13 @@ const Collection = () => {
                       <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
                         <a 
                           href={collection.magicEdenUrl} 
-                          className="whitespace-nowrap w-full bg-gradient-to-r from-purple-500 to-pink-500 px-4 py-2 rounded-full text-white hover:opacity-90 transition-opacity text-center text-sm sm:text-base"
+                          className="min-w-[120px] w-full bg-gradient-to-r from-purple-500 to-pink-500 px-4 py-2 rounded-full text-white hover:opacity-90 transition-opacity text-center text-sm sm:text-base whitespace-nowrap"
                         >
                           Magic Eden
                         </a>
                         <a 
                           href={collection.tensorUrl} 
-                          className="whitespace-nowrap w-full border border-white px-4 py-2 rounded-full text-white hover:bg-white hover:text-black transition-all text-center text-sm sm:text-base"
+                          className="min-w-[120px] w-full border border-white px-4 py-2 rounded-full text-white hover:bg-white hover:text-black transition-all text-center text-sm sm:text-base whitespace-nowrap"
                         >
                           Tensor
                         </a>
