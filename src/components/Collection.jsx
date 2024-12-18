@@ -182,16 +182,15 @@ const Collection = () => {
   };
 
   const moveOneSlide = (direction) => {
-    const screenWidth = window.innerWidth;
     const containerWidth = containerRef.current.offsetWidth;
     let tileWidth;
     
-    if (screenWidth < 768) {  // Mobile - one full width tile
-      tileWidth = containerWidth;
-    } else if (screenWidth < 1024) {  // Tablet - two half width tiles
-      tileWidth = containerWidth / 2;
-    } else {  // Desktop - three tiles
-      tileWidth = containerWidth / 3;
+    if (window.innerWidth < 768) {
+      tileWidth = containerWidth; // Full container width
+    } else if (window.innerWidth < 1024) {
+      tileWidth = containerWidth / 2; // Half container width
+    } else {
+      tileWidth = containerWidth / 3; // Third container width
     }
     
     setCurrentIndex((prevIndex) => {
