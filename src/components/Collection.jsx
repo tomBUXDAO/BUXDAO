@@ -126,8 +126,9 @@ const Collection = () => {
       const containerWidth = containerRef.current.offsetWidth;
       let tileWidth;
       
-      if (screenWidth < 1024) {  // Portrait (mobile & tablet)
-        // Each tile should be exactly half the container width
+      if (screenWidth < 768) {  // Mobile
+        tileWidth = containerWidth;
+      } else if (screenWidth < 1024) {  // Tablet
         tileWidth = containerWidth / 2;
       } else {  // Desktop
         tileWidth = containerWidth / 3;
@@ -250,7 +251,7 @@ const Collection = () => {
               {repeatedCollections.map((collection, index) => (
                 <div 
                   key={`${collection.id}-${index}`} 
-                  className="min-w-[45%] w-1/2 lg:min-w-0 lg:w-1/3 px-4"
+                  className="w-full md:w-1/2 lg:w-1/3 px-4"
                 >
                   <div className="bg-gray-900 rounded-xl overflow-hidden hover:transform hover:scale-105 transition-transform duration-300">
                     <div className="aspect-square">
