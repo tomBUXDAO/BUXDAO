@@ -122,15 +122,19 @@ const Collection = () => {
 
   useEffect(() => {
     if (containerRef.current) {
-      const containerWidth = containerRef.current.offsetWidth;
-      const numColumns = window.innerWidth >= 1024 ? 3 : 2;
-      tileWidth.current = containerWidth / numColumns;
-    }
-  }, []);
-
-  useEffect(() => {
-    if (containerRef.current) {
-      const tileWidth = containerRef.current.offsetWidth / 3;
+      // Calculate number of visible tiles based on screen width
+      const screenWidth = window.innerWidth;
+      let visibleTiles;
+      
+      if (screenWidth < 640) {  // Mobile portrait
+        visibleTiles = 1;
+      } else if (screenWidth < 1024) {  // Tablet portrait
+        visibleTiles = 2;
+      } else {  // Desktop
+        visibleTiles = 3;
+      }
+      
+      const tileWidth = containerRef.current.offsetWidth / visibleTiles;
       setCurrentIndex(5 * tileWidth);
     }
   }, [loading]);
@@ -242,13 +246,13 @@ const Collection = () => {
               className="flex transition-transform duration-500 ease-in-out"
               style={{
                 transform: `translateX(-${currentIndex}px)`,
-                width: '500%'  // Width for 15 tiles (3 sets of 5)
+                width: '500%'
               }}
             >
               {repeatedCollections.map((collection, index) => (
                 <div 
                   key={`${collection.id}-${index}`} 
-                  className="w-1/3 px-4"
+                  className="min-w-[320px] w-full sm:w-1/2 lg:w-1/3 px-4"
                 >
                   <div className="bg-gray-900 rounded-xl overflow-hidden hover:transform hover:scale-105 transition-transform duration-300">
                     <div className="aspect-square">
@@ -280,17 +284,13 @@ const Collection = () => {
                       <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
                         <a 
                           href={collection.magicEdenUrl} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="w-full bg-gradient-to-r from-purple-500 to-pink-500 px-4 py-2 rounded-full text-white hover:opacity-90 transition-opacity text-center text-sm sm:text-base"
+                          className="whitespace-nowrap w-full bg-gradient-to-r from-purple-500 to-pink-500 px-4 py-2 rounded-full text-white hover:opacity-90 transition-opacity text-center text-sm sm:text-base"
                         >
                           Magic Eden
                         </a>
                         <a 
                           href={collection.tensorUrl} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="w-full border border-white px-4 py-2 rounded-full text-white hover:bg-white hover:text-black transition-all text-center text-sm sm:text-base"
+                          className="whitespace-nowrap w-full border border-white px-4 py-2 rounded-full text-white hover:bg-white hover:text-black transition-all text-center text-sm sm:text-base"
                         >
                           Tensor
                         </a>
