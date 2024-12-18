@@ -128,6 +128,13 @@ const Collection = () => {
     }
   }, []);
 
+  useEffect(() => {
+    if (containerRef.current) {
+      const tileWidth = containerRef.current.offsetWidth / 3;
+      setCurrentIndex(5 * tileWidth);
+    }
+  }, [loading]);
+
   const handleTouchStart = (e) => {
     setIsDragging(true);
     setStartPosition(e.touches[0].clientX - dragPosition);
@@ -171,28 +178,34 @@ const Collection = () => {
     }, 50);
   };
 
-  // Calculate the total width needed for one complete set
-  const slideWidth = 100 / 3; // 33.33% per slide
+  const moveOneSlide = (direction) => {
+    const tileWidth = containerRef.current.offsetWidth / 3;
+    
+    setCurrentIndex((prevIndex) => {
+      let newIndex = direction === 'next' ? prevIndex + tileWidth : prevIndex - tileWidth;
+      
+      // If we've gone too far right, jump back to middle set
+      if (newIndex >= 10 * tileWidth) {
+        newIndex = 5 * tileWidth;
+      }
+      // If we've gone too far left, jump back to middle set
+      if (newIndex <= 0) {
+        newIndex = 5 * tileWidth;
+      }
+      
+      return newIndex;
+    });
+  };
 
   const nextSlide = () => {
-    setCurrentIndex((prevIndex) => {
-      // When we reach the end, loop back to start
-      if (prevIndex >= collectionData.length - 3) {
-        return 0;
-      }
-      return prevIndex + 1;
-    });
+    moveOneSlide('next');
   };
 
   const prevSlide = () => {
-    setCurrentIndex((prevIndex) => {
-      // When we reach start, loop to end
-      if (prevIndex <= 0) {
-        return collectionData.length - 3;
-      }
-      return prevIndex - 1;
-    });
+    moveOneSlide('prev');
   };
+
+  const repeatedCollections = [...collectionData, ...collectionData, ...collectionData]; // 15 items
 
   if (loading) {
     return (
@@ -224,18 +237,18 @@ const Collection = () => {
             <ChevronLeftIcon className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
           </button>
 
-          <div className="overflow-hidden">
+          <div className="overflow-hidden" ref={containerRef}>
             <div 
               className="flex transition-transform duration-500 ease-in-out"
               style={{
-                transform: `translateX(-${currentIndex * (100 / 3)}%)`,
-                width: `${(collectionData.length * 100) / 3}%`
+                transform: `translateX(-${currentIndex}px)`,
+                width: '500%'  // Width for 15 tiles (3 sets of 5)
               }}
             >
-              {collectionData.map((collection, index) => (
+              {repeatedCollections.map((collection, index) => (
                 <div 
                   key={`${collection.id}-${index}`} 
-                  className="w-full sm:w-1/2 lg:w-1/3 px-4"
+                  className="w-1/3 px-4"
                 >
                   <div className="bg-gray-900 rounded-xl overflow-hidden hover:transform hover:scale-105 transition-transform duration-300">
                     <div className="aspect-square">
