@@ -182,21 +182,20 @@ const Collection = () => {
   };
 
   const moveOneSlide = (direction) => {
-    const tileWidth = containerRef.current.offsetWidth / 3;
+    const screenWidth = window.innerWidth;
+    const containerWidth = containerRef.current.offsetWidth;
+    let tileWidth;
+    
+    if (screenWidth < 768) {  // Mobile - one full width tile
+      tileWidth = containerWidth;
+    } else if (screenWidth < 1024) {  // Tablet - two half width tiles
+      tileWidth = containerWidth / 2;
+    } else {  // Desktop - three tiles
+      tileWidth = containerWidth / 3;
+    }
     
     setCurrentIndex((prevIndex) => {
-      let newIndex = direction === 'next' ? prevIndex + tileWidth : prevIndex - tileWidth;
-      
-      // If we've gone too far right, jump back to middle set
-      if (newIndex >= 10 * tileWidth) {
-        newIndex = 5 * tileWidth;
-      }
-      // If we've gone too far left, jump back to middle set
-      if (newIndex <= 0) {
-        newIndex = 5 * tileWidth;
-      }
-      
-      return newIndex;
+      return direction === 'next' ? prevIndex + tileWidth : prevIndex - tileWidth;
     });
   };
 
