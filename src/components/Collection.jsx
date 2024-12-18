@@ -182,20 +182,33 @@ const Collection = () => {
   };
 
   const moveOneSlide = (direction) => {
-    const containerWidth = containerRef.current.offsetWidth;
-    let tileWidth;
+    const screenWidth = window.innerWidth;
+    let moveDistance;
     
-    // Calculate tile width including padding
-    if (window.innerWidth < 768) {
-      tileWidth = containerWidth; // Full width for mobile
-    } else if (window.innerWidth < 1024) {
-      tileWidth = containerWidth / 2; // Exactly half width for tablet
-    } else {
-      tileWidth = containerWidth / 3;
+    if (screenWidth < 768) {  // Mobile
+      moveDistance = containerRef.current.offsetWidth;
+    } else if (screenWidth < 1024) {  // Tablet - move exactly one 320px tile
+      moveDistance = 320;  // Just the tile width, padding is already included in the layout
+    } else {  // Desktop
+      moveDistance = containerRef.current.offsetWidth / 3;
     }
     
     setCurrentIndex((prevIndex) => {
-      return direction === 'next' ? prevIndex + tileWidth : prevIndex - tileWidth;
+      const newIndex = direction === 'next' ? prevIndex + moveDistance : prevIndex - moveDistance;
+      
+      // For tablet view
+      if (screenWidth < 1024 && screenWidth >= 768) {
+        // If we've moved past the end of the first set (5 tiles)
+        if (newIndex >= (320 * 5)) {
+          return 0;  // Loop back to start
+        }
+        // If we've moved before the start
+        if (newIndex < 0) {
+          return 320 * 4;  // Loop to last tile position
+        }
+      }
+      
+      return newIndex;
     });
   };
 
@@ -231,15 +244,12 @@ const Collection = () => {
           Featured Collections
         </h2>
         
-        <div className="relative">
-          <button 
-            onClick={prevSlide} 
-            className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 lg:-translate-x-12 bg-white/10 p-2 rounded-full hover:bg-white/20 transition-all duration-300 z-10"
-          >
-            <ChevronLeftIcon className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
+        <div className="relative max-w-7xl mx-auto">
+          <button onClick={prevSlide} className="absolute -left-12 top-1/2 -translate-y-1/2 z-10 bg-white/10 p-2 rounded-full hover:bg-white/20">
+            <ChevronLeftIcon className="h-8 w-8 text-white" />
           </button>
 
-          <div className="overflow-hidden relative -mx-4 sm:-mx-6 lg:-mx-8" ref={containerRef}>
+          <div className="overflow-hidden md:max-w-[640px] lg:max-w-none mx-auto" ref={containerRef}>
             <div 
               className="flex transition-transform duration-500 ease-in-out"
               style={{
@@ -250,7 +260,7 @@ const Collection = () => {
               {repeatedCollections.map((collection, index) => (
                 <div 
                   key={`${collection.id}-${index}`} 
-                  className="w-full md:w-1/2 lg:w-1/3 px-4 sm:px-6 lg:px-8"
+                  className="w-full md:w-[320px] lg:w-1/3 px-4"
                 >
                   <div className="bg-gray-900 rounded-xl overflow-hidden hover:transform hover:scale-105 transition-transform duration-300">
                     <div className="aspect-square">
@@ -302,11 +312,8 @@ const Collection = () => {
             </div>
           </div>
 
-          <button 
-            onClick={nextSlide} 
-            className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 lg:translate-x-12 bg-white/10 p-2 rounded-full hover:bg-white/20 transition-all duration-300 z-10"
-          >
-            <ChevronRightIcon className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
+          <button onClick={nextSlide} className="absolute -right-12 top-1/2 -translate-y-1/2 z-10 bg-white/10 p-2 rounded-full hover:bg-white/20">
+            <ChevronRightIcon className="h-8 w-8 text-white" />
           </button>
         </div>
       </div>
