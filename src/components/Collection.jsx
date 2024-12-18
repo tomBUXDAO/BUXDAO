@@ -123,18 +123,14 @@ const Collection = () => {
   useEffect(() => {
     if (containerRef.current) {
       const screenWidth = window.innerWidth;
-      let visibleTiles;
-      let containerWidth = containerRef.current.offsetWidth;
+      const containerWidth = containerRef.current.offsetWidth;
       let tileWidth;
       
       if (screenWidth < 1024) {  // Portrait (mobile & tablet)
-        visibleTiles = 2;
-        // Each tile should be 50% of container minus padding (8px * 2)
-        tileWidth = (containerWidth / 2);
-      } else {  // Landscape/Desktop
-        visibleTiles = 3;
-        // Each tile should be 33.333% of container minus padding
-        tileWidth = (containerWidth / 3);
+        // Each tile should be exactly half the container width
+        tileWidth = containerWidth / 2;
+      } else {  // Desktop
+        tileWidth = containerWidth / 3;
       }
       
       setCurrentIndex(5 * tileWidth);
@@ -254,7 +250,7 @@ const Collection = () => {
               {repeatedCollections.map((collection, index) => (
                 <div 
                   key={`${collection.id}-${index}`} 
-                  className="w-1/2 lg:w-1/3 px-4"
+                  className="min-w-[45%] w-1/2 lg:min-w-0 lg:w-1/3 px-4"
                 >
                   <div className="bg-gray-900 rounded-xl overflow-hidden hover:transform hover:scale-105 transition-transform duration-300">
                     <div className="aspect-square">
