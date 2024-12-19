@@ -49,12 +49,13 @@ const CollabCollections = () => {
   ];
 
   return (
-    <section className="bg-gradient-to-b from-black to-purple-900 py-16 sm:py-24">
+    <section id="collabs" className="bg-gradient-to-b from-black to-purple-900 py-16 sm:py-24">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col items-center mb-16">
-          <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 mb-6">
+          <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 mb-6 text-center">
             A.I. Collab Collections
           </h2>
+
           <div className="w-full max-w-3xl">
             <div className="text-gray-200 text-xl border-2 border-white/20 rounded-2xl py-8 px-6">
               <div className="flex items-start gap-4">
@@ -72,45 +73,44 @@ const CollabCollections = () => {
                 </div>
               </div>
             </div>
-            
-            <div className="mt-8 flex justify-between gap-8">
-              <div className="flex flex-col gap-2 w-[300px]">
-                {collabs.map((collab, index) => (
-                  <a 
-                    href={collab.magicEdenUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    key={index}
-                    className="bg-gray-900 border border-gray-700 backdrop-blur-sm rounded-lg overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] hover:border-purple-500/50 flex h-16"
-                  >
-                    {/* Image Container */}
-                    <div className={`w-16 h-16 flex-shrink-0 border-r border-gray-700 ${
-                      collab.symbol === 'doodlebots' ? 'bg-black' : ''
-                    }`}>
-                      <img 
-                        src={collab.image}
-                        alt={collab.name}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
+          </div>
+        </div>
 
-                    {/* Content Container */}
-                    <div className="flex-1 p-2 flex flex-col justify-center">
-                      <h3 className="text-sm font-semibold text-gray-200 truncate">
-                        {collab.name}
-                      </h3>
-                      <div className="text-xs text-gray-400">
-                        <p className="truncate">Partner: {collab.partner}</p>
-                      </div>
-                    </div>
-                  </a>
-                ))}
-              </div>
+        <div className="flex flex-col gap-8">
+          <div className="w-full">
+            <ImageCompare />
+          </div>
 
-              <div className="w-[424px]">
-                <ImageCompare />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 justify-items-center">
+            {collabs.map((collab) => (
+              <div key={collab.id} className="w-full max-w-sm">
+                <a 
+                  href={collab.magicEdenUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-gray-900 border border-gray-700 backdrop-blur-sm rounded-lg overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] hover:border-purple-500/50 flex h-16"
+                >
+                  <div className={`w-16 h-16 flex-shrink-0 border-r border-gray-700 ${
+                    collab.symbol === 'doodlebots' ? 'bg-black' : ''
+                  }`}>
+                    <img 
+                      src={collab.image}
+                      alt={collab.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+
+                  <div className="flex-1 p-2 flex flex-col justify-center">
+                    <h3 className="text-sm font-semibold text-gray-200 truncate">
+                      {collab.name}
+                    </h3>
+                    <div className="text-xs text-gray-400">
+                      <p className="truncate">Partner: {collab.partner}</p>
+                    </div>
+                  </div>
+                </a>
               </div>
-            </div>
+            ))}
           </div>
         </div>
       </div>
