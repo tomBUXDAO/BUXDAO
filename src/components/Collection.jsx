@@ -123,18 +123,18 @@ const Collection = () => {
   useEffect(() => {
     if (containerRef.current) {
       const screenWidth = window.innerWidth;
-      const containerWidth = containerRef.current.offsetWidth;
       let tileWidth;
       
-      if (screenWidth < 768) {  // Mobile - one full width tile
-        tileWidth = containerWidth;
-      } else if (screenWidth < 1024) {  // Tablet - two half width tiles
-        tileWidth = containerWidth / 2;
-      } else {  // Desktop - three tiles
-        tileWidth = containerWidth / 3;
+      if (screenWidth < 768) {  // Mobile
+        tileWidth = screenWidth * 0.9;  // Match the 90vw tile width
+        setCurrentIndex(5 * tileWidth - 16);  // Fixed offset of 16px (1rem)
+      } else if (screenWidth < 1024) {  // Tablet
+        tileWidth = 320;
+        setCurrentIndex(5 * tileWidth);
+      } else {  // Desktop
+        tileWidth = containerRef.current.offsetWidth / 3;
+        setCurrentIndex(5 * tileWidth);
       }
-      
-      setCurrentIndex(5 * tileWidth);
     }
   }, [loading]);
 
@@ -186,9 +186,9 @@ const Collection = () => {
     let moveDistance;
     
     if (screenWidth < 768) {  // Mobile
-      moveDistance = containerRef.current.offsetWidth;
-    } else if (screenWidth < 1024) {  // Tablet - move exactly one 320px tile
-      moveDistance = 320;  // Just the tile width, padding is already included in the layout
+      moveDistance = (screenWidth * 0.9);  // 90vw to match tile width
+    } else if (screenWidth < 1024) {  // Tablet
+      moveDistance = 320;
     } else {  // Desktop
       moveDistance = containerRef.current.offsetWidth / 3;
     }
@@ -196,15 +196,33 @@ const Collection = () => {
     setCurrentIndex((prevIndex) => {
       const newIndex = direction === 'next' ? prevIndex + moveDistance : prevIndex - moveDistance;
       
-      // For tablet view
-      if (screenWidth < 1024 && screenWidth >= 768) {
-        // If we've moved past the end of the first set (5 tiles)
-        if (newIndex >= (320 * 5)) {
-          return 0;  // Loop back to start
+      if (screenWidth < 768) {
+        // Mobile view loop
+        const fullWidth = (screenWidth - 32) * 5;  // 5 tiles
+        if (newIndex >= fullWidth) {
+          return 0;
         }
-        // If we've moved before the start
         if (newIndex < 0) {
-          return 320 * 4;  // Loop to last tile position
+          return fullWidth - (screenWidth - 32);
+        }
+      } else if (screenWidth < 1024) {
+        // Tablet view loop
+        if (newIndex >= (320 * 5)) {
+          return 0;
+        }
+        if (newIndex < 0) {
+          return 320 * 4;
+        }
+      } else {
+        // Desktop view loop
+        const containerWidth = containerRef.current.offsetWidth;
+        const tileWidth = containerWidth / 3;
+        
+        if (newIndex >= (tileWidth * 5)) {
+          return 0;
+        }
+        if (newIndex < 0) {
+          return tileWidth * 4;
         }
       }
       
@@ -245,22 +263,22 @@ const Collection = () => {
         </h2>
         
         <div className="relative max-w-7xl mx-auto">
-          <button onClick={prevSlide} className="absolute -left-12 top-1/2 -translate-y-1/2 z-10 bg-white/10 p-2 rounded-full hover:bg-white/20">
+          <button onClick={prevSlide} className="absolute left-4 top-1/2 -translate-y-1/2 z-10 bg-white/10 p-2 rounded-full hover:bg-white/20">
             <ChevronLeftIcon className="h-8 w-8 text-white" />
           </button>
 
-          <div className="overflow-hidden md:max-w-[640px] lg:max-w-none mx-auto" ref={containerRef}>
+          <div className="overflow-hidden" ref={containerRef}>
             <div 
               className="flex transition-transform duration-500 ease-in-out"
               style={{
-                transform: `translateX(-${currentIndex}px)`,
+                transform: `translateX(calc((100vw - 90vw - 32px)/2 - ${currentIndex}px))`,
                 width: '500%'
               }}
             >
               {repeatedCollections.map((collection, index) => (
                 <div 
                   key={`${collection.id}-${index}`} 
-                  className="w-full md:w-[320px] lg:w-1/3 px-4"
+                  className="min-w-[90vw] px-4 sm:min-w-0 sm:w-[320px] lg:w-1/3"
                 >
                   <div className="bg-gray-900 rounded-xl overflow-hidden hover:transform hover:scale-105 transition-transform duration-300">
                     <div className="aspect-square">
@@ -312,7 +330,7 @@ const Collection = () => {
             </div>
           </div>
 
-          <button onClick={nextSlide} className="absolute -right-12 top-1/2 -translate-y-1/2 z-10 bg-white/10 p-2 rounded-full hover:bg-white/20">
+          <button onClick={nextSlide} className="absolute right-4 top-1/2 -translate-y-1/2 z-10 bg-white/10 p-2 rounded-full hover:bg-white/20">
             <ChevronRightIcon className="h-8 w-8 text-white" />
           </button>
         </div>
