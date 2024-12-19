@@ -127,13 +127,13 @@ const Collection = () => {
       
       if (screenWidth < 768) {  // Mobile
         tileWidth = screenWidth * 0.9;  // Match the 90vw tile width
-        setCurrentIndex(5 * tileWidth - 16);  // Fixed offset of 16px (1rem)
+        setCurrentIndex(7 * tileWidth);
       } else if (screenWidth < 1024) {  // Tablet
         tileWidth = 320;
-        setCurrentIndex(5 * tileWidth);
+        setCurrentIndex(7 * tileWidth);
       } else {  // Desktop
         tileWidth = containerRef.current.offsetWidth / 3;
-        setCurrentIndex(5 * tileWidth);
+        setCurrentIndex(7 * tileWidth);
       }
     }
   }, [loading]);
@@ -198,12 +198,12 @@ const Collection = () => {
       
       if (screenWidth < 768) {
         // Mobile view loop
-        const fullWidth = (screenWidth - 32) * 5;  // 5 tiles
+        const fullWidth = screenWidth * 0.9 * 5;  // 5 tiles at 90vw each
         if (newIndex >= fullWidth) {
           return 0;
         }
         if (newIndex < 0) {
-          return fullWidth - (screenWidth - 32);
+          return fullWidth - (screenWidth * 0.9);  // Go to last tile
         }
       } else if (screenWidth < 1024) {
         // Tablet view loop
