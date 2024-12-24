@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 
-const ImageCompare = () => {
+const ImageCompare = ({ className }) => {
   const [isResizing, setIsResizing] = useState(false);
   const [position, setPosition] = useState(50);
   const containerRef = useRef(null);
@@ -75,7 +75,7 @@ const ImageCompare = () => {
   return (
     <div 
       ref={containerRef}
-      className="relative aspect-square w-full select-none border border-gray-700 rounded-lg overflow-hidden"
+      className={`relative w-full select-none border border-gray-700 rounded-lg overflow-hidden ${className || 'aspect-square'}`}
       onMouseDown={handleMouseDown}
       onTouchStart={handleTouchStart}
     >

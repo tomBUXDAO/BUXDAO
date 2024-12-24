@@ -76,14 +76,10 @@ const CollabCollections = () => {
           </div>
         </div>
 
-        <div className="flex flex-col gap-8">
-          <div className="w-full">
-            <ImageCompare />
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 justify-items-center">
+        <div className="flex flex-col sm:flex-row gap-8 justify-center">
+          <div className="w-full sm:w-1/2 flex flex-col gap-4">
             {collabs.map((collab) => (
-              <div key={collab.id} className="w-full max-w-sm">
+              <div key={collab.id} className="w-full">
                 <a 
                   href={collab.magicEdenUrl}
                   target="_blank"
@@ -111,6 +107,10 @@ const CollabCollections = () => {
                 </a>
               </div>
             ))}
+          </div>
+
+          <div className="w-full sm:w-1/2 flex items-center justify-center">
+            <ImageCompare className="aspect-square w-[464px]" />
           </div>
         </div>
       </div>
