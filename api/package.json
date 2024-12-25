@@ -1,0 +1,9 @@
+{
+  "name": "buxdao-api",
+  "version": "1.0.0",
+  "dependencies": {
+    "pg": "^8.11.3",
+    "node-fetch": "^3.3.2"
+  },
+  "type": "module"
+} 
