@@ -1,38 +1,19 @@
 {
-  "version": 2,
-  "builds": [
+  "rewrites": [
     {
-      "src": "api/**/*.js",
-      "use": "@vercel/node"
-    },
-    {
-      "src": "package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist"
-      }
+      "source": "/api/:path*",
+      "destination": "/api/:path*"
     }
   ],
-  "routes": [
+  "headers": [
     {
-      "src": "/api/printful/(.*)",
-      "dest": "/api/printful/$1"
-    },
-    {
-      "src": "/api/collections/([^/]+)/stats",
-      "dest": "/api/collections/[symbol]/stats?symbol=$1"
-    },
-    {
-      "src": "/api/celebcatz/images",
-      "dest": "/api/celebcatz/images"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Access-Control-Allow-Credentials", "value": "true" },
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET,OPTIONS,PATCH,DELETE,POST,PUT" },
+        { "key": "Access-Control-Allow-Headers", "value": "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version" }
+      ]
     }
-  ],
-  "env": {
-    "PRINTFUL_API_KEY": "@printful_api_key",
-    "POSTGRES_URL": "@postgres_url"
-  }
+  ]
 } 
