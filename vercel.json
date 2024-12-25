@@ -6,11 +6,20 @@
       "dest": "/api/printful/$1"
     },
     {
+      "src": "/api/collections/([^/]+)/stats",
+      "dest": "/api/collections/[symbol]/stats?symbol=$1"
+    },
+    {
+      "src": "/api/celebcatz/images",
+      "dest": "/api/celebcatz/images"
+    },
+    {
       "src": "/(.*)",
       "dest": "/index.html"
     }
   ],
   "env": {
-    "PRINTFUL_API_KEY": "@printful_api_key"
+    "PRINTFUL_API_KEY": "@printful_api_key",
+    "POSTGRES_URL": "@postgres_url"
   }
 } 
