@@ -3,6 +3,7 @@ import Hero from './components/Hero';
 import Collection from './components/Collection';
 import BuxInfo from './components/BuxInfo';
 import CollabCollections from './components/CollabCollections';
+import CelebUpgrades from './components/CelebUpgrades';
 
 function App() {
   return (
@@ -12,6 +13,7 @@ function App() {
       <Collection />
       <BuxInfo />
       <CollabCollections />
+      <CelebUpgrades />
     </div>
   );
 }
