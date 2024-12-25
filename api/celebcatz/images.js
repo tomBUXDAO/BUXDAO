@@ -1,4 +1,5 @@
-import { Pool } from 'pg';
+import pkg from 'pg';
+const { Pool } = pkg;
 
 export default async function handler(req, res) {
   console.log('CelebCatz images endpoint hit');
