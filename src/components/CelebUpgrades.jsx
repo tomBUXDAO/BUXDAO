@@ -72,7 +72,7 @@ const CelebUpgrades = () => {
   }
 
   return (
-    <section className="relative bg-black py-16 sm:py-24 overflow-hidden">
+    <section id="celebupgrades" className="relative bg-black py-16 sm:py-24 overflow-hidden">
       {/* Background images */}
       <div className="absolute inset-0 opacity-20">
         {images.map((img) => (
