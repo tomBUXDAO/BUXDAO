@@ -8,9 +8,8 @@ const CATEGORIES = {
   tshirts: 'T-Shirts'
 };
 
-const API_URL = import.meta.env.PROD 
-  ? import.meta.env.VITE_PRODUCTION_API_URL
-  : import.meta.env.VITE_API_URL;
+// Get the API URL from environment variables, fallback to localhost if not set
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 const Merch = () => {
   const [activeCategory, setActiveCategory] = useState('all');
@@ -25,11 +24,17 @@ const Merch = () => {
 
   const fetchProducts = async () => {
     try {
+      console.log('Fetching products from:', API_URL); // Debug log
       const response = await fetch(`${API_URL}/api/printful/products`);
+      
       if (!response.ok) {
-        throw new Error('Failed to fetch products');
+        const errorText = await response.text();
+        console.error('API Error:', errorText); // Debug log
+        throw new Error(`Failed to fetch products: ${response.statusText}`);
       }
+      
       const data = await response.json();
+      console.log('Products data:', data); // Debug log
       setProducts(data || []);
       setLoading(false);
     } catch (err) {
