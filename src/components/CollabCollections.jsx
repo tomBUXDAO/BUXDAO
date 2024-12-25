@@ -79,7 +79,7 @@ const CollabCollections = () => {
         <div className="flex flex-col sm:flex-row gap-8 justify-center">
           <div className="w-full sm:w-1/2 flex flex-col gap-4">
             {collabs.map((collab) => (
-              <div key={collab.id} className="w-full">
+              <div key={collab.symbol} className="w-full">
                 <a 
                   href={collab.magicEdenUrl}
                   target="_blank"

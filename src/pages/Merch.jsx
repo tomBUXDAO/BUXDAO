@@ -1,77 +1,74 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ShoppingBagIcon, AdjustmentsHorizontalIcon } from '@heroicons/react/24/outline';
 
-const products = {
-  hats: [
-    {
-      id: 1,
-      name: 'BUXDAO Classic Snapback',
-      price: 29.99,
-      image: '/merch/hat-1.jpg',
-      colors: ['Black', 'Navy', 'Gray'],
-      inStock: true
-    },
-    {
-      id: 2,
-      name: 'BUXDAO Beanie',
-      price: 24.99,
-      image: '/merch/hat-2.jpg',
-      colors: ['Black', 'Gray'],
-      inStock: true
-    }
-  ],
-  hoodies: [
-    {
-      id: 3,
-      name: 'BUXDAO Logo Hoodie',
-      price: 59.99,
-      image: '/merch/hoodie-1.jpg',
-      sizes: ['S', 'M', 'L', 'XL', '2XL'],
-      colors: ['Black', 'Gray', 'Navy'],
-      inStock: true
-    },
-    {
-      id: 4,
-      name: 'BUXDAO Art Collection Hoodie',
-      price: 64.99,
-      image: '/merch/hoodie-2.jpg',
-      sizes: ['S', 'M', 'L', 'XL', '2XL'],
-      colors: ['Black', 'White'],
-      inStock: true
-    }
-  ],
-  tshirts: [
-    {
-      id: 5,
-      name: 'BUXDAO Classic Tee',
-      price: 29.99,
-      image: '/merch/tshirt-1.jpg',
-      sizes: ['S', 'M', 'L', 'XL', '2XL'],
-      colors: ['Black', 'White', 'Gray', 'Navy'],
-      inStock: true
-    },
-    {
-      id: 6,
-      name: 'BUXDAO NFT Collection Tee',
-      price: 34.99,
-      image: '/merch/tshirt-2.jpg',
-      sizes: ['S', 'M', 'L', 'XL', '2XL'],
-      colors: ['Black', 'White'],
-      inStock: true
-    }
-  ]
+const CATEGORIES = {
+  all: 'All Products',
+  hats: 'Hats & Caps',
+  hoodies: 'Hoodies',
+  tshirts: 'T-Shirts'
 };
 
 const Merch = () => {
   const [activeCategory, setActiveCategory] = useState('all');
   const [cartCount, setCartCount] = useState(0);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const fetchProducts = async () => {
+    try {
+      const response = await fetch('http://localhost:3001/api/printful/products');
+      if (!response.ok) {
+        throw new Error('Failed to fetch products');
+      }
+      const data = await response.json();
+      setProducts(data || []);
+      setLoading(false);
+    } catch (err) {
+      console.error('Error fetching products:', err);
+      setError(err.message);
+      setLoading(false);
+    }
+  };
+
+  const categorizeProduct = (product) => {
+    const name = product.name.toLowerCase();
+    if (name.includes('hat') || name.includes('cap') || name.includes('beanie')) return 'hats';
+    if (name.includes('hoodie')) return 'hoodies';
+    if (name.includes('t-shirt')) return 'tshirts';
+    return 'other';
+  };
 
   const getFilteredProducts = () => {
+    if (!products || products.length === 0) return [];
+    
     if (activeCategory === 'all') {
-      return [...products.hats, ...products.hoodies, ...products.tshirts];
+      return products;
     }
-    return products[activeCategory] || [];
+    return products.filter(product => categorizeProduct(product) === activeCategory);
   };
+
+  if (loading) {
+    return (
+      <div className="bg-black min-h-screen pt-20 flex items-center justify-center">
+        <div className="text-white">Loading products...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-black min-h-screen pt-20 flex items-center justify-center">
+        <div className="text-red-500">Error: {error}</div>
+      </div>
+    );
+  }
+
+  const filteredProducts = getFilteredProducts();
 
   return (
     <div className="bg-black min-h-screen pt-20">
@@ -97,17 +94,17 @@ const Merch = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center space-x-8 py-4">
             <AdjustmentsHorizontalIcon className="h-5 w-5 text-gray-400" />
-            {['all', 'hats', 'hoodies', 'tshirts'].map((category) => (
+            {Object.entries(CATEGORIES).map(([key, label]) => (
               <button
-                key={category}
+                key={key}
                 className={`text-sm ${
-                  activeCategory === category
+                  activeCategory === key
                     ? 'text-purple-400 border-b-2 border-purple-400'
                     : 'text-gray-400 hover:text-white'
-                } capitalize`}
-                onClick={() => setActiveCategory(category)}
+                }`}
+                onClick={() => setActiveCategory(key)}
               >
-                {category}
+                {label}
               </button>
             ))}
           </div>
@@ -116,40 +113,41 @@ const Merch = () => {
 
       {/* Product Grid */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-          {getFilteredProducts().map((product) => (
-            <div key={product.id} className="bg-gray-900 rounded-lg overflow-hidden">
-              <div className="aspect-w-1 aspect-h-1">
-                <img
-                  src={product.image}
-                  alt={product.name}
-                  className="w-full h-full object-center object-cover hover:opacity-75 transition-opacity"
-                />
-              </div>
-              <div className="p-4">
-                <h3 className="text-lg font-medium text-white">{product.name}</h3>
-                <div className="mt-2 flex justify-between items-center">
-                  <p className="text-purple-400">${product.price}</p>
-                  <button
-                    onClick={() => setCartCount(prev => prev + 1)}
-                    className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-full text-sm transition-colors"
-                  >
-                    Add to Cart
-                  </button>
+        {filteredProducts.length === 0 ? (
+          <div className="text-center text-gray-400 py-12">
+            No products found in this category.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+            {filteredProducts.map((product) => (
+              <div key={product.id} className="bg-gray-900 rounded-lg overflow-hidden group">
+                <div className="aspect-w-1 aspect-h-1 relative">
+                  <img
+                    src={product.thumbnail_url}
+                    alt={product.name}
+                    className="w-full h-full object-center object-cover group-hover:opacity-75 transition-opacity"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
-                {product.sizes && (
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {product.sizes.map(size => (
-                      <span key={size} className="text-xs text-gray-400 border border-gray-700 rounded px-2 py-1">
-                        {size}
-                      </span>
-                    ))}
+                <div className="p-4">
+                  <h3 className="text-lg font-medium text-white">{product.name}</h3>
+                  <div className="mt-2 flex justify-between items-center">
+                    <div className="text-sm">
+                      <span className="text-purple-400">{product.variants}</span>
+                      <span className="text-gray-400 ml-1">styles</span>
+                    </div>
+                    <button
+                      onClick={() => setCartCount(prev => prev + 1)}
+                      className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-full text-sm transition-colors"
+                    >
+                      View Options
+                    </button>
                   </div>
-                )}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Free Shipping Banner */}

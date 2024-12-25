@@ -6,6 +6,7 @@ import axios from 'axios';
 import pkg from 'pg';
 const { Pool } = pkg;
 import dotenv from 'dotenv';
+import fetch from 'node-fetch';
 
 dotenv.config();
 
@@ -18,9 +19,20 @@ app.use(cors({
   methods: ['GET', 'POST'],
   credentials: true
 }));
+app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Database setup with more logging
+// Printful API configuration
+const PRINTFUL_API_URL = 'https://api.printful.com';
+const printfulAxios = axios.create({
+  baseURL: PRINTFUL_API_URL,
+  headers: {
+    'Authorization': `Bearer ${process.env.PRINTFUL_API_KEY}`,
+    'Content-Type': 'application/json'
+  }
+});
+
+// Database setup
 const pool = new Pool({
   connectionString: process.env.POSTGRES_URL,
   ssl: {
@@ -28,7 +40,7 @@ const pool = new Pool({
   }
 });
 
-// Test database connection immediately
+// Test database connection
 console.log('Attempting database connection...');
 pool.query('SELECT NOW()', (err, res) => {
   if (err) {
@@ -36,6 +48,65 @@ pool.query('SELECT NOW()', (err, res) => {
     console.error('Connection string:', process.env.POSTGRES_URL.substring(0, 20) + '...');
   } else {
     console.log('Database connected successfully at:', res.rows[0].now);
+  }
+});
+
+// Printful API endpoints
+app.get('/api/printful/products', async (req, res) => {
+  try {
+    const response = await fetch('https://api.printful.com/store/products', {
+      headers: {
+        'Authorization': `Bearer ${process.env.PRINTFUL_API_KEY}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Printful API error: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    console.log('Printful API response:', data);
+
+    if (!data.result) {
+      throw new Error('Invalid response format from Printful API');
+    }
+
+    // Transform the data to match our frontend needs
+    const products = data.result.map(item => ({
+      id: item.id,
+      name: item.name,
+      thumbnail_url: item.thumbnail_url,
+      variants: item.variants || 0,
+      sync_product: item.sync_product,
+      sync_variants: item.sync_variants
+    }));
+
+    res.json(products);
+  } catch (error) {
+    console.error('Error fetching from Printful:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/printful/products/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const response = await printfulAxios.get(`/store/products/${id}`);
+    res.json(response.data.result);
+  } catch (error) {
+    console.error('Error fetching Printful product:', error.message);
+    res.status(500).json({ error: 'Failed to fetch product' });
+  }
+});
+
+app.post('/api/printful/orders', async (req, res) => {
+  try {
+    const orderData = req.body;
+    const response = await printfulAxios.post('/orders', orderData);
+    res.json(response.data.result);
+  } catch (error) {
+    console.error('Error creating Printful order:', error.message);
+    res.status(500).json({ error: 'Failed to create order' });
   }
 });
 
@@ -126,6 +197,7 @@ const PORT = process.env.PORT || 3001;
 console.log('Starting server...');
 console.log('Environment variables loaded:', {
   POSTGRES_URL: process.env.POSTGRES_URL ? 'Set' : 'Not set',
+  PRINTFUL_API_KEY: process.env.PRINTFUL_API_KEY ? 'Set' : 'Not set',
   PORT: process.env.PORT || 3001
 });
 
@@ -133,8 +205,9 @@ app.listen(PORT, () => {
   console.log('=================================');
   console.log(`Server running on port ${PORT}`);
   console.log('Available routes:');
-  console.log('- GET /api/test');
-  console.log('- GET /api/celebcatz/images');
+  console.log('- GET /api/printful/products');
+  console.log('- GET /api/printful/products/:id');
+  console.log('- POST /api/printful/orders');
   console.log('- GET /api/collections/:symbol/stats');
   console.log('=================================');
 }); 
