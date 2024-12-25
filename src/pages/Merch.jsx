@@ -24,8 +24,8 @@ const Merch = () => {
 
   const fetchProducts = async () => {
     try {
-      console.log('Fetching products from:', API_URL); // Debug log
-      const response = await fetch(`${API_URL}/api/printful/products`);
+      console.log('Fetching products...'); // Debug log
+      const response = await fetch('/api/printful/products');
       
       if (!response.ok) {
         const errorText = await response.text();
