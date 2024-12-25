@@ -1,9 +1,17 @@
 import { useState, useEffect, useMemo } from 'react';
 import { DiscordIcon } from './Icons';
 
+// Cache for storing fetched images
+const imageCache = {
+  data: null,
+  timestamp: null,
+  CACHE_DURATION: 5 * 60 * 1000 // 5 minutes
+};
+
 const CelebUpgrades = () => {
   const [dbImages, setDbImages] = useState([]);
   const [error, setError] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Get the base API URL based on environment
   const API_BASE_URL = import.meta.env.PROD 
@@ -13,15 +21,30 @@ const CelebUpgrades = () => {
   useEffect(() => {
     const fetchImages = async () => {
       try {
+        // Check cache first
+        const now = Date.now();
+        if (imageCache.data && imageCache.timestamp && (now - imageCache.timestamp < imageCache.CACHE_DURATION)) {
+          setDbImages(imageCache.data);
+          setIsLoading(false);
+          return;
+        }
+
         const response = await fetch(`${API_BASE_URL}/celebcatz/images`);
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         const data = await response.json();
+        
+        // Update cache
+        imageCache.data = data;
+        imageCache.timestamp = now;
+        
         setDbImages(data);
+        setIsLoading(false);
       } catch (error) {
         console.error('Error fetching images:', error);
         setError(error.message);
+        setIsLoading(false);
       }
     };
 
@@ -41,7 +64,11 @@ const CelebUpgrades = () => {
     })), [dbImages]);
 
   if (error) {
-    console.log('Rendering error state:', error);
+    return (
+      <section className="relative bg-black py-16 sm:py-24">
+        <div className="text-red-500 text-center">Error loading images: {error}</div>
+      </section>
+    );
   }
 
   return (
@@ -56,7 +83,9 @@ const CelebUpgrades = () => {
               left: `${img.x}%`,
               top: `${img.y}%`,
               transform: `rotate(${img.rotate}deg) scale(${img.scale})`,
-              zIndex: img.zIndex
+              zIndex: img.zIndex,
+              opacity: isLoading ? 0 : 1,
+              transition: 'opacity 0.5s ease-in-out'
             }}
           >
             <img 
@@ -64,6 +93,10 @@ const CelebUpgrades = () => {
               alt=""
               className="w-full h-full object-cover rounded-lg hover:opacity-80 transition-opacity"
               loading="lazy"
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = '/fallback-image.png'; // Add a fallback image if needed
+              }}
             />
           </div>
         ))}
