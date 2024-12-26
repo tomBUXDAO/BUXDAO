@@ -11,12 +11,26 @@ const CATEGORIES = {
 // Get the API URL from environment variables, fallback to localhost if not set
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
+const hasBackDesign = (productName) => {
+  const name = productName.toLowerCase();
+  return (
+    (name.includes('fcked catz') || 
+     name.includes('bitbots') || 
+     name.includes('monsters')) &&
+    (name.includes('t-shirt') || 
+     name.includes('hoodie'))
+  );
+};
+
 const ProductModal = ({ product, onClose, onAddToCart }) => {
   const [selectedSize, setSelectedSize] = useState('');
+  const [selectedColor, setSelectedColor] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(true);
   const [variants, setVariants] = useState([]);
+  const [selectedVariant, setSelectedVariant] = useState(null);
   const [error, setError] = useState(null);
+  const [showingBack, setShowingBack] = useState(false);
 
   useEffect(() => {
     const fetchVariants = async () => {
@@ -25,6 +39,12 @@ const ProductModal = ({ product, onClose, onAddToCart }) => {
         if (!response.ok) throw new Error('Failed to fetch variants');
         const data = await response.json();
         setVariants(data.sync_variants || []);
+        // Set default color and variant
+        if (data.sync_variants && data.sync_variants.length > 0) {
+          const defaultVariant = data.sync_variants[0];
+          setSelectedColor(defaultVariant.color);
+          setSelectedVariant(defaultVariant);
+        }
         setLoading(false);
       } catch (err) {
         setError(err.message);
@@ -34,37 +54,139 @@ const ProductModal = ({ product, onClose, onAddToCart }) => {
     fetchVariants();
   }, [product.id]);
 
+  // Update selected variant when color changes
+  useEffect(() => {
+    if (selectedColor && variants.length > 0) {
+      const newVariant = variants.find(v => v.color === selectedColor);
+      if (newVariant) {
+        setSelectedVariant(newVariant);
+      }
+    }
+  }, [selectedColor, variants]);
+
   const handleAddToCart = () => {
     if (!selectedSize) {
       alert('Please select a size');
       return;
     }
+    if (!selectedColor) {
+      alert('Please select a color');
+      return;
+    }
+    if (!selectedVariant) {
+      alert('Please select a valid option');
+      return;
+    }
+    
+    const { frontImage } = getProductImages();
+    
     onAddToCart({
       ...product,
       size: selectedSize,
-      quantity
+      color: selectedColor,
+      quantity,
+      price: selectedVariant.retail_price,
+      thumbnail_url: frontImage
     });
     onClose();
   };
+
+  // Get unique colors from variants
+  const colors = Array.from(new Set(variants.map(v => v.color)));
+
+  // Get current product images based on selected variant
+  const getProductImages = () => {
+    const productName = product.name.toLowerCase();
+    
+    // Only use local images for products with back designs
+    if (hasBackDesign(productName)) {
+      let folder = '';
+      let productType = '';
+      
+      if (productName.includes('t-shirt')) {
+        productType = 'classic-tee';
+        if (productName.includes('fcked catz')) {
+          folder = 'Tshirts_catz';
+        } else if (productName.includes('bitbots')) {
+          folder = 'Tshirts_bitbots';
+        } else if (productName.includes('monsters')) {
+          folder = 'Tshirts_monsters';
+        }
+      } else if (productName.includes('hoodie')) {
+        productType = 'premium-hoodie';
+        if (productName.includes('fcked catz')) {
+          folder = 'Hoodies_catz';
+        } else if (productName.includes('bitbots')) {
+          folder = 'Hoodies_bitbots';
+        } else if (productName.includes('monsters')) {
+          folder = 'Hoodies_monsters';
+        }
+      }
+
+      const color = selectedColor?.toLowerCase().replace(/ /g, '-') || 'black';
+      const basePath = `/merch/${folder}/unisex-${productType}-${color}`;
+      
+      return {
+        frontImage: `${basePath}-front-676cafb52eff6.jpg`,
+        backImage: `${basePath}-back-676cafb52fc10.jpg`
+      };
+    }
+    
+    // For Printful products, use the preview URL instead of thumbnail
+    const files = selectedVariant?.files || [];
+    const previewFile = files.find(f => f.type === 'preview');
+    return {
+      frontImage: previewFile?.preview_url || product.preview_url || product.thumbnail_url,
+      backImage: null
+    };
+  };
+
+  const { frontImage, backImage } = getProductImages();
+  const currentImage = showingBack ? backImage : frontImage;
+  const thumbnailImage = showingBack ? frontImage : backImage;
+  const showBackOption = hasBackDesign(product.name) && backImage;
+  const currentPrice = selectedVariant?.retail_price ? Number(selectedVariant.retail_price) : null;
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
       <div className="bg-gray-900 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex justify-between items-start mb-6">
-            <h2 className="text-2xl font-bold text-white">{product.name}</h2>
+            <div>
+              <h2 className="text-2xl font-bold text-white">{product.name}</h2>
+              <p className="text-xl text-purple-400 mt-1">
+                {currentPrice ? `$${currentPrice.toFixed(2)}` : 'Select options for price'}
+              </p>
+            </div>
             <button onClick={onClose} className="text-gray-400 hover:text-white">
               <XMarkIcon className="h-6 w-6" />
             </button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div>
+            <div className="relative">
               <img
-                src={product.thumbnail_url}
-                alt={product.name}
+                src={showingBack ? backImage : frontImage}
+                alt={`${product.name} ${showingBack ? 'back' : 'front'} view in ${selectedColor || ''}`}
                 className="w-full rounded-lg"
               />
+              {hasBackDesign(product.name) && (
+                <button
+                  onClick={() => setShowingBack(!showingBack)}
+                  className="absolute bottom-4 right-4 w-20 h-20 rounded-lg overflow-hidden border-2 border-purple-500 hover:border-purple-400 transition-colors bg-gray-900"
+                >
+                  <img
+                    src={showingBack ? frontImage : backImage}
+                    alt={`${product.name} ${!showingBack ? 'back' : 'front'} view`}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                    <span className="text-xs text-white font-medium">
+                      {showingBack ? 'Front' : 'Back'}
+                    </span>
+                  </div>
+                </button>
+              )}
             </div>
 
             <div className="space-y-6">
@@ -75,20 +197,42 @@ const ProductModal = ({ product, onClose, onAddToCart }) => {
               ) : (
                 <>
                   <div>
-                    <h3 className="text-sm font-medium text-gray-400 mb-2">Size</h3>
+                    <h3 className="text-sm font-medium text-gray-400 mb-2">Color</h3>
                     <div className="grid grid-cols-4 gap-2">
-                      {Array.from(new Set(variants.map(v => v.size))).map((size) => (
+                      {colors.map((color) => (
                         <button
-                          key={size}
+                          key={color}
                           className={`py-2 px-4 rounded-md text-sm font-medium ${
-                            selectedSize === size
+                            selectedColor === color
                               ? 'bg-purple-600 text-white'
                               : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
                           }`}
-                          onClick={() => setSelectedSize(size)}
+                          onClick={() => setSelectedColor(color)}
                         >
-                          {size}
+                          {color}
                         </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-400 mb-2">Size</h3>
+                    <div className="grid grid-cols-4 gap-2">
+                      {Array.from(new Set(variants
+                        .filter(v => v.color === selectedColor)
+                        .map(v => v.size)))
+                        .map((size) => (
+                          <button
+                            key={size}
+                            className={`py-2 px-4 rounded-md text-sm font-medium ${
+                              selectedSize === size
+                                ? 'bg-purple-600 text-white'
+                                : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                            }`}
+                            onClick={() => setSelectedSize(size)}
+                          >
+                            {size}
+                          </button>
                       ))}
                     </div>
                   </div>
@@ -232,7 +376,28 @@ const Merch = () => {
       
       const data = await response.json();
       console.log('Products data:', data);
-      setProducts(data || []);
+
+      // Fetch variant details for each product
+      const productsWithPrices = await Promise.all(
+        data.map(async (product) => {
+          try {
+            const variantResponse = await fetch(`/api/printful/products/${product.id}`);
+            if (!variantResponse.ok) throw new Error('Failed to fetch variants');
+            const variantData = await variantResponse.json();
+            return {
+              ...product,
+              sync_variants: variantData.sync_variants || [],
+              retail_price: variantData.sync_variants?.[0]?.retail_price
+            };
+          } catch (err) {
+            console.error(`Error fetching variants for product ${product.id}:`, err);
+            return product;
+          }
+        })
+      );
+
+      console.log('Products with prices:', productsWithPrices);
+      setProducts(productsWithPrices || []);
       setLoading(false);
     } catch (err) {
       console.error('Error fetching products:', err);
@@ -364,33 +529,48 @@ const Merch = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-            {filteredProducts.map((product) => (
-              <div key={product.id} className="bg-gray-900 rounded-lg overflow-hidden group">
-                <div className="aspect-w-1 aspect-h-1 relative">
-                  <img
-                    src={product.thumbnail_url}
-                    alt={product.name}
-                    className="w-full h-full object-center object-cover group-hover:opacity-75 transition-opacity"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                </div>
-                <div className="p-4">
-                  <h3 className="text-lg font-medium text-white">{product.name}</h3>
-                  <div className="mt-2 flex justify-between items-center">
-                    <div className="text-sm">
-                      <span className="text-purple-400">{product.variants}</span>
-                      <span className="text-gray-400 ml-1">styles</span>
+            {filteredProducts.map((product) => {
+              // Get preview URL for grid items
+              const previewFile = product.files?.find(f => f.type === 'preview');
+              const imageUrl = previewFile?.preview_url || product.preview_url || product.thumbnail_url;
+              
+              return (
+                <div key={product.id} className="bg-gray-900 rounded-lg overflow-hidden group">
+                  <div className="aspect-w-1 aspect-h-1 relative">
+                    <img
+                      src={imageUrl}
+                      alt={product.name}
+                      className="w-full h-full object-center object-cover group-hover:opacity-75 transition-opacity"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    {hasBackDesign(product.name) && (
+                      <div className="absolute bottom-2 right-2 bg-purple-600 text-white text-xs px-2 py-1 rounded-full">
+                        Front + Back
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-4">
+                    <h3 className="text-lg font-medium text-white">{product.name}</h3>
+                    <div className="mt-2 flex justify-between items-center">
+                      <div className="text-purple-400 text-lg font-medium">
+                        {product.sync_variants?.length > 0 ? 
+                          `$${Number(product.sync_variants[0].retail_price).toFixed(2)}` : 
+                          product.retail_price ? 
+                            `$${Number(product.retail_price).toFixed(2)}` : 
+                            'Price not available'
+                        }
+                      </div>
+                      <button
+                        onClick={() => setSelectedProduct(product)}
+                        className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-full text-sm transition-colors"
+                      >
+                        View Options
+                      </button>
                     </div>
-                    <button
-                      onClick={() => setSelectedProduct(product)}
-                      className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-full text-sm transition-colors"
-                    >
-                      View Options
-                    </button>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
