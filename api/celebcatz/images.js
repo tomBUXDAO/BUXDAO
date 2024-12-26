@@ -1,7 +1,6 @@
-import pkg from 'pg';
-const { Pool } = pkg;
+const { Pool } = require('pg');
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   console.log('CelebCatz images endpoint hit');
   console.log('Database URL:', process.env.POSTGRES_URL ? 'Set' : 'Not set');
 
