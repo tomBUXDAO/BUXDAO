@@ -59,6 +59,8 @@ const ProductModal = ({ product, onClose, onAddToCart }) => {
     if (selectedColor && variants.length > 0) {
       const newVariant = variants.find(v => v.color === selectedColor);
       if (newVariant) {
+        console.log('Selected variant:', newVariant);
+        console.log('Variant files:', newVariant.files);
         setSelectedVariant(newVariant);
       }
     }
@@ -120,20 +122,21 @@ const ProductModal = ({ product, onClose, onAddToCart }) => {
       };
     }
     
-    // For Printful products, use the preview URL from the selected variant
-    if (selectedVariant) {
-      const files = selectedVariant.files || [];
-      const previewFile = files.find(f => f.type === 'preview');
-      const mockupFile = files.find(f => f.type === 'mockup');
-      return {
-        frontImage: previewFile?.preview_url || mockupFile?.preview_url || selectedVariant.preview_url || product.thumbnail_url,
-        backImage: null
-      };
+    // For Printful products
+    if (selectedVariant?.files) {
+      const files = selectedVariant.files;
+      const mockupFile = files.find(f => f.type === 'preview');
+      if (mockupFile && mockupFile.preview_url) {
+        return {
+          frontImage: mockupFile.preview_url,
+          backImage: null
+        };
+      }
     }
     
-    // Fallback to product preview/thumbnail
+    // Fallback to product thumbnail
     return {
-      frontImage: product.preview_url || product.thumbnail_url,
+      frontImage: product.thumbnail_url,
       backImage: null
     };
   };
