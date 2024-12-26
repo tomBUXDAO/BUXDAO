@@ -99,8 +99,9 @@ const ProductModal = ({ product, onClose, onAddToCart }) => {
   // Get current product images based on selected variant
   const getProductImages = () => {
     const productName = product.name.toLowerCase();
+    const color = selectedColor?.toLowerCase().replace(/ /g, '-') || 'black';
     
-    // Only use local images for products with back designs
+    // Handle products with back designs (BitBots, FCKed Catz, Monsters)
     if (hasBackDesign(productName)) {
       let collection = '';
       let type = '';
@@ -114,7 +115,6 @@ const ProductModal = ({ product, onClose, onAddToCart }) => {
       }
       
       type = productName.includes('t-shirt') ? 'tees' : 'hoodies';
-      const color = selectedColor?.toLowerCase().replace(/ /g, '-') || 'black';
       
       return {
         frontImage: `/merch/${collection}/${type}/${color}-front.jpg`,
@@ -122,13 +122,31 @@ const ProductModal = ({ product, onClose, onAddToCart }) => {
       };
     }
     
-    // For Printful products
-    if (selectedVariant?.files) {
-      const files = selectedVariant.files;
-      const mockupFile = files.find(f => f.type === 'preview');
-      if (mockupFile && mockupFile.preview_url) {
+    // Handle BUX products
+    if (productName.includes('bux')) {
+      if (productName.includes('t-shirt') || productName.includes('tee')) {
         return {
-          frontImage: mockupFile.preview_url,
+          frontImage: `/merch/bux/tees/${color}.jpg`,
+          backImage: null
+        };
+      } else if (productName.includes('hoodie')) {
+        return {
+          frontImage: `/merch/bux/hoodies/${color}.jpg`,
+          backImage: null
+        };
+      } else if (productName.includes('dad hat')) {
+        return {
+          frontImage: `/merch/bux/dad hat/${color}.jpg`,
+          backImage: null
+        };
+      } else if (productName.includes('beanie')) {
+        return {
+          frontImage: `/merch/bux/beanie/${color}.jpg`,
+          backImage: null
+        };
+      } else if (productName.includes('flat') || productName.includes('bill')) {
+        return {
+          frontImage: `/merch/bux/flat bill/${color}.jpg`,
           backImage: null
         };
       }
@@ -146,6 +164,13 @@ const ProductModal = ({ product, onClose, onAddToCart }) => {
   const thumbnailImage = showingBack ? frontImage : backImage;
   const showBackOption = hasBackDesign(product.name) && backImage;
   const currentPrice = selectedVariant?.retail_price ? Number(selectedVariant.retail_price) : null;
+
+  const formatColorName = (color) => {
+    if (color.toLowerCase() === 'cranberry') {
+      return 'Cran-\nberry';
+    }
+    return color;
+  };
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
@@ -202,14 +227,16 @@ const ProductModal = ({ product, onClose, onAddToCart }) => {
                       {colors.map((color) => (
                         <button
                           key={color}
-                          className={`py-2 px-4 rounded-md text-sm font-medium ${
+                          className={`min-h-[60px] py-2 px-4 rounded-md text-sm font-medium flex items-center justify-center ${
                             selectedColor === color
                               ? 'bg-purple-600 text-white'
                               : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
                           }`}
                           onClick={() => setSelectedColor(color)}
                         >
-                          {color}
+                          <span className="text-center leading-tight whitespace-pre-line">
+                            {formatColorName(color)}
+                          </span>
                         </button>
                       ))}
                     </div>
@@ -224,14 +251,16 @@ const ProductModal = ({ product, onClose, onAddToCart }) => {
                         .map((size) => (
                           <button
                             key={size}
-                            className={`py-2 px-4 rounded-md text-sm font-medium ${
+                            className={`min-h-[60px] py-2 px-4 rounded-md text-sm font-medium flex items-center justify-center ${
                               selectedSize === size
                                 ? 'bg-purple-600 text-white'
                                 : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
                             }`}
                             onClick={() => setSelectedSize(size)}
                           >
-                            {size}
+                            <span className="text-center leading-tight">
+                              {size}
+                            </span>
                           </button>
                       ))}
                     </div>
@@ -579,7 +608,7 @@ const Merch = () => {
       <div className="fixed bottom-0 left-0 right-0 bg-purple-900/90 backdrop-blur-sm py-3">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <p className="text-center text-white text-sm">
-            Free shipping on orders over $100 • Fast worldwide delivery
+            Free shipping on orders over $100 ������� Fast worldwide delivery
           </p>
         </div>
       </div>
