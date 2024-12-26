@@ -133,6 +133,13 @@ app.get('/api/collections/:symbol/stats', async (req, res) => {
 app.get('/api/celebcatz/images', async (req, res) => {
   console.log('Endpoint hit: /api/celebcatz/images');
   try {
+    const pool = new Pool({
+      connectionString: process.env.POSTGRES_URL,
+      ssl: {
+        rejectUnauthorized: false
+      }
+    });
+
     const result = await pool.query(`
       SELECT image_url, name 
       FROM nft_metadata 
