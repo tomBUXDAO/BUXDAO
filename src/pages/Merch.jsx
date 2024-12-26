@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ShoppingBagIcon, AdjustmentsHorizontalIcon } from '@heroicons/react/24/outline';
+import { ShoppingBagIcon, AdjustmentsHorizontalIcon, XMarkIcon } from '@heroicons/react/24/outline';
 
 const CATEGORIES = {
   all: 'All Products',
@@ -11,12 +11,209 @@ const CATEGORIES = {
 // Get the API URL from environment variables, fallback to localhost if not set
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
+const ProductModal = ({ product, onClose, onAddToCart }) => {
+  const [selectedSize, setSelectedSize] = useState('');
+  const [quantity, setQuantity] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [variants, setVariants] = useState([]);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchVariants = async () => {
+      try {
+        const response = await fetch(`/api/printful/products/${product.id}`);
+        if (!response.ok) throw new Error('Failed to fetch variants');
+        const data = await response.json();
+        setVariants(data.sync_variants || []);
+        setLoading(false);
+      } catch (err) {
+        setError(err.message);
+        setLoading(false);
+      }
+    };
+    fetchVariants();
+  }, [product.id]);
+
+  const handleAddToCart = () => {
+    if (!selectedSize) {
+      alert('Please select a size');
+      return;
+    }
+    onAddToCart({
+      ...product,
+      size: selectedSize,
+      quantity
+    });
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
+      <div className="bg-gray-900 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="p-6">
+          <div className="flex justify-between items-start mb-6">
+            <h2 className="text-2xl font-bold text-white">{product.name}</h2>
+            <button onClick={onClose} className="text-gray-400 hover:text-white">
+              <XMarkIcon className="h-6 w-6" />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div>
+              <img
+                src={product.thumbnail_url}
+                alt={product.name}
+                className="w-full rounded-lg"
+              />
+            </div>
+
+            <div className="space-y-6">
+              {loading ? (
+                <div className="text-gray-400">Loading variants...</div>
+              ) : error ? (
+                <div className="text-red-500">Error: {error}</div>
+              ) : (
+                <>
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-400 mb-2">Size</h3>
+                    <div className="grid grid-cols-4 gap-2">
+                      {Array.from(new Set(variants.map(v => v.size))).map((size) => (
+                        <button
+                          key={size}
+                          className={`py-2 px-4 rounded-md text-sm font-medium ${
+                            selectedSize === size
+                              ? 'bg-purple-600 text-white'
+                              : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                          }`}
+                          onClick={() => setSelectedSize(size)}
+                        >
+                          {size}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-400 mb-2">Quantity</h3>
+                    <div className="flex items-center space-x-4">
+                      <button
+                        className="bg-gray-800 text-white p-2 rounded-md hover:bg-gray-700"
+                        onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                      >
+                        -
+                      </button>
+                      <span className="text-white">{quantity}</span>
+                      <button
+                        className="bg-gray-800 text-white p-2 rounded-md hover:bg-gray-700"
+                        onClick={() => setQuantity(q => q + 1)}
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={handleAddToCart}
+                    className="w-full bg-purple-600 text-white py-3 px-6 rounded-full hover:bg-purple-700 transition-colors"
+                  >
+                    Add to Cart
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const CartSidebar = ({ isOpen, onClose, items, onUpdateQuantity, onRemoveItem }) => {
+  const total = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+  return (
+    <div className={`fixed inset-y-0 right-0 w-full sm:w-96 bg-gray-900 shadow-xl transform transition-transform duration-300 z-50 ${
+      isOpen ? 'translate-x-0' : 'translate-x-full'
+    }`}>
+      <div className="h-full flex flex-col">
+        <div className="p-6 border-b border-gray-800">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-bold text-white">Shopping Cart</h2>
+            <button onClick={onClose} className="text-gray-400 hover:text-white">
+              <XMarkIcon className="h-6 w-6" />
+            </button>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-6">
+          {items.length === 0 ? (
+            <div className="text-center text-gray-400 py-12">
+              Your cart is empty
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {items.map((item) => (
+                <div key={`${item.id}-${item.size}`} className="flex items-start space-x-4">
+                  <img
+                    src={item.thumbnail_url}
+                    alt={item.name}
+                    className="w-20 h-20 object-cover rounded-lg"
+                  />
+                  <div className="flex-1">
+                    <h3 className="text-white font-medium">{item.name}</h3>
+                    <p className="text-sm text-gray-400">Size: {item.size}</p>
+                    <div className="mt-2 flex items-center space-x-2">
+                      <button
+                        className="text-gray-400 hover:text-white"
+                        onClick={() => onUpdateQuantity(item, Math.max(1, item.quantity - 1))}
+                      >
+                        -
+                      </button>
+                      <span className="text-white">{item.quantity}</span>
+                      <button
+                        className="text-gray-400 hover:text-white"
+                        onClick={() => onUpdateQuantity(item, item.quantity + 1)}
+                      >
+                        +
+                      </button>
+                      <button
+                        className="ml-4 text-red-500 hover:text-red-400 text-sm"
+                        onClick={() => onRemoveItem(item)}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {items.length > 0 && (
+          <div className="p-6 border-t border-gray-800">
+            <div className="flex justify-between items-center mb-4">
+              <span className="text-gray-400">Subtotal</span>
+              <span className="text-white font-medium">${total.toFixed(2)}</span>
+            </div>
+            <button className="w-full bg-purple-600 text-white py-3 px-6 rounded-full hover:bg-purple-700 transition-colors">
+              Checkout
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const Merch = () => {
   const [activeCategory, setActiveCategory] = useState('all');
-  const [cartCount, setCartCount] = useState(0);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [cartItems, setCartItems] = useState([]);
+  const [isCartOpen, setIsCartOpen] = useState(false);
 
   useEffect(() => {
     fetchProducts();
@@ -24,17 +221,17 @@ const Merch = () => {
 
   const fetchProducts = async () => {
     try {
-      console.log('Fetching products...'); // Debug log
+      console.log('Fetching products...');
       const response = await fetch('/api/printful/products');
       
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('API Error:', errorText); // Debug log
+        console.error('API Error:', errorText);
         throw new Error(`Failed to fetch products: ${response.statusText}`);
       }
       
       const data = await response.json();
-      console.log('Products data:', data); // Debug log
+      console.log('Products data:', data);
       setProducts(data || []);
       setLoading(false);
     } catch (err) {
@@ -59,6 +256,42 @@ const Merch = () => {
       return products;
     }
     return products.filter(product => categorizeProduct(product) === activeCategory);
+  };
+
+  const handleAddToCart = (product) => {
+    setCartItems(prevItems => {
+      const existingItem = prevItems.find(
+        item => item.id === product.id && item.size === product.size
+      );
+
+      if (existingItem) {
+        return prevItems.map(item =>
+          item.id === product.id && item.size === product.size
+            ? { ...item, quantity: item.quantity + product.quantity }
+            : item
+        );
+      }
+
+      return [...prevItems, product];
+    });
+  };
+
+  const updateCartItemQuantity = (item, newQuantity) => {
+    setCartItems(prevItems =>
+      prevItems.map(prevItem =>
+        prevItem.id === item.id && prevItem.size === item.size
+          ? { ...prevItem, quantity: newQuantity }
+          : prevItem
+      )
+    );
+  };
+
+  const removeCartItem = (item) => {
+    setCartItems(prevItems =>
+      prevItems.filter(
+        prevItem => !(prevItem.id === item.id && prevItem.size === item.size)
+      )
+    );
   };
 
   if (loading) {
@@ -86,11 +319,14 @@ const Merch = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center">
             <h1 className="text-3xl font-bold text-white">BUXDAO Shop</h1>
-            <button className="relative p-2">
+            <button 
+              className="relative p-2"
+              onClick={() => setIsCartOpen(true)}
+            >
               <ShoppingBagIcon className="h-6 w-6 text-white" />
-              {cartCount > 0 && (
+              {cartItems.length > 0 && (
                 <span className="absolute -top-1 -right-1 bg-purple-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                  {cartCount}
+                  {cartItems.reduce((sum, item) => sum + item.quantity, 0)}
                 </span>
               )}
             </button>
@@ -101,12 +337,12 @@ const Merch = () => {
       {/* Category Filter */}
       <div className="border-b border-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center space-x-8 py-4">
-            <AdjustmentsHorizontalIcon className="h-5 w-5 text-gray-400" />
+          <div className="flex items-center space-x-8 py-4 overflow-x-auto">
+            <AdjustmentsHorizontalIcon className="h-5 w-5 text-gray-400 flex-shrink-0" />
             {Object.entries(CATEGORIES).map(([key, label]) => (
               <button
                 key={key}
-                className={`text-sm ${
+                className={`text-sm whitespace-nowrap ${
                   activeCategory === key
                     ? 'text-purple-400 border-b-2 border-purple-400'
                     : 'text-gray-400 hover:text-white'
@@ -146,7 +382,7 @@ const Merch = () => {
                       <span className="text-gray-400 ml-1">styles</span>
                     </div>
                     <button
-                      onClick={() => setCartCount(prev => prev + 1)}
+                      onClick={() => setSelectedProduct(product)}
                       className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-full text-sm transition-colors"
                     >
                       View Options
@@ -167,6 +403,24 @@ const Merch = () => {
           </p>
         </div>
       </div>
+
+      {/* Product Modal */}
+      {selectedProduct && (
+        <ProductModal
+          product={selectedProduct}
+          onClose={() => setSelectedProduct(null)}
+          onAddToCart={handleAddToCart}
+        />
+      )}
+
+      {/* Cart Sidebar */}
+      <CartSidebar
+        isOpen={isCartOpen}
+        onClose={() => setIsCartOpen(false)}
+        items={cartItems}
+        onUpdateQuantity={updateCartItemQuantity}
+        onRemoveItem={removeCartItem}
+      />
     </div>
   );
 };
