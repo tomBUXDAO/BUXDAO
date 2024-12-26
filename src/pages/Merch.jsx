@@ -100,35 +100,23 @@ const ProductModal = ({ product, onClose, onAddToCart }) => {
     
     // Only use local images for products with back designs
     if (hasBackDesign(productName)) {
-      let folder = '';
-      let productType = '';
+      let collection = '';
+      let type = '';
       
-      if (productName.includes('t-shirt')) {
-        productType = 'classic-tee';
-        if (productName.includes('fcked catz')) {
-          folder = 'Tshirts_catz';
-        } else if (productName.includes('bitbots')) {
-          folder = 'Tshirts_bitbots';
-        } else if (productName.includes('monsters')) {
-          folder = 'Tshirts_monsters';
-        }
-      } else if (productName.includes('hoodie')) {
-        productType = 'premium-hoodie';
-        if (productName.includes('fcked catz')) {
-          folder = 'Hoodies_catz';
-        } else if (productName.includes('bitbots')) {
-          folder = 'Hoodies_bitbots';
-        } else if (productName.includes('monsters')) {
-          folder = 'Hoodies_monsters';
-        }
+      if (productName.includes('fcked catz')) {
+        collection = 'catz';
+      } else if (productName.includes('bitbots')) {
+        collection = 'bitbots';
+      } else if (productName.includes('monsters')) {
+        collection = 'monsters';
       }
-
+      
+      type = productName.includes('t-shirt') ? 'tees' : 'hoodies';
       const color = selectedColor?.toLowerCase().replace(/ /g, '-') || 'black';
-      const basePath = `/merch/${folder}/unisex-${productType}-${color}`;
       
       return {
-        frontImage: `${basePath}-front-676cafb52eff6.jpg`,
-        backImage: `${basePath}-back-676cafb52fc10.jpg`
+        frontImage: `/merch/${collection}/${type}/${color}-front.jpg`,
+        backImage: `/merch/${collection}/${type}/${color}-back.jpg`
       };
     }
     
