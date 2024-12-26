@@ -120,11 +120,20 @@ const ProductModal = ({ product, onClose, onAddToCart }) => {
       };
     }
     
-    // For Printful products, use the preview URL instead of thumbnail
-    const files = selectedVariant?.files || [];
-    const previewFile = files.find(f => f.type === 'preview');
+    // For Printful products, use the preview URL from the selected variant
+    if (selectedVariant) {
+      const files = selectedVariant.files || [];
+      const previewFile = files.find(f => f.type === 'preview');
+      const mockupFile = files.find(f => f.type === 'mockup');
+      return {
+        frontImage: previewFile?.preview_url || mockupFile?.preview_url || selectedVariant.preview_url || product.thumbnail_url,
+        backImage: null
+      };
+    }
+    
+    // Fallback to product preview/thumbnail
     return {
-      frontImage: previewFile?.preview_url || product.preview_url || product.thumbnail_url,
+      frontImage: product.preview_url || product.thumbnail_url,
       backImage: null
     };
   };
