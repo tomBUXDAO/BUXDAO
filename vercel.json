@@ -3,6 +3,26 @@
     {
       "source": "/api/:path*",
       "destination": "/api/:path*"
+    },
+    {
+      "source": "/merch",
+      "destination": "/"
+    },
+    {
+      "source": "/rewards",
+      "destination": "/"
+    },
+    {
+      "source": "/stats",
+      "destination": "/"
+    },
+    {
+      "source": "/soon",
+      "destination": "/"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/$1"
     }
   ],
   "headers": [
