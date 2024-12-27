@@ -6,6 +6,7 @@ import BuxInfo from './components/BuxInfo';
 import CollabCollections from './components/CollabCollections';
 import CelebUpgrades from './components/CelebUpgrades';
 import Merch from './pages/Merch';
+import ComingSoon from './pages/ComingSoon';
 
 function HomePage() {
   return (
@@ -27,7 +28,7 @@ function App() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/merch" element={<Merch />} />
-          {/* Add other routes as needed */}
+          <Route path="/soon" element={<ComingSoon />} />
         </Routes>
       </div>
     </Router>
