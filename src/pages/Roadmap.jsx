@@ -1,6 +1,6 @@
 import { CalendarIcon, CurrencyDollarIcon, GiftIcon, UserGroupIcon } from '@heroicons/react/24/outline';
 
-const ComingSoon = () => {
+const Roadmap = () => {
   const upcomingFeatures = [
     {
       title: 'SLOTTO.gg',
@@ -127,7 +127,7 @@ const ComingSoon = () => {
                   muted
                   playsInline
                 >
-                  <source src="/BUXspades.mp4" type="video/mp4" />
+                  <source src="/BUXspades_web.mp4" type="video/mp4" />
                 </video>
               )}
             </div>
@@ -154,4 +154,4 @@ const ComingSoon = () => {
   );
 };
 
-export default ComingSoon; 
+export default Roadmap; 

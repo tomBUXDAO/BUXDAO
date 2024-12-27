@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Bars3Icon, XMarkIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
+import { Bars3Icon, XMarkIcon, ChevronDownIcon, LockClosedIcon } from '@heroicons/react/24/outline';
 import Logo from './Logo';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isHomeDropdownOpen, setIsHomeDropdownOpen] = useState(false);
-  const [isMerchDropdownOpen, setIsMerchDropdownOpen] = useState(false);
+  const [isBuxDropdownOpen, setIsBuxDropdownOpen] = useState(false);
 
   const scrollToSection = (sectionId) => {
     const section = document.querySelector(sectionId);
@@ -29,17 +29,18 @@ const Header = () => {
     { name: 'Celeb Upgrades', href: '#celebupgrades' }
   ];
 
-  const merchSections = [
-    { name: 'Hats', href: '/merch/hats' },
-    { name: 'Hoodies', href: '/merch/hoodies' },
-    { name: 'T-Shirts', href: '/merch/t-shirts' },
-    { name: 'Check Out', href: '/merch/checkout' }
+  const buxSections = [
+    { name: 'Rewards', href: '/rewards' },
+    { 
+      name: 'Profile', 
+      href: '/profile',
+      locked: true
+    }
   ];
 
   const mainLinks = [
-    { name: 'Rewards', href: '/rewards' },
-    { name: 'Stats', href: '/stats' },
-    { name: 'Coming Soon', href: '/soon' }
+    { name: 'Roadmap', href: '/roadmap' },
+    { name: 'Merch', href: '/merch' }
   ];
 
   return (
@@ -113,7 +114,48 @@ const Header = () => {
                 </div>
               </div>
 
-              {/* Main links before Merch */}
+              {/* $BUX with dropdown */}
+              <div 
+                className="relative group"
+                onMouseEnter={() => setIsBuxDropdownOpen(true)}
+                onMouseLeave={() => setIsBuxDropdownOpen(false)}
+              >
+                <Link 
+                  to="/bux"
+                  className="flex items-center space-x-1 text-gray-300 hover:text-white transition-colors py-2"
+                >
+                  <span>$BUX</span>
+                  <ChevronDownIcon className={`h-4 w-4 transition-transform ${isBuxDropdownOpen ? 'rotate-180' : ''}`} />
+                </Link>
+                
+                {/* $BUX Dropdown menu */}
+                <div 
+                  className={`absolute left-0 w-48 rounded-md shadow-lg bg-gray-900 ring-1 ring-black ring-opacity-5 transform transition-all duration-200 origin-top ${
+                    isBuxDropdownOpen ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2 pointer-events-none'
+                  }`}
+                >
+                  <div className="py-1" role="menu" aria-orientation="vertical">
+                    {buxSections.map((item) => (
+                      <Link
+                        key={item.name}
+                        to={item.href}
+                        className="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
+                        role="menuitem"
+                        onClick={() => setIsBuxDropdownOpen(false)}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span>{item.name}</span>
+                          {item.locked && (
+                            <LockClosedIcon className="h-4 w-4 text-gray-400" />
+                          )}
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Main links */}
               {mainLinks.map((link) => (
                 <Link 
                   key={link.name}
@@ -123,42 +165,6 @@ const Header = () => {
                   {link.name}
                 </Link>
               ))}
-
-              {/* Merch with dropdown */}
-              <div 
-                className="relative group"
-                onMouseEnter={() => setIsMerchDropdownOpen(true)}
-                onMouseLeave={() => setIsMerchDropdownOpen(false)}
-              >
-                <Link 
-                  to="/merch"
-                  className="flex items-center space-x-1 text-gray-300 hover:text-white transition-colors py-2"
-                >
-                  <span>Merch</span>
-                  <ChevronDownIcon className={`h-4 w-4 transition-transform ${isMerchDropdownOpen ? 'rotate-180' : ''}`} />
-                </Link>
-                
-                {/* Merch Dropdown menu */}
-                <div 
-                  className={`absolute left-0 w-48 rounded-md shadow-lg bg-gray-900 ring-1 ring-black ring-opacity-5 transform transition-all duration-200 origin-top ${
-                    isMerchDropdownOpen ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2 pointer-events-none'
-                  }`}
-                >
-                  <div className="py-1" role="menu" aria-orientation="vertical">
-                    {merchSections.map((item) => (
-                      <Link
-                        key={item.name}
-                        to={item.href}
-                        className="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
-                        role="menuitem"
-                        onClick={() => setIsMerchDropdownOpen(false)}
-                      >
-                        {item.name}
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              </div>
 
               <button className="bg-gradient-to-r from-purple-500 to-pink-500 px-6 py-2 rounded-full text-white hover:opacity-90 transition-opacity">
                 Connect Wallet
@@ -199,6 +205,26 @@ const Header = () => {
                 ))}
               </div>
 
+              {/* $BUX sections in mobile */}
+              <div className="space-y-2">
+                <div className="text-sm font-semibold text-gray-400 uppercase tracking-wider">$BUX</div>
+                {buxSections.map(item => (
+                  <Link
+                    key={item.name}
+                    to={item.href}
+                    className="block text-gray-300 hover:text-white transition-colors pl-4"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span>{item.name}</span>
+                      {item.locked && (
+                        <LockClosedIcon className="h-4 w-4 text-gray-400" />
+                      )}
+                    </div>
+                  </Link>
+                ))}
+              </div>
+
               {/* Main links */}
               {mainLinks.map(link => (
                 <Link 
@@ -210,21 +236,6 @@ const Header = () => {
                   {link.name}
                 </Link>
               ))}
-              
-              {/* Merch sections in mobile */}
-              <div className="space-y-2">
-                <div className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Merch</div>
-                {merchSections.map(item => (
-                  <Link
-                    key={item.name}
-                    to={item.href}
-                    className="block text-gray-300 hover:text-white transition-colors pl-4"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    {item.name}
-                  </Link>
-                ))}
-              </div>
 
               <button className="bg-gradient-to-r from-purple-500 to-pink-500 px-6 py-2 rounded-full text-white hover:opacity-90 transition-opacity">
                 Connect Wallet

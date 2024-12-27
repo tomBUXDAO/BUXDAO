@@ -6,14 +6,14 @@ import BuxInfo from './components/BuxInfo';
 import CollabCollections from './components/CollabCollections';
 import CelebUpgrades from './components/CelebUpgrades';
 import Merch from './pages/Merch';
-import ComingSoon from './pages/ComingSoon';
+import Roadmap from './pages/Roadmap';
+import Bux from './pages/Bux';
 
 function HomePage() {
   return (
     <>
       <Hero />
       <Collection />
-      <BuxInfo />
       <CollabCollections />
       <CelebUpgrades />
     </>
@@ -28,7 +28,8 @@ function App() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/merch" element={<Merch />} />
-          <Route path="/soon" element={<ComingSoon />} />
+          <Route path="/roadmap" element={<Roadmap />} />
+          <Route path="/bux" element={<Bux />} />
         </Routes>
       </div>
     </Router>
