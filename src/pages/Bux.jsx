@@ -95,76 +95,96 @@ const Bux = () => {
             </div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Token Valuation */}
-            <div className="bg-gradient-to-br from-purple-200 to-purple-300/90 backdrop-blur-sm rounded-2xl p-8 shadow-xl hover:shadow-2xl transition-shadow duration-300">
-              <h3 className="text-xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 mb-8">
-                Token Metrics
-              </h3>
-              <div className="space-y-6">
-                <div>
-                  <p className="text-gray-700 mb-2">Total Supply</p>
-                  <p className="text-gray-900 font-bold text-3xl">{tokenData.totalSupply}</p>
-                </div>
-                <div>
-                  <p className="text-gray-700 mb-2">Public Supply</p>
-                  <p className="text-gray-900 font-bold text-3xl">{tokenData.publicSupply}</p>
-                </div>
-                <div>
-                  <p className="text-gray-700 mb-2">Liquidity Pool</p>
-                  <p className="text-gray-900 font-bold text-3xl">{tokenData.liquidityPool}</p>
-                </div>
-                <div>
-                  <p className="text-gray-700 mb-2">Token Value</p>
-                  <p className="text-gray-900 font-bold text-3xl">{tokenData.tokenValue}</p>
+          {/* Token Metrics - Full Width */}
+          <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl p-6 hover:shadow-xl transition-shadow duration-300 mb-8">
+            <div className="flex items-start gap-4">
+              <div className="bg-purple-600/20 p-3 rounded-lg">
+                <BanknotesIcon className="h-6 w-6 text-purple-400" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-2xl md:text-3xl font-semibold text-yellow-400 mb-4">
+                  Token Metrics
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+                  <div>
+                    <p className="text-gray-300 text-sm mb-1">Total Supply</p>
+                    <p className="text-gray-200 font-semibold text-xl">{tokenData.totalSupply}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-300 text-sm mb-1">Public Supply</p>
+                    <p className="text-gray-200 font-semibold text-xl">{tokenData.publicSupply}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-300 text-sm mb-1">Liquidity Pool</p>
+                    <p className="text-gray-200 font-semibold text-xl">{tokenData.liquidityPool}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-300 text-sm mb-1">Token Value</p>
+                    <p className="text-gray-200 font-semibold text-xl">{tokenData.tokenValue}</p>
+                  </div>
                 </div>
               </div>
             </div>
+          </div>
 
+          {/* Two Column Layout for Revenue Sources and Top Holders */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* Revenue Sources */}
-            <div className="bg-gradient-to-br from-purple-200 to-purple-300/90 backdrop-blur-sm rounded-2xl p-8 shadow-xl hover:shadow-2xl transition-shadow duration-300">
-              <h3 className="text-xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 mb-6">
-                Revenue Sources
-              </h3>
-              <div className="space-y-4">
-                {revenueSources.map((source, index) => (
-                  <div key={index} className="border-b border-gray-300 last:border-0 pb-4 last:pb-0">
-                    <div className="flex items-start gap-3">
-                      <source.icon className="w-5 h-5 text-purple-600 flex-shrink-0 mt-1" />
-                      <div>
-                        <h4 className="text-gray-900 font-semibold mb-1">{source.title}</h4>
-                        <p className="text-gray-700 text-sm leading-tight">{source.description}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+            <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl p-6 hover:shadow-xl transition-shadow duration-300">
+              <div className="flex items-start gap-4">
+                <div className="bg-purple-600/20 p-3 rounded-lg">
+                  <TagIcon className="h-6 w-6 text-purple-400" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-2xl md:text-3xl font-semibold text-yellow-400 mb-4">
+                    Revenue Sources
+                  </h3>
+                  <ul className="space-y-2">
+                    {revenueSources.map((source, index) => (
+                      <li key={index} className="text-gray-400 text-sm flex items-center">
+                        <span className="w-1.5 h-1.5 bg-purple-400 rounded-full mr-2"></span>
+                        <div>
+                          <div className="text-gray-200 font-semibold mb-1">{source.title}</div>
+                          <p className="text-gray-400 text-sm">{source.description}</p>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               </div>
             </div>
 
             {/* Top Holders */}
-            <div className="bg-gradient-to-br from-purple-200 to-purple-300/90 backdrop-blur-sm rounded-2xl p-8 shadow-xl hover:shadow-2xl transition-shadow duration-300">
-              <h3 className="text-xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 mb-8">
-                Top Holders
-              </h3>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="text-gray-700 text-sm border-b border-gray-300">
-                      <th className="text-left pb-4">Address</th>
-                      <th className="text-left pb-4">Amount</th>
-                      <th className="text-left pb-4">%</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {topHolders.map((holder, index) => (
-                      <tr key={index} className="text-gray-900 border-b border-gray-200 last:border-0">
-                        <td className="py-4 text-purple-700">{holder.address}</td>
-                        <td className="py-4">{holder.amount}</td>
-                        <td className="py-4">{holder.percentage}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl p-6 hover:shadow-xl transition-shadow duration-300">
+              <div className="flex items-start gap-4">
+                <div className="bg-purple-600/20 p-3 rounded-lg">
+                  <UsersIcon className="h-6 w-6 text-purple-400" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-2xl md:text-3xl font-semibold text-yellow-400 mb-4">
+                    Top Holders
+                  </h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="text-gray-400 text-sm">
+                          <th className="text-left pb-2">Address</th>
+                          <th className="text-left pb-2">Amount</th>
+                          <th className="text-left pb-2">%</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {topHolders.map((holder, index) => (
+                          <tr key={index} className="text-gray-200">
+                            <td className="py-2 text-purple-400">{holder.address}</td>
+                            <td className="py-2">{holder.amount}</td>
+                            <td className="py-2">{holder.percentage}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

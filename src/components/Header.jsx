@@ -24,7 +24,6 @@ const Header = () => {
 
   const sections = [
     { name: 'Collections', href: '#collection' },
-    { name: '$BUX', href: '#bux' },
     { name: 'A.I. Collabs', href: '#collabs' },
     { name: 'Celeb Upgrades', href: '#celebupgrades' }
   ];
