@@ -10,9 +10,7 @@ const COLLECTION_SUPPLIES = {
 };
 
 // Get the base API URL based on environment
-const API_BASE_URL = import.meta.env.PROD 
-  ? '/api' 
-  : 'http://localhost:3001/api';
+const API_BASE_URL = '/api';  // This will work both locally and in production
 
 const Collection = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
