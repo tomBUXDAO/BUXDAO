@@ -11,13 +11,14 @@
     },
     {
       "src": "api/**/*.js",
-      "use": "@vercel/node",
-      "config": {
-        "maxDuration": 60
-      }
+      "use": "@vercel/node"
     }
   ],
   "routes": [
+    {
+      "src": "/api/celebcatz/images",
+      "dest": "/api/celebcatz/images.js"
+    },
     {
       "src": "/api/(.*)",
       "dest": "/api/index.js"
