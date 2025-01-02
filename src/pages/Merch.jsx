@@ -9,7 +9,7 @@ const CATEGORIES = {
 };
 
 // Get the API URL from environment variables, fallback to localhost if not set
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_URL = '/api';  // Use Vite proxy path
 
 const hasBackDesign = (productName) => {
   const name = productName.toLowerCase();
@@ -35,7 +35,7 @@ const ProductModal = ({ product, onClose, onAddToCart }) => {
   useEffect(() => {
     const fetchVariants = async () => {
       try {
-        const response = await fetch(`/api/printful/products/${product.id}`);
+        const response = await fetch(`${API_URL}/printful/products/${product.id}`);
         if (!response.ok) throw new Error('Failed to fetch variants');
         const data = await response.json();
         setVariants(data.sync_variants || []);
@@ -395,7 +395,7 @@ const Merch = () => {
   const fetchProducts = async () => {
     try {
       console.log('Fetching products...');
-      const response = await fetch('/api/printful/products');
+      const response = await fetch(`${API_URL}/printful/products`);
       
       if (!response.ok) {
         const errorText = await response.text();
@@ -410,7 +410,7 @@ const Merch = () => {
       const productsWithPrices = await Promise.all(
         data.map(async (product) => {
           try {
-            const variantResponse = await fetch(`/api/printful/products/${product.id}`);
+            const variantResponse = await fetch(`${API_URL}/printful/products/${product.id}`);
             if (!variantResponse.ok) throw new Error('Failed to fetch variants');
             const variantData = await variantResponse.json();
             return {
@@ -608,7 +608,7 @@ const Merch = () => {
       <div className="fixed bottom-0 left-0 right-0 bg-purple-900/90 backdrop-blur-sm py-3">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <p className="text-center text-white text-sm">
-            Free shipping on orders over $100 ������� Fast worldwide delivery
+            Free shipping on orders over $100 🚚 Fast worldwide delivery
           </p>
         </div>
       </div>
