@@ -1,5 +1,9 @@
 import { sql } from '@vercel/postgres';
 
+export const config = {
+  runtime: 'edge'
+};
+
 export default async function handler(req) {
   if (req.method !== 'GET') {
     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
@@ -16,8 +20,8 @@ export default async function handler(req) {
       SELECT image_url, name 
       FROM nft_metadata 
       WHERE symbol = 'CelebCatz'
-      AND name LIKE 'Celebrity Catz #%'
-      AND CAST(NULLIF(regexp_replace(name, '.*#', ''), '') AS INTEGER) <= 79
+      AND name ~ '^Celebrity Catz #[0-9]+$'
+      AND name <= 'Celebrity Catz #79'
       ORDER BY name;
     `;
     
