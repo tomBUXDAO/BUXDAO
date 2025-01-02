@@ -8,12 +8,20 @@
         "buildCommand": "npm run build",
         "outputDirectory": "dist"
       }
+    },
+    {
+      "src": "server.js",
+      "use": "@vercel/node"
     }
   ],
   "routes": [
     {
-      "src": "/api/(.*)",
-      "dest": "/api/$1"
+      "src": "/api/collections/([^/]+)/stats",
+      "dest": "/server.js"
+    },
+    {
+      "src": "/api/([^/]+)/images",
+      "dest": "/server.js"
     },
     {
       "src": "/(.*)",
@@ -29,6 +37,10 @@
     {
       "src": "/assets/(.*)",
       "dest": "/assets/$1"
+    },
+    {
+      "src": "/gifs/(.*)",
+      "dest": "/gifs/$1"
     },
     {
       "src": "/(.*)",
