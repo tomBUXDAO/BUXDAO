@@ -1,9 +1,5 @@
 import { sql } from '@vercel/postgres';
 
-export const config = {
-  runtime: 'edge'
-};
-
 export default async function handler(req) {
   if (req.method !== 'GET') {
     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
@@ -20,8 +16,8 @@ export default async function handler(req) {
       SELECT image_url, name 
       FROM nft_metadata 
       WHERE symbol = 'CelebCatz'
-      AND name ~ '^Celebrity Catz #[0-9]+$'
-      AND name <= 'Celebrity Catz #79'
+      AND name LIKE 'Celebrity Catz #%'
+      AND CAST(SUBSTRING(name FROM '#([0-9]+)$') AS INTEGER) <= 79
       ORDER BY name;
     `;
     
@@ -34,7 +30,7 @@ export default async function handler(req) {
     });
   } catch (error) {
     console.error('Database query failed:', error);
-    return new Response(JSON.stringify({ error: 'Failed to fetch images' }), {
+    return new Response(JSON.stringify({ error: 'Failed to fetch images', details: error.message }), {
       status: 500,
       headers: {
         'Content-Type': 'application/json',
