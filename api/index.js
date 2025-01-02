@@ -43,23 +43,20 @@ export default async function handler(req, res) {
     
     // Handle celebcatz images endpoint
     if (req.url === '/api/celebcatz/images') {
-      console.log('Endpoint hit: /api/celebcatz/images');
       try {
-        // Simpler query with fewer operations
-        const result = await pool.query(
-          'SELECT image_url, name FROM nft_metadata WHERE symbol = $1 AND name LIKE $2 AND name ~ $3 ORDER BY name',
-          ['CelebCatz', 'Celebrity Catz #%', '^Celebrity Catz #[0-7][0-9]$']
-        );
+        const result = await pool.query(`
+          SELECT image_url, name 
+          FROM nft_metadata 
+          WHERE symbol = 'CelebCatz'
+          AND name LIKE 'Celebrity Catz #%'
+          AND CAST(NULLIF(regexp_replace(name, '.*#', ''), '') AS INTEGER) <= 79
+          ORDER BY name
+        `);
         
-        console.log(`Query completed. Found ${result.rows.length} images`);
         return res.json(result.rows);
       } catch (error) {
-        console.error('Database query failed:', error);
-        return res.status(500).json({ 
-          error: 'Failed to fetch images', 
-          details: error.message,
-          code: error.code 
-        });
+        console.error('Database query failed:', error.message);
+        return res.status(500).json({ error: 'Failed to fetch images', details: error.message });
       }
     }
   }
