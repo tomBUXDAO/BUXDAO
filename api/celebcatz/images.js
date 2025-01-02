@@ -16,9 +16,10 @@ export default async function handler(req) {
       SELECT image_url, name 
       FROM nft_metadata 
       WHERE symbol = 'CelebCatz'
-      AND name LIKE 'Celebrity Catz #%'
-      AND CAST(SUBSTRING(name FROM '#([0-9]+)$') AS INTEGER) <= 79
-      ORDER BY name;
+      AND name >= 'Celebrity Catz #1'
+      AND name <= 'Celebrity Catz #79'
+      ORDER BY name
+      LIMIT 79;
     `;
     
     return new Response(JSON.stringify(result.rows), {
