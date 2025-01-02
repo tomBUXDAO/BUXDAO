@@ -154,7 +154,7 @@ const Header = () => {
                 </div>
               </div>
 
-              {/* Main links */}
+              {/* Main links in desktop menu */}
               {mainLinks.map((link) => (
                 <Link 
                   key={link.name}
@@ -174,25 +174,25 @@ const Header = () => {
 
         {/* Mobile menu */}
         {isMenuOpen && (
-          <div className="md:hidden mt-4 pb-4">
-            <div className="flex flex-col space-y-4">
+          <div className="md:hidden mt-6 pb-6">
+            <div className="flex flex-col space-y-6">
               {/* Home sections in mobile */}
-              <div className="space-y-2">
+              <div className="space-y-4">
                 <Link 
                   to="/"
-                  className="text-sm font-semibold text-gray-400 uppercase tracking-wider hover:text-white transition-colors"
+                  className="block text-sm font-semibold text-gray-400 uppercase tracking-wider hover:text-white transition-colors"
                   onClick={(e) => {
                     setIsMenuOpen(false);
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
                 >
-                  Home
+                  HOME
                 </Link>
                 {sections.map(item => (
                   <a
                     key={item.name}
                     href={item.href}
-                    className="block text-gray-300 hover:text-white transition-colors pl-4"
+                    className="block text-gray-300 hover:text-white transition-colors pl-4 text-sm tracking-wide"
                     onClick={(e) => {
                       e.preventDefault();
                       setIsMenuOpen(false);
@@ -205,13 +205,13 @@ const Header = () => {
               </div>
 
               {/* $BUX sections in mobile */}
-              <div className="space-y-2">
+              <div className="space-y-4">
                 <div className="text-sm font-semibold text-gray-400 uppercase tracking-wider">$BUX</div>
                 {buxSections.map(item => (
                   <Link
                     key={item.name}
                     to={item.href}
-                    className="block text-gray-300 hover:text-white transition-colors pl-4"
+                    className="block text-gray-300 hover:text-white transition-colors pl-4 text-sm tracking-wide"
                     onClick={() => setIsMenuOpen(false)}
                   >
                     <div className="flex items-center justify-between">
@@ -224,19 +224,19 @@ const Header = () => {
                 ))}
               </div>
 
-              {/* Main links */}
+              {/* Main links in mobile menu */}
               {mainLinks.map(link => (
                 <Link 
                   key={link.name}
                   to={link.href} 
-                  className="text-gray-300 hover:text-white transition-colors"
+                  className="text-sm font-semibold text-gray-400 uppercase tracking-wider hover:text-white transition-colors"
                   onClick={() => setIsMenuOpen(false)}
                 >
-                  {link.name}
+                  {link.name.toUpperCase()}
                 </Link>
               ))}
 
-              <button className="bg-gradient-to-r from-purple-500 to-pink-500 px-6 py-2 rounded-full text-white hover:opacity-90 transition-opacity">
+              <button className="bg-gradient-to-r from-purple-500 to-pink-500 px-6 py-2 rounded-full text-white hover:opacity-90 transition-opacity text-sm tracking-wide">
                 Connect Wallet
               </button>
             </div>
