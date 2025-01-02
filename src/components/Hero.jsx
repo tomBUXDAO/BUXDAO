@@ -15,13 +15,13 @@ const Hero = () => {
     
     return (
       <div className="w-full bg-gray-950/80 border-t border-b border-gray-800">
-        <div className="py-2 portrait:py-2 sm:py-6 overflow-hidden">
+        <div className="py-4 portrait:py-4 sm:py-8 md:py-10 lg:py-12 overflow-hidden">
           <div className="relative">
             <div className="scroll-animation">
               {gifSet.map((gif, index) => (
                 <div 
                   key={`gif-${index}`}
-                  className="w-24 h-24 portrait:w-20 portrait:h-20 sm:w-48 sm:h-48 md:w-56 md:h-56 lg:w-64 lg:h-64 flex-shrink-0 rounded-xl overflow-hidden bg-gray-900 shadow-xl transform hover:scale-105 transition-transform duration-300"
+                  className="w-24 h-24 portrait:sm:w-48 portrait:sm:h-48 sm:w-48 sm:h-48 md:w-56 md:h-56 lg:w-64 lg:h-64 flex-shrink-0 rounded-xl overflow-hidden bg-gray-900 shadow-xl transform hover:scale-105 transition-transform duration-300"
                 >
                   <img 
                     src={gif} 
@@ -43,7 +43,7 @@ const Hero = () => {
     <section className="bg-gradient-to-b from-black to-purple-900">
       <div className="pt-20">
         {/* Gallery at top for mobile and tablet portrait */}
-        <div className="block landscape:hidden md:hidden">
+        <div className="block landscape:hidden lg:hidden">
           <GallerySection />
         </div>
 
@@ -124,7 +124,7 @@ const Hero = () => {
         </div>
 
         {/* Gallery at bottom for landscape and desktop */}
-        <div className="hidden landscape:block md:block">
+        <div className="hidden landscape:block lg:block">
           <GallerySection />
         </div>
       </div>
