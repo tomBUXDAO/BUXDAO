@@ -16,15 +16,14 @@ export default async function handler(req) {
   }
 
   try {
+    console.log('Starting database query...');
     const result = await sql`
       SELECT image_url, name 
       FROM nft_metadata 
       WHERE symbol = 'CelebCatz'
-      AND name >= 'Celebrity Catz #1'
-      AND name <= 'Celebrity Catz #79'
-      ORDER BY name
       LIMIT 79;
     `;
+    console.log('Query completed. Row count:', result.rows?.length);
     
     if (!result.rows || result.rows.length === 0) {
       console.log('No images found');
@@ -37,7 +36,13 @@ export default async function handler(req) {
       });
     }
     
-    return new Response(JSON.stringify(result.rows), {
+    const filteredRows = result.rows.filter(row => {
+      const match = row.name?.match(/^Celebrity Catz #(\d+)$/);
+      return match && parseInt(match[1]) <= 79;
+    });
+    console.log('Filtered row count:', filteredRows.length);
+    
+    return new Response(JSON.stringify(filteredRows), {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
@@ -46,7 +51,11 @@ export default async function handler(req) {
     });
   } catch (error) {
     console.error('Database query failed:', error);
-    return new Response(JSON.stringify({ error: 'Failed to fetch images', details: error.message }), {
+    return new Response(JSON.stringify({ 
+      error: 'Failed to fetch images', 
+      details: error.message,
+      stack: error.stack 
+    }), {
       status: 500,
       headers: {
         'Content-Type': 'application/json',
