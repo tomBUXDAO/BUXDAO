@@ -42,31 +42,52 @@ app.get('/api/collections/:symbol/stats', async (req, res) => {
   }
 });
 
-// Add celebcatz images endpoint with more detailed error handling
+// Add celebcatz images endpoint with optimized query
 app.get('/api/celebcatz/images', async (req, res) => {
   console.log('Endpoint hit: /api/celebcatz/images');
+  
+  // Set a timeout for the request
+  req.setTimeout(30000);
+  res.setTimeout(30000);
+  
   try {
-    const result = await pool.query(`
-      SELECT image_url, name 
-      FROM nft_metadata 
-      WHERE symbol = 'CelebCatz'
-      AND name LIKE 'Celebrity Catz #%'
-      AND CAST(NULLIF(regexp_replace(name, '.*#', ''), '') AS INTEGER) <= 79
-      ORDER BY name
-    `);
+    const query = {
+      text: `
+        SELECT image_url, name 
+        FROM nft_metadata 
+        WHERE symbol = $1 
+        AND name LIKE $2 
+        AND CAST(NULLIF(regexp_replace(name, '.*#', ''), '') AS INTEGER) <= $3
+        ORDER BY CAST(NULLIF(regexp_replace(name, '.*#', ''), '') AS INTEGER)
+      `,
+      values: ['CelebCatz', 'Celebrity Catz #%', 79],
+      // Set a query timeout
+      query_timeout: 25000
+    };
     
-    console.log('Query result rows:', result.rows.length);
+    console.log('Executing query...');
+    const result = await pool.query(query);
+    console.log(`Query completed. Found ${result.rows.length} images`);
     
     if (result.rows.length === 0) {
       console.log('No images found');
       return res.json([]);
     }
     
-    console.log(`Found ${result.rows.length} images`);
     res.json(result.rows);
   } catch (error) {
-    console.error('Database query failed:', error.message);
-    res.status(500).json({ error: 'Failed to fetch images', details: error.message });
+    console.error('Database query failed:', error);
+    if (error.code) {
+      console.error('Error code:', error.code);
+    }
+    if (error.message) {
+      console.error('Error message:', error.message);
+    }
+    res.status(500).json({ 
+      error: 'Failed to fetch images', 
+      details: error.message,
+      code: error.code 
+    });
   }
 });
 
