@@ -1,5 +1,9 @@
 import { sql } from '@vercel/postgres';
 
+export const config = {
+  runtime: 'edge'
+};
+
 export default async function handler(req) {
   if (req.method !== 'GET') {
     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
@@ -21,6 +25,17 @@ export default async function handler(req) {
       ORDER BY name
       LIMIT 79;
     `;
+    
+    if (!result.rows || result.rows.length === 0) {
+      console.log('No images found');
+      return new Response(JSON.stringify([]), {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        }
+      });
+    }
     
     return new Response(JSON.stringify(result.rows), {
       status: 200,
