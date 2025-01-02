@@ -1,4 +1,4 @@
-import { Pool } from '@vercel/postgres';
+import { sql } from '@vercel/postgres';
 
 export const config = {
   runtime: 'edge',
@@ -21,21 +21,14 @@ export default async function handler(req) {
 
   try {
     console.log('Fetching CelebCatz images...');
-    const pool = new Pool({
-      connectionString: process.env.POSTGRES_URL,
-      ssl: {
-        rejectUnauthorized: false
-      }
-    });
-
-    const result = await pool.query(`
+    const result = await sql`
       SELECT image_url, name 
       FROM nft_metadata 
       WHERE symbol = 'CelebCatz'
       AND name LIKE 'Celebrity Catz #%'
       AND CAST(NULLIF(regexp_replace(name, '.*#', ''), '') AS INTEGER) <= 79
       ORDER BY name
-    `);
+    `;
     
     console.log(`Found ${result.rows.length} images`);
     
