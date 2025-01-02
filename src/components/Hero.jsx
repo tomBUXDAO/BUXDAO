@@ -12,13 +12,13 @@ const Hero = () => {
 
   const GallerySection = () => (
     <div className="w-full bg-gray-950/80 border-t border-b border-gray-800">
-      <div className="py-4 sm:py-6 overflow-hidden">
+      <div className="py-2 portrait:py-2 sm:py-6 overflow-hidden">
         <div className="relative">
-          <div className="flex animate-scroll gap-4 sm:gap-6 md:gap-8">
-            {[...gifs, ...gifs].map((gif, index) => (
+          <div className="scroll-animation">
+            {[...gifs, ...gifs, ...gifs, ...gifs].map((gif, index) => (
               <div 
                 key={`gif-${index}`}
-                className="w-32 h-32 sm:w-48 sm:h-48 md:w-56 md:h-56 lg:w-64 lg:h-64 flex-shrink-0 rounded-xl overflow-hidden bg-gray-900 shadow-xl transform hover:scale-105 transition-transform duration-300"
+                className="w-24 h-24 portrait:w-20 portrait:h-20 sm:w-48 sm:h-48 md:w-56 md:h-56 lg:w-64 lg:h-64 flex-shrink-0 rounded-xl overflow-hidden bg-gray-900 shadow-xl transform hover:scale-105 transition-transform duration-300"
               >
                 <img 
                   src={gif} 
@@ -38,8 +38,8 @@ const Hero = () => {
   return (
     <section className="bg-gradient-to-b from-black to-purple-900">
       <div className="pt-20">
-        {/* Gallery at top only for mobile portrait */}
-        <div className="block landscape:hidden sm:hidden">
+        {/* Gallery at top for mobile and tablet portrait */}
+        <div className="block landscape:hidden md:hidden">
           <GallerySection />
         </div>
 
@@ -48,8 +48,8 @@ const Hero = () => {
           <div className="grid grid-cols-1 landscape:grid-cols-10 sm:grid-cols-10 gap-8">
             <div className="landscape:col-span-7 sm:col-span-7 sm:pr-8 landscape:flex landscape:flex-col landscape:justify-between landscape:gap-8">
               <div className="landscape:flex landscape:flex-col landscape:gap-8">
-                <h1 className="text-4xl landscape:text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold mb-8 landscape:mb-0 sm:mb-10 bg-gradient-to-r from-purple-400 to-pink-400 text-transparent bg-clip-text">
-                  <span className="text-5xl landscape:text-5xl sm:text-6xl md:text-7xl lg:text-8xl">BUXDAO</span> is a community owned NFT project, focused on providing passive income for holding members
+                <h1 className="text-3xl portrait:text-2xl landscape:text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold mb-8 landscape:mb-0 sm:mb-10 bg-gradient-to-r from-purple-400 to-pink-400 text-transparent bg-clip-text">
+                  <span className="text-4xl portrait:text-3xl landscape:text-5xl sm:text-6xl md:text-7xl lg:text-8xl">BUXDAO</span> is a community owned NFT project, focused on providing passive income for holding members
                 </h1>
                 <h2 className="text-sm sm:text-base md:text-lg lg:text-xl font-bold text-gray-300 mb-8 landscape:mb-0 sm:mb-10">
                   <span className="inline-flex items-center gap-6 px-6">
@@ -60,13 +60,13 @@ const Hero = () => {
               </div>
               
               {/* Center button and text section */}
-              <div className="flex flex-col items-start w-full lg:items-start">
-                <div className="flex items-center gap-4 w-full">
-                  <button className="flex items-center justify-center space-x-3 bg-[#5865F2] px-8 py-3 rounded-full text-white text-base sm:text-lg hover:opacity-90 transition-opacity border-2 border-white shadow-[0_0_15px_rgba(0,0,0,0.5)] whitespace-nowrap min-w-[200px]">
+              <div className="flex flex-col items-center w-full lg:items-start">
+                <div className="flex portrait:flex-col landscape:flex-row items-center gap-4 w-full portrait:max-w-sm portrait:mx-auto">
+                  <button className="flex items-center justify-center space-x-3 bg-[#5865F2] px-8 py-3 rounded-full text-white text-base sm:text-lg hover:opacity-90 transition-opacity border-2 border-white shadow-[0_0_15px_rgba(0,0,0,0.5)] whitespace-nowrap w-full">
                     <DiscordIcon className="h-5 w-5 sm:h-6 sm:w-6" />
                     <span>Holder verify</span>
                   </button>
-                  <button className="flex items-center justify-center space-x-3 bg-transparent px-8 py-3 rounded-full text-white text-base sm:text-lg hover:bg-white/10 transition-all border-2 border-white whitespace-nowrap min-w-[200px]">
+                  <button className="flex items-center justify-center space-x-3 bg-transparent px-8 py-3 rounded-full text-white text-base sm:text-lg hover:bg-white/10 transition-all border-2 border-white whitespace-nowrap w-full">
                     <span>Learn more</span>
                     <ChevronRightIcon className="h-5 w-5 sm:h-6 sm:w-6" />
                   </button>
@@ -119,8 +119,8 @@ const Hero = () => {
           </div>
         </div>
 
-        {/* Gallery at bottom for landscape and larger */}
-        <div className="hidden landscape:block">
+        {/* Gallery at bottom for landscape and desktop */}
+        <div className="hidden landscape:block md:block">
           <GallerySection />
         </div>
       </div>

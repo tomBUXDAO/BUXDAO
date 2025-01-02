@@ -11,3 +11,26 @@
     @apply overflow-x-hidden;
   }
 }
+
+@keyframes scroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-25%); }
+}
+
+.scroll-animation {
+  animation: scroll 2s linear infinite;
+  display: flex;
+  gap: 0.5rem;
+}
+
+@media (min-width: 640px) {
+  .scroll-animation {
+    gap: 1.5rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .scroll-animation {
+    gap: 2rem;
+  }
+}
