@@ -14,13 +14,14 @@
 
 @keyframes scroll {
   0% { transform: translateX(0); }
-  100% { transform: translateX(-25%); }
+  100% { transform: translateX(-75%); }
 }
 
 .scroll-animation {
-  animation: scroll 2s linear infinite;
+  animation: scroll 15s linear infinite;
   display: flex;
   gap: 0.5rem;
+  width: fit-content;
 }
 
 @media (min-width: 640px) {

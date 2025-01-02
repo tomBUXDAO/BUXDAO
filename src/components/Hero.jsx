@@ -10,30 +10,34 @@ const Hero = () => {
     '/gifs/mm3d.gif'
   ];
 
-  const GallerySection = () => (
-    <div className="w-full bg-gray-950/80 border-t border-b border-gray-800">
-      <div className="py-2 portrait:py-2 sm:py-6 overflow-hidden">
-        <div className="relative">
-          <div className="scroll-animation">
-            {[...gifs, ...gifs, ...gifs, ...gifs].map((gif, index) => (
-              <div 
-                key={`gif-${index}`}
-                className="w-24 h-24 portrait:w-20 portrait:h-20 sm:w-48 sm:h-48 md:w-56 md:h-56 lg:w-64 lg:h-64 flex-shrink-0 rounded-xl overflow-hidden bg-gray-900 shadow-xl transform hover:scale-105 transition-transform duration-300"
-              >
-                <img 
-                  src={gif} 
-                  alt={`BUXDAO NFT ${index + 1}`}
-                  className="w-full h-full object-cover"
-                  loading="eager"
-                  decoding="async"
-                />
-              </div>
-            ))}
+  const GallerySection = () => {
+    const gifSet = [...gifs, ...gifs, ...gifs, ...gifs];
+    
+    return (
+      <div className="w-full bg-gray-950/80 border-t border-b border-gray-800">
+        <div className="py-2 portrait:py-2 sm:py-6 overflow-hidden">
+          <div className="relative">
+            <div className="scroll-animation">
+              {gifSet.map((gif, index) => (
+                <div 
+                  key={`gif-${index}`}
+                  className="w-24 h-24 portrait:w-20 portrait:h-20 sm:w-48 sm:h-48 md:w-56 md:h-56 lg:w-64 lg:h-64 flex-shrink-0 rounded-xl overflow-hidden bg-gray-900 shadow-xl transform hover:scale-105 transition-transform duration-300"
+                >
+                  <img 
+                    src={gif} 
+                    alt={`BUXDAO NFT ${index + 1}`}
+                    className="w-full h-full object-cover"
+                    loading="eager"
+                    decoding="async"
+                  />
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <section className="bg-gradient-to-b from-black to-purple-900">
