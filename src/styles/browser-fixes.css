@@ -2,9 +2,33 @@
 * {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  box-sizing: border-box;
 }
 
 /* Optimize text rendering */
 html {
   text-rendering: optimizeLegibility;
+  height: 100%;
+}
+
+/* Fix flex and text wrapping */
+.flex-wrap {
+  flex-wrap: wrap !important;
+}
+
+.text-balance {
+  /* Using word-break as a fallback for older browsers */
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Fix column gaps */
+.column-gap {
+  column-gap: 1rem;
+  grid-column-gap: 1rem;
+}
+
+/* Fix border radius typo */
+.rounded {
+  border-radius: 0.25rem;
 } 
