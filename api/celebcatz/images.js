@@ -21,13 +21,27 @@ export default async function handler(req) {
 
   try {
     console.log('Fetching CelebCatz images...');
+    
+    // First, check if the table exists
+    const tableCheck = await sql`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public'
+        AND table_name = 'nft_metadata'
+      );
+    `;
+    console.log('Table check result:', tableCheck);
+
+    if (!tableCheck.rows[0].exists) {
+      throw new Error('nft_metadata table does not exist');
+    }
+
+    // Then, try a simpler query first
     const result = await sql`
       SELECT image_url, name 
       FROM nft_metadata 
       WHERE symbol = 'CelebCatz'
-      AND name LIKE 'Celebrity Catz #%'
-      AND CAST(NULLIF(regexp_replace(name, '.*#', ''), '') AS INTEGER) <= 79
-      ORDER BY name
+      LIMIT 79;
     `;
     
     console.log(`Found ${result.rows.length} images`);
@@ -57,8 +71,13 @@ export default async function handler(req) {
       }
     });
   } catch (error) {
-    console.error('Database query failed:', error.message);
-    return new Response(JSON.stringify({ error: 'Failed to fetch images', details: error.message }), {
+    console.error('Database query failed:', error);
+    console.error('Error stack:', error.stack);
+    return new Response(JSON.stringify({ 
+      error: 'Failed to fetch images', 
+      details: error.message,
+      stack: error.stack
+    }), {
       status: 500,
       headers: {
         'Content-Type': 'application/json',
