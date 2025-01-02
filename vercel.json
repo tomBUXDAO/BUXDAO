@@ -12,7 +12,7 @@
       "dest": "/api/$1"
     },
     {
-      "source": "/(.*)",
+      "src": "/(.*)",
       "has": [
         {
           "type": "host",
@@ -20,7 +20,7 @@
         }
       ],
       "permanent": true,
-      "destination": "https://buxdao.com/$1"
+      "dest": "https://buxdao.com/$1"
     },
     {
       "src": "/(.*)",
