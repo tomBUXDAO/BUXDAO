@@ -19,7 +19,7 @@
           "value": "www.buxdao.com"
         }
       ],
-      "permanent": true,
+      "status": 301,
       "dest": "https://buxdao.com/$1"
     },
     {
