@@ -1,24 +1,5 @@
-import express from 'express';
-import cors from 'cors';
 import { Pool } from 'pg';
 import axios from 'axios';
-import dotenv from 'dotenv';
-
-dotenv.config();
-
-const app = express();
-app.use(cors({
-  origin: [
-    'http://localhost:5173',
-    'http://localhost:3001',
-    'https://buxdao-3-0.vercel.app',
-    'https://buxdao.com',
-    'https://www.buxdao.com'
-  ],
-  methods: ['GET', 'POST'],
-  credentials: true
-}));
-app.use(express.json());
 
 const pool = new Pool({
   connectionString: process.env.POSTGRES_URL,
@@ -28,6 +9,17 @@ const pool = new Pool({
 });
 
 export default async function handler(req, res) {
+  // Set CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  // Handle OPTIONS request
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+
   if (req.method === 'GET') {
     // Handle collection stats endpoint
     if (req.url.startsWith('/api/collections/') && req.url.endsWith('/stats')) {
@@ -55,8 +47,13 @@ export default async function handler(req, res) {
         
         return res.json(result.rows);
       } catch (error) {
-        console.error('Database query failed:', error.message);
-        return res.status(500).json({ error: 'Failed to fetch images', details: error.message });
+        console.error('Database query failed:', error);
+        if (error.code) console.error('Error code:', error.code);
+        return res.status(500).json({ 
+          error: 'Failed to fetch images', 
+          details: error.message,
+          code: error.code 
+        });
       }
     }
   }

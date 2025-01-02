@@ -16,10 +16,6 @@
   ],
   "routes": [
     {
-      "src": "/api/celebcatz/images",
-      "dest": "/api/celebcatz/images.js"
-    },
-    {
       "src": "/api/(.*)",
       "dest": "/api/index.js"
     },
