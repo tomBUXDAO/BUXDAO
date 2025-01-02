@@ -16,7 +16,11 @@
   ],
   "routes": [
     {
-      "src": "/api/(.*)",
+      "src": "/api/collections/([^/]+)/stats",
+      "dest": "/api/collections/[symbol]/stats.js"
+    },
+    {
+      "src": "/api/celebcatz/images",
       "dest": "/api/index.js"
     },
     {
