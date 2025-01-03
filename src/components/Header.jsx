@@ -11,13 +11,10 @@ const Header = () => {
   const scrollToSection = (sectionId) => {
     const section = document.querySelector(sectionId);
     if (section) {
-      const headerHeight = document.querySelector('header').offsetHeight;
-      const sectionPosition = section.getBoundingClientRect().top;
-      const offsetPosition = sectionPosition + window.pageYOffset - headerHeight;
-      
-      window.scrollTo({
-        top: offsetPosition,
-        behavior: 'smooth'
+      const offset = sectionId === '#collection' ? 40 : 0;
+      window.scrollTo({ 
+        top: section.offsetTop - offset, 
+        behavior: 'smooth' 
       });
     }
   };
@@ -195,8 +192,8 @@ const Header = () => {
                     className="block text-gray-300 hover:text-white transition-colors pl-4 text-sm tracking-wide"
                     onClick={(e) => {
                       e.preventDefault();
-                      setIsMenuOpen(false);
                       scrollToSection(item.href);
+                      setIsMenuOpen(false);
                     }}
                   >
                     {item.name}
@@ -206,7 +203,13 @@ const Header = () => {
 
               {/* $BUX sections in mobile */}
               <div className="space-y-4">
-                <div className="text-sm font-semibold text-gray-400 uppercase tracking-wider">$BUX</div>
+                <Link
+                  to="/bux"
+                  className="text-sm font-semibold text-gray-400 uppercase tracking-wider hover:text-white transition-colors"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  $BUX
+                </Link>
                 {buxSections.map(item => (
                   <Link
                     key={item.name}
