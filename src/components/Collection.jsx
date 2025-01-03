@@ -121,18 +121,19 @@ const Collection = () => {
   useEffect(() => {
     if (containerRef.current) {
       const screenWidth = window.innerWidth;
-      let tileWidth;
+      let initialOffset;
       
       if (screenWidth < 768) {  // Mobile
-        tileWidth = screenWidth * 0.9;  // Match the 90vw tile width
-        setCurrentIndex(7 * tileWidth);
+        initialOffset = 0;  // Single tile centered
       } else if (screenWidth < 1024) {  // Tablet
-        tileWidth = 320;
-        setCurrentIndex(7 * tileWidth);
+        initialOffset = 320;  // Show second set of tiles
       } else {  // Desktop
-        tileWidth = containerRef.current.offsetWidth / 3;
-        setCurrentIndex(7 * tileWidth);
+        const containerWidth = containerRef.current.offsetWidth;
+        const tileWidth = containerWidth / 3;
+        initialOffset = tileWidth;  // Show second set of tiles
       }
+      
+      setCurrentIndex(initialOffset);
     }
   }, [loading]);
 
@@ -184,7 +185,7 @@ const Collection = () => {
     let moveDistance;
     
     if (screenWidth < 768) {  // Mobile
-      moveDistance = (screenWidth * 0.9);  // 90vw to match tile width
+      moveDistance = screenWidth * 0.9;  // 90vw to match tile width
     } else if (screenWidth < 1024) {  // Tablet
       moveDistance = 320;
     } else {  // Desktop
@@ -201,26 +202,28 @@ const Collection = () => {
           return 0;
         }
         if (newIndex < 0) {
-          return fullWidth - (screenWidth * 0.9);  // Go to last tile
+          return fullWidth - moveDistance;  // Go to last tile
         }
       } else if (screenWidth < 1024) {
         // Tablet view loop
-        if (newIndex >= (320 * 5)) {
+        const fullWidth = 320 * 5;  // 5 sets of tiles
+        if (newIndex >= fullWidth) {
           return 0;
         }
         if (newIndex < 0) {
-          return 320 * 4;
+          return fullWidth - moveDistance;
         }
       } else {
         // Desktop view loop
         const containerWidth = containerRef.current.offsetWidth;
         const tileWidth = containerWidth / 3;
+        const fullWidth = tileWidth * 5;  // 5 sets of tiles
         
-        if (newIndex >= (tileWidth * 5)) {
+        if (newIndex >= fullWidth) {
           return 0;
         }
         if (newIndex < 0) {
-          return tileWidth * 4;
+          return fullWidth - moveDistance;
         }
       }
       
@@ -242,7 +245,7 @@ const Collection = () => {
     return (
       <section id="collection" className="bg-black py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-4xl font-bold text-white text-center mb-12">
+          <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 mb-12 text-center">
             Featured Collections
           </h2>
           <div className="flex justify-center">
@@ -256,7 +259,7 @@ const Collection = () => {
   return (
     <section id="collection" className="bg-black py-12 sm:py-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 className="text-3xl sm:text-4xl font-bold text-white text-center mb-8 sm:mb-12">
+        <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 mb-12 text-center">
           Featured Collections
         </h2>
         
@@ -269,16 +272,16 @@ const Collection = () => {
             <div 
               className="flex transition-transform duration-500 ease-in-out"
               style={{
-                transform: `translateX(calc((100vw - 90vw - 32px)/2 - ${currentIndex}px))`,
+                transform: `translateX(-${currentIndex}px)`,
                 width: '500%'
               }}
             >
               {repeatedCollections.map((collection, index) => (
                 <div 
                   key={`${collection.id}-${index}`} 
-                  className="min-w-[90vw] px-4 sm:min-w-0 sm:w-[320px] lg:w-1/3"
+                  className="min-w-[90vw] px-4 py-4 sm:min-w-0 sm:w-[320px] lg:w-1/3"
                 >
-                  <div className="bg-gray-900 rounded-xl overflow-hidden hover:transform hover:scale-105 transition-transform duration-300">
+                  <div className="bg-gray-900 rounded-xl overflow-hidden hover:transform hover:scale-105 transition-transform duration-300 hover:shadow-xl">
                     <div className="aspect-square">
                       <img 
                         src={collection.image} 
