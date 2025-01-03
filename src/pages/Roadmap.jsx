@@ -67,7 +67,7 @@ const Roadmap = () => {
   return (
     <div className="bg-black min-h-screen pt-20">
       {/* Header Section */}
-      <div className="bg-gradient-to-b from-purple-900/50 to-black py-12">
+      <div className="bg-black py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 mb-6 leading-tight pb-2">
             Coming Soon
@@ -84,7 +84,7 @@ const Roadmap = () => {
           {upcomingFeatures.map((feature, index) => (
             <div 
               key={feature.title}
-              className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl p-6 hover:shadow-xl transition-shadow duration-300 relative"
+              className="bg-gray-900 rounded-xl p-6 hover:shadow-xl transition-shadow duration-300 relative"
             >
               <div className="flex items-start gap-4">
                 <div className="bg-purple-600/20 p-3 rounded-lg">
@@ -92,7 +92,7 @@ const Roadmap = () => {
                 </div>
                 <div className="flex-1">
                   <div className="flex justify-between items-start">
-                    <h3 className="text-2xl md:text-3xl font-semibold text-yellow-400 mb-2">
+                    <h3 className="text-2xl md:text-3xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 mb-2">
                       {feature.title}
                     </h3>
                     <span className="text-purple-400 text-sm font-medium px-3 py-1 bg-purple-600/20 rounded-full">
@@ -136,7 +136,7 @@ const Roadmap = () => {
 
         {/* Newsletter Signup */}
         <div className="mt-16 text-center">
-          <h2 className="text-2xl font-bold text-white mb-4">
+          <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 mb-4">
             Stay Updated
           </h2>
           <p className="text-gray-400 mb-8 max-w-2xl mx-auto">
