@@ -94,13 +94,17 @@ const Header = () => {
                     {sections.map((item) => (
                       <Link
                         key={item.name}
-                        to={item.href}
+                        to="/"
                         className="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
                         role="menuitem"
                         onClick={(e) => {
                           e.preventDefault();
                           setIsHomeDropdownOpen(false);
-                          scrollToSection(item.href);
+                          if (window.location.pathname !== '/') {
+                            window.location.href = '/#' + item.href.substring(1);
+                          } else {
+                            scrollToSection(item.href);
+                          }
                         }}
                       >
                         {item.name}
@@ -192,8 +196,12 @@ const Header = () => {
                     className="block text-gray-300 hover:text-white transition-colors pl-4 text-sm tracking-wide"
                     onClick={(e) => {
                       e.preventDefault();
-                      scrollToSection(item.href);
                       setIsMenuOpen(false);
+                      if (window.location.pathname !== '/') {
+                        window.location.href = '/#' + item.href.substring(1);
+                      } else {
+                        scrollToSection(item.href);
+                      }
                     }}
                   >
                     {item.name}
