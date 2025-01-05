@@ -149,7 +149,7 @@ const ProductModal = ({ product: initialProduct, onClose, onAddToCart }) => {
       return;
     }
     
-    const { frontImage } = getProductImages();
+    const { frontImage } = getProductImages(product, selectedColor);
     
     onAddToCart({
       ...product,
@@ -165,7 +165,7 @@ const ProductModal = ({ product: initialProduct, onClose, onAddToCart }) => {
   // Get unique colors from variants
   const colors = Array.from(new Set(variants.map(v => v.color)));
 
-  const { frontImage, backImage } = getProductImages(product);
+  const { frontImage, backImage } = getProductImages(product, selectedColor);
   const currentImage = showingBack ? backImage : frontImage;
   const thumbnailImage = showingBack ? frontImage : backImage;
   const showBackOption = hasBackDesign(product.name) && backImage;
@@ -425,23 +425,35 @@ const Merch = () => {
         const data = await response.json();
         console.log('Products data:', data);
         
-        // Fetch prices for each product
-        const productsWithPrices = await Promise.all(
-          data.map(async (product) => {
-            try {
-              const variantResponse = await fetch(`${API_URL}/printful/products/${product.id}`);
-              if (!variantResponse.ok) throw new Error('Failed to fetch variant');
-              const variantData = await variantResponse.json();
-              return {
+        // Fetch variants with rate limiting
+        const productsWithPrices = [];
+        for (const product of data) {
+          try {
+            // Add a small delay between requests
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            const variantResponse = await fetch(`${API_URL}/printful/products/${product.id}`);
+            if (!variantResponse.ok) {
+              console.warn(`Skipping variants for product ${product.id} due to API error`);
+              productsWithPrices.push({
                 ...product,
-                sync_variants: variantData.sync_variants
-              };
-            } catch (err) {
-              console.error(`Error fetching variants for product ${product.id}:`, err);
-              return product;
+                sync_variants: []
+              });
+              continue;
             }
-          })
-        );
+            const variantData = await variantResponse.json();
+            productsWithPrices.push({
+              ...product,
+              sync_variants: variantData.sync_variants || []
+            });
+          } catch (err) {
+            console.warn(`Skipping variants for product ${product.id}:`, err);
+            productsWithPrices.push({
+              ...product,
+              sync_variants: []
+            });
+          }
+        }
         
         console.log('Products with prices:', productsWithPrices);
         setProducts(productsWithPrices);
