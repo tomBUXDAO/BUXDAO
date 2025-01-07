@@ -182,34 +182,36 @@ app.get('/api/token-metrics', async (req, res) => {
     const lpBalance = await connection.getBalance(lpWalletAddress);
     const lpBalanceInSol = (lpBalance / LAMPORTS_PER_SOL) + 20.2; // Convert lamports to SOL and add debt
 
-    // Calculate token value (LP balance / public supply)
-    const tokenValueInSol = metrics.public_supply > 0 ? lpBalanceInSol / metrics.public_supply : 0;
+    // Calculate token value (LP balance / public supply) with high precision
+    const publicSupplyNum = Number(metrics.public_supply) || 1; // Prevent division by zero
+    const tokenValueInSol = lpBalanceInSol / publicSupplyNum;
     const tokenValueInUsd = tokenValueInSol * solPrice;
+    const lpUsdValue = lpBalanceInSol * solPrice;
 
-    // Format values for logging
-    const formatNumber = (num) => Number(num).toLocaleString(undefined, { maximumFractionDigits: 2 });
-    const formatSol = (num) => Number(num).toFixed(8);
-    const formatUsd = (num) => Number(num).toFixed(6);
+    // Format values for logging with high precision
+    const formatForLog = (num) => num.toFixed(8);
 
     console.log('Token Metrics:', {
-      totalSupply: formatNumber(metrics.total_supply),
-      publicSupply: formatNumber(metrics.public_supply),
-      exemptSupply: formatNumber(metrics.exempt_supply),
-      lpBalanceInSol: formatNumber(lpBalanceInSol),
-      solPrice: formatNumber(solPrice),
-      tokenValueInSol: formatSol(tokenValueInSol),
-      tokenValueInUsd: formatUsd(tokenValueInUsd)
+      totalSupply: metrics.total_supply,
+      publicSupply: metrics.public_supply,
+      exemptSupply: metrics.exempt_supply,
+      lpBalanceInSol: formatForLog(lpBalanceInSol),
+      solPrice: solPrice,
+      tokenValueInSol: formatForLog(tokenValueInSol),
+      tokenValueInUsd: formatForLog(tokenValueInUsd),
+      lpUsdValue: formatForLog(lpUsdValue)
     });
 
+    // Send raw values to client for formatting
     res.json({
-      totalSupply: metrics.total_supply || 0,
-      publicSupply: metrics.public_supply || 0,
-      exemptSupply: metrics.exempt_supply || 0,
+      totalSupply: Number(metrics.total_supply) || 0,
+      publicSupply: Number(metrics.public_supply) || 0,
+      exemptSupply: Number(metrics.exempt_supply) || 0,
       liquidityPool: lpBalanceInSol,
       solPrice: solPrice,
       tokenValue: tokenValueInSol,
       tokenValueUsd: tokenValueInUsd,
-      lpUsdValue: lpBalanceInSol * solPrice
+      lpUsdValue: lpUsdValue
     });
 
   } catch (error) {

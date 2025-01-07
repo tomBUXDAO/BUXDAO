@@ -17,9 +17,9 @@ const BuxInfo = () => {
     exemptSupply: '0',
     liquidityPool: '0',
     solPrice: 0,
-    tokenValue: 0,
-    tokenValueUsd: 0,
-    lpUsdValue: 0
+    tokenValue: '0.00000000',
+    tokenValueUsd: '0.00000000',
+    lpUsdValue: '0.00'
   });
 
   const [topHolders, setTopHolders] = useState([]);
@@ -30,10 +30,12 @@ const BuxInfo = () => {
         const response = await fetch('/api/token-metrics');
         const data = await response.json();
         
-        // Format the values
+        // Format the values with specific decimal places
         const formatNumber = (num) => Number(num).toLocaleString(undefined, { maximumFractionDigits: 2 });
-        const formatSol = (num) => Number(num).toFixed(8);
-        const formatUsd = (num) => Number(num).toFixed(6);
+        const formatSol = (num) => num.toFixed(8);
+        
+        // Calculate USD values
+        const tokenValueUsd = Number(data.tokenValue) * data.solPrice;
         
         setTokenData({
           totalSupply: formatNumber(data.totalSupply),
@@ -42,7 +44,7 @@ const BuxInfo = () => {
           liquidityPool: formatNumber(data.liquidityPool),
           solPrice: data.solPrice,
           tokenValue: formatSol(data.tokenValue),
-          tokenValueUsd: formatUsd(data.tokenValueUsd),
+          tokenValueUsd: tokenValueUsd,
           lpUsdValue: formatNumber(data.lpUsdValue)
         });
       } catch (error) {
@@ -54,7 +56,14 @@ const BuxInfo = () => {
       try {
         const response = await fetch('/api/top-holders');
         const data = await response.json();
-        setTopHolders(data.holders);
+        
+        // Calculate USD values for holders
+        const holdersWithUsd = data.holders.map(holder => ({
+          ...holder,
+          valueUsd: parseFloat(holder.value.split(' ')[1]) * tokenData.solPrice
+        }));
+        
+        setTopHolders(holdersWithUsd);
       } catch (error) {
         console.error('Error fetching top holders:', error);
       }
@@ -62,6 +71,10 @@ const BuxInfo = () => {
 
     fetchSupplyData();
     fetchTopHolders();
+
+    // Refresh data every 60 seconds
+    const interval = setInterval(fetchSupplyData, 60000);
+    return () => clearInterval(interval);
   }, []);
 
   const revenueSources = [
@@ -164,7 +177,7 @@ const BuxInfo = () => {
                 <p className="text-gray-900 font-bold text-3xl">
                   {tokenData.tokenValue} SOL
                   <span className="text-gray-600 text-lg ml-2">
-                    (${tokenData.tokenValueUsd})
+                    (${tokenData.tokenValueUsd.toFixed(8)})
                   </span>
                 </p>
               </div>
@@ -203,6 +216,7 @@ const BuxInfo = () => {
                     <th className="text-left pb-4">Address</th>
                     <th className="text-right pb-4">Amount</th>
                     <th className="text-right pb-4">%</th>
+                    <th className="text-right pb-4">Value</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -211,6 +225,7 @@ const BuxInfo = () => {
                       <td className="py-4 text-purple-700">{holder.address}</td>
                       <td className="py-4 text-right">{holder.amount}</td>
                       <td className="py-4 text-right">{holder.percentage}</td>
+                      <td className="py-4 text-right">{holder.value} (${holder.valueUsd.toFixed(2)})</td>
                     </tr>
                   ))}
                 </tbody>
