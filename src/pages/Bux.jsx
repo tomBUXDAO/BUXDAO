@@ -36,13 +36,23 @@ const Bux = () => {
   // Get the base URL for API calls
   const baseUrl = window.location.hostname === 'localhost' 
     ? 'http://localhost:3001' 
-    : 'https://buxdao.com';
+    : 'https://api.buxdao.com';
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         // Fetch token metrics
-        const metricsResponse = await fetch(`${baseUrl}/api/token-metrics`);
+        const metricsResponse = await fetch(`${baseUrl}/api/token-metrics`, {
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (!metricsResponse.ok) {
+          throw new Error(`HTTP error! status: ${metricsResponse.status}`);
+        }
+        
         const metricsData = await metricsResponse.json();
         
         // Format the values
@@ -60,7 +70,17 @@ const Bux = () => {
         });
 
         // Fetch top holders with filters
-        const holdersResponse = await fetch(`${baseUrl}/api/top-holders?type=${viewType}&collection=${selectedCollection}`);
+        const holdersResponse = await fetch(`${baseUrl}/api/top-holders?type=${viewType}&collection=${selectedCollection}`, {
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (!holdersResponse.ok) {
+          throw new Error(`HTTP error! status: ${holdersResponse.status}`);
+        }
+        
         const holdersData = await holdersResponse.json();
         setTopHolders(holdersData.holders);
       } catch (error) {
