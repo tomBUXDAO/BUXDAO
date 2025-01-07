@@ -21,12 +21,28 @@ const Bux = () => {
   });
 
   const [topHolders, setTopHolders] = useState([]);
+  const [viewType, setViewType] = useState('bux'); // 'bux', 'nfts', 'combined'
+  const [selectedCollection, setSelectedCollection] = useState('all');
+  
+  const collections = [
+    { id: 'all', name: 'All Collections' },
+    { id: 'fckedcatz', name: 'FCKed Catz' },
+    { id: 'moneymonsters', name: 'Money Monsters' },
+    { id: 'aibitbots', name: 'A.I. BitBots' },
+    { id: 'moneymonsters3d', name: 'Money Monsters 3D' },
+    { id: 'celebcatz', name: 'Celebrity Catz' }
+  ];
+
+  // Get the base URL for API calls
+  const baseUrl = window.location.hostname === 'localhost' 
+    ? 'http://localhost:3001' 
+    : 'https://buxdao.com';
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         // Fetch token metrics
-        const metricsResponse = await fetch('http://localhost:3001/api/token-metrics');
+        const metricsResponse = await fetch(`${baseUrl}/api/token-metrics`);
         const metricsData = await metricsResponse.json();
         
         // Format the values
@@ -43,8 +59,8 @@ const Bux = () => {
           tokenValue: formatTokenValue(metricsData.tokenValue)
         });
 
-        // Fetch top holders
-        const holdersResponse = await fetch('http://localhost:3001/api/top-holders');
+        // Fetch top holders with filters
+        const holdersResponse = await fetch(`${baseUrl}/api/top-holders?type=${viewType}&collection=${selectedCollection}`);
         const holdersData = await holdersResponse.json();
         setTopHolders(holdersData.holders);
       } catch (error) {
@@ -53,7 +69,7 @@ const Bux = () => {
     };
 
     fetchData();
-  }, []);
+  }, [viewType, selectedCollection, baseUrl]);
 
   const revenueSources = [
     {
@@ -203,6 +219,34 @@ const Bux = () => {
                   <h3 className="text-2xl md:text-3xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 mb-4">
                     Top Holders
                   </h3>
+                  
+                  {/* Filter Controls */}
+                  <div className="flex flex-col sm:flex-row gap-4 mb-6">
+                    <select 
+                      className="bg-gray-800 border border-purple-400/20 rounded-lg px-3 py-2 text-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                      value={viewType}
+                      onChange={(e) => setViewType(e.target.value)}
+                    >
+                      <option value="bux">BUX Only</option>
+                      <option value="nfts">NFTs Only</option>
+                      <option value="combined">BUX + NFTs</option>
+                    </select>
+                    
+                    {viewType !== 'bux' && (
+                      <select 
+                        className="bg-gray-800 border border-purple-400/20 rounded-lg px-3 py-2 text-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                        value={selectedCollection}
+                        onChange={(e) => setSelectedCollection(e.target.value)}
+                      >
+                        {collections.map(collection => (
+                          <option key={collection.id} value={collection.id}>
+                            {collection.name}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>

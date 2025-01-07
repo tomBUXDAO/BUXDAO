@@ -220,9 +220,12 @@ app.get('/api/token-metrics', async (req, res) => {
   }
 });
 
-// Add top holders endpoint
+// Add top holders endpoint with filters
 app.get('/api/top-holders', async (req, res) => {
   try {
+    const { type = 'bux', collection = 'all' } = req.query;
+    let query = '';
+    
     // Get token metrics first for LP and public supply
     const metricsResult = await pool.query(`
       SELECT 
@@ -245,38 +248,121 @@ app.get('/api/top-holders', async (req, res) => {
     const solPriceData = await solPriceResponse.json();
     const solPrice = solPriceData.solana?.usd || 0;
 
-    // Get top 5 non-exempt holders by balance
-    const result = await pool.query(`
-      SELECT 
-        wallet_address as address,
-        owner_name as discord_name,
-        balance as amount,
-        is_exempt,
-        ROUND((balance * 100.0 / (
-          SELECT SUM(balance) FROM bux_holders WHERE is_exempt = FALSE
-        )), 2) as percentage
-      FROM bux_holders 
-      WHERE is_exempt = FALSE
-      ORDER BY balance DESC 
-      LIMIT 5
-    `);
+    // Build query based on view type
+    switch (type) {
+      case 'bux':
+        query = `
+          SELECT 
+            wallet_address as address,
+            owner_name as discord_name,
+            balance as amount,
+            is_exempt,
+            ROUND((balance * 100.0 / (
+              SELECT SUM(balance) FROM bux_holders WHERE is_exempt = FALSE
+            )), 2) as percentage
+          FROM bux_holders 
+          WHERE is_exempt = FALSE
+          ORDER BY balance DESC 
+          LIMIT 5
+        `;
+        break;
+        
+      case 'nfts':
+        query = `
+          SELECT 
+            wallet_address as address,
+            owner_name as discord_name,
+            COUNT(*) as amount,
+            ROUND((COUNT(*) * 100.0 / (
+              SELECT COUNT(*) FROM nft_holders WHERE ${collection !== 'all' ? "collection = $1 AND" : ''} 1=1
+            )), 2) as percentage
+          FROM nft_holders
+          WHERE ${collection !== 'all' ? "collection = $1 AND" : ''} 1=1
+          GROUP BY wallet_address, owner_name
+          ORDER BY amount DESC
+          LIMIT 5
+        `;
+        break;
+        
+      case 'combined':
+        query = `
+          WITH bux_amounts AS (
+            SELECT 
+              wallet_address,
+              owner_name,
+              balance as bux_balance
+            FROM bux_holders
+            WHERE is_exempt = FALSE
+          ),
+          nft_amounts AS (
+            SELECT 
+              wallet_address,
+              owner_name,
+              COUNT(*) as nft_count
+            FROM nft_holders
+            WHERE ${collection !== 'all' ? "collection = $1 AND" : ''} 1=1
+            GROUP BY wallet_address, owner_name
+          )
+          SELECT 
+            COALESCE(b.wallet_address, n.wallet_address) as address,
+            COALESCE(b.owner_name, n.owner_name) as discord_name,
+            COALESCE(b.bux_balance, 0) as bux_amount,
+            COALESCE(n.nft_count, 0) as nft_amount
+          FROM bux_amounts b
+          FULL OUTER JOIN nft_amounts n ON b.wallet_address = n.wallet_address
+          ORDER BY (COALESCE(b.bux_balance, 0) + COALESCE(n.nft_count, 0)) DESC
+          LIMIT 5
+        `;
+        break;
+    }
 
-    console.log('Top holders query result:', result.rows);
+    // Execute query with or without collection parameter
+    const result = collection !== 'all' && type !== 'bux'
+      ? await pool.query(query, [collection])
+      : await pool.query(query);
 
-    // Format the data
+    // Format the data based on view type
     const holders = result.rows.map(holder => {
-      const balanceInSol = Number(holder.amount) * tokenValueInSol;
-      const balanceInUsd = balanceInSol * solPrice;
-      
-      return {
-        address: holder.discord_name || holder.address.slice(0, 4) + '...' + holder.address.slice(-4),
-        amount: Number(holder.amount).toLocaleString(),
-        percentage: holder.percentage + '%',
-        value: `${balanceInSol.toFixed(2)} SOL ($${balanceInUsd.toFixed(2)})`
+      let formattedHolder = {
+        address: holder.discord_name || holder.address.slice(0, 4) + '...' + holder.address.slice(-4)
       };
+
+      switch (type) {
+        case 'bux':
+          const balanceInSol = Number(holder.amount) * tokenValueInSol;
+          const balanceInUsd = balanceInSol * solPrice;
+          formattedHolder = {
+            ...formattedHolder,
+            amount: Number(holder.amount).toLocaleString(),
+            percentage: holder.percentage + '%',
+            value: `${balanceInSol.toFixed(2)} SOL ($${balanceInUsd.toFixed(2)})`
+          };
+          break;
+
+        case 'nfts':
+          formattedHolder = {
+            ...formattedHolder,
+            amount: holder.amount.toString(),
+            percentage: holder.percentage + '%',
+            value: `${holder.amount} NFTs`
+          };
+          break;
+
+        case 'combined':
+          const buxBalanceInSol = Number(holder.bux_amount) * tokenValueInSol;
+          const buxBalanceInUsd = buxBalanceInSol * solPrice;
+          formattedHolder = {
+            ...formattedHolder,
+            amount: `${Number(holder.bux_amount).toLocaleString()} BUX, ${holder.nft_amount} NFTs`,
+            percentage: '-',
+            value: `${buxBalanceInSol.toFixed(2)} SOL ($${buxBalanceInUsd.toFixed(2)})`
+          };
+          break;
+      }
+
+      return formattedHolder;
     });
 
-    console.log('Formatted holders:', holders);
     res.json({ holders });
 
   } catch (error) {
