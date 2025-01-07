@@ -15,8 +15,11 @@ const BuxInfo = () => {
     totalSupply: '0',
     publicSupply: '0',
     exemptSupply: '0',
-    liquidityPool: '250,000',
-    tokenValue: '$0.12'
+    liquidityPool: '0',
+    solPrice: 0,
+    tokenValue: 0,
+    tokenValueUsd: 0,
+    lpUsdValue: 0
   });
 
   const [topHolders, setTopHolders] = useState([]);
@@ -26,12 +29,21 @@ const BuxInfo = () => {
       try {
         const response = await fetch('/api/token-metrics');
         const data = await response.json();
+        
+        // Format the values
+        const formatNumber = (num) => Number(num).toLocaleString(undefined, { maximumFractionDigits: 2 });
+        const formatSol = (num) => Number(num).toFixed(8);
+        const formatUsd = (num) => Number(num).toFixed(6);
+        
         setTokenData({
-          totalSupply: Number(data.totalSupply).toLocaleString(),
-          publicSupply: Number(data.publicSupply).toLocaleString(),
-          exemptSupply: Number(data.exemptSupply).toLocaleString(),
-          liquidityPool: Number(data.liquidityPool).toLocaleString(),
-          tokenValue: '$' + data.tokenValue
+          totalSupply: formatNumber(data.totalSupply),
+          publicSupply: formatNumber(data.publicSupply),
+          exemptSupply: formatNumber(data.exemptSupply),
+          liquidityPool: formatNumber(data.liquidityPool),
+          solPrice: data.solPrice,
+          tokenValue: formatSol(data.tokenValue),
+          tokenValueUsd: formatUsd(data.tokenValueUsd),
+          lpUsdValue: formatNumber(data.lpUsdValue)
         });
       } catch (error) {
         console.error('Error fetching token metrics:', error);
@@ -128,23 +140,33 @@ const BuxInfo = () => {
             <div className="space-y-6">
               <div>
                 <p className="text-gray-700 mb-2">Total Supply</p>
-                <p className="text-gray-900 font-bold text-3xl">{Number(tokenData.totalSupply).toLocaleString()}</p>
+                <p className="text-gray-900 font-bold text-3xl">{tokenData.totalSupply}</p>
               </div>
               <div>
                 <p className="text-gray-700 mb-2">Public Supply</p>
-                <p className="text-gray-900 font-bold text-3xl">{Number(tokenData.publicSupply).toLocaleString()}</p>
+                <p className="text-gray-900 font-bold text-3xl">{tokenData.publicSupply}</p>
               </div>
               <div>
                 <p className="text-gray-700 mb-2">Exempt Supply</p>
-                <p className="text-gray-900 font-bold text-3xl">{Number(tokenData.exemptSupply).toLocaleString()}</p>
+                <p className="text-gray-900 font-bold text-3xl">{tokenData.exemptSupply}</p>
               </div>
               <div>
                 <p className="text-gray-700 mb-2">Liquidity Pool</p>
-                <p className="text-gray-900 font-bold text-3xl">{tokenData.liquidityPool}</p>
+                <p className="text-gray-900 font-bold text-3xl">
+                  {tokenData.liquidityPool} SOL
+                  <span className="text-gray-600 text-lg ml-2">
+                    (${tokenData.lpUsdValue})
+                  </span>
+                </p>
               </div>
               <div>
                 <p className="text-gray-700 mb-2">Token Value</p>
-                <p className="text-gray-900 font-bold text-3xl">{tokenData.tokenValue}</p>
+                <p className="text-gray-900 font-bold text-3xl">
+                  {tokenData.tokenValue} SOL
+                  <span className="text-gray-600 text-lg ml-2">
+                    (${tokenData.tokenValueUsd})
+                  </span>
+                </p>
               </div>
             </div>
           </div>

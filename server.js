@@ -184,14 +184,21 @@ app.get('/api/token-metrics', async (req, res) => {
 
     // Calculate token value (LP balance / public supply)
     const tokenValueInSol = metrics.public_supply > 0 ? lpBalanceInSol / metrics.public_supply : 0;
+    const tokenValueInUsd = tokenValueInSol * solPrice;
+
+    // Format values for logging
+    const formatNumber = (num) => Number(num).toLocaleString(undefined, { maximumFractionDigits: 2 });
+    const formatSol = (num) => Number(num).toFixed(8);
+    const formatUsd = (num) => Number(num).toFixed(6);
 
     console.log('Token Metrics:', {
-      totalSupply: metrics.total_supply,
-      publicSupply: metrics.public_supply,
-      exemptSupply: metrics.exempt_supply,
-      lpBalanceInSol,
-      solPrice,
-      tokenValueInSol
+      totalSupply: formatNumber(metrics.total_supply),
+      publicSupply: formatNumber(metrics.public_supply),
+      exemptSupply: formatNumber(metrics.exempt_supply),
+      lpBalanceInSol: formatNumber(lpBalanceInSol),
+      solPrice: formatNumber(solPrice),
+      tokenValueInSol: formatSol(tokenValueInSol),
+      tokenValueInUsd: formatUsd(tokenValueInUsd)
     });
 
     res.json({
@@ -200,7 +207,9 @@ app.get('/api/token-metrics', async (req, res) => {
       exemptSupply: metrics.exempt_supply || 0,
       liquidityPool: lpBalanceInSol,
       solPrice: solPrice,
-      tokenValue: tokenValueInSol
+      tokenValue: tokenValueInSol,
+      tokenValueUsd: tokenValueInUsd,
+      lpUsdValue: lpBalanceInSol * solPrice
     });
 
   } catch (error) {
