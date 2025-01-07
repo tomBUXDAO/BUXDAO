@@ -1,4 +1,4 @@
-import { Pool } from '@vercel/postgres';
+import { sql } from '@vercel/postgres';
 
 export const config = {
   runtime: 'edge'
@@ -59,25 +59,16 @@ export default async function handler(req) {
     // Get user info
     const userData = await getDiscordUser(tokenData.access_token);
 
-    // Connect to database
-    const pool = new Pool({
-      connectionString: process.env.POSTGRES_URL,
-      ssl: {
-        rejectUnauthorized: false
-      }
-    });
-
     // Update or create user in database
-    const result = await pool.query(
-      `INSERT INTO holders (discord_id, discord_username, last_verified)
-       VALUES ($1, $2, NOW())
-       ON CONFLICT (discord_id) 
-       DO UPDATE SET 
-         discord_username = $2,
-         last_verified = NOW()
-       RETURNING *`,
-      [userData.id, `${userData.username}#${userData.discriminator}`]
-    );
+    const result = await sql`
+      INSERT INTO holders (discord_id, discord_username, last_verified)
+      VALUES (${userData.id}, ${`${userData.username}#${userData.discriminator}`}, NOW())
+      ON CONFLICT (discord_id) 
+      DO UPDATE SET 
+        discord_username = ${`${userData.username}#${userData.discriminator}`},
+        last_verified = NOW()
+      RETURNING *
+    `;
 
     // Return success with user data
     return new Response(JSON.stringify({

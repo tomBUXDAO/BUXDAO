@@ -1,4 +1,4 @@
-import { Pool } from '@vercel/postgres';
+import { sql } from '@vercel/postgres';
 
 export const config = {
   runtime: 'edge'
@@ -24,14 +24,7 @@ async function updateDiscordRoles(userId, roles) {
     const currentRoles = member.roles || [];
 
     // Get role IDs from database
-    const pool = new Pool({
-      connectionString: process.env.POSTGRES_URL,
-      ssl: {
-        rejectUnauthorized: false
-      }
-    });
-
-    const { rows } = await pool.query('SELECT * FROM roles');
+    const { rows } = await sql`SELECT * FROM roles`;
     const rolesToAssign = [];
 
     // Add roles based on user's role flags
@@ -116,54 +109,43 @@ export default async function handler(req) {
       });
     }
 
-    // Connect to database
-    const pool = new Pool({
-      connectionString: process.env.POSTGRES_URL,
-      ssl: {
-        rejectUnauthorized: false
-      }
-    });
-
-    // Begin transaction
-    await pool.query('BEGIN');
-
     try {
+      // Begin transaction
+      await sql`BEGIN`;
+
       // Insert or update user in user_roles table
-      const result = await pool.query(
-        `INSERT INTO user_roles (discord_id, wallet_address, discord_name)
-         VALUES ($1, $2, $3)
-         ON CONFLICT (discord_id) 
-         DO UPDATE SET 
-           wallet_address = $2,
-           discord_name = $3,
-           last_updated = CURRENT_TIMESTAMP
-         RETURNING *`,
-        [discord_id, walletAddress, discord_username]
-      );
+      const result = await sql`
+        INSERT INTO user_roles (discord_id, wallet_address, discord_name)
+        VALUES (${discord_id}, ${walletAddress}, ${discord_username})
+        ON CONFLICT (discord_id) 
+        DO UPDATE SET 
+          wallet_address = ${walletAddress},
+          discord_name = ${discord_username},
+          last_updated = CURRENT_TIMESTAMP
+        RETURNING *
+      `;
 
       // Update owner info in nft_metadata table
-      await pool.query(
-        `UPDATE nft_metadata 
-         SET owner_discord_id = $1,
-             owner_name = $2
-         WHERE owner_wallet = $3`,
-        [discord_id, discord_username, walletAddress]
-      );
+      await sql`
+        UPDATE nft_metadata 
+        SET owner_discord_id = ${discord_id},
+            owner_name = ${discord_username}
+        WHERE owner_wallet = ${walletAddress}
+      `;
 
       // Insert or update bux_holders table
-      await pool.query(
-        `INSERT INTO bux_holders (wallet_address, owner_discord_id, owner_name)
-         VALUES ($1, $2, $3)
-         ON CONFLICT (wallet_address) 
-         DO UPDATE SET 
-           owner_discord_id = $2,
-           owner_name = $3,
-           last_updated = CURRENT_TIMESTAMP`,
-        [walletAddress, discord_id, discord_username]
-      );
+      await sql`
+        INSERT INTO bux_holders (wallet_address, owner_discord_id, owner_name)
+        VALUES (${walletAddress}, ${discord_id}, ${discord_username})
+        ON CONFLICT (wallet_address) 
+        DO UPDATE SET 
+          owner_discord_id = ${discord_id},
+          owner_name = ${discord_username},
+          last_updated = CURRENT_TIMESTAMP
+      `;
 
       // Commit transaction
-      await pool.query('COMMIT');
+      await sql`COMMIT`;
 
       // Update Discord roles based on user's role flags
       const updatedRoles = await updateDiscordRoles(discord_id, result.rows[0]);
@@ -182,7 +164,7 @@ export default async function handler(req) {
 
     } catch (error) {
       // Rollback transaction on error
-      await pool.query('ROLLBACK');
+      await sql`ROLLBACK`;
       throw error;
     }
 
