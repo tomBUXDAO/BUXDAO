@@ -23,11 +23,16 @@ const BuxInfo = () => {
   });
 
   const [topHolders, setTopHolders] = useState([]);
+  
+  // Get the base URL for API calls
+  const baseUrl = window.location.hostname === 'localhost' 
+    ? 'http://localhost:3001' 
+    : 'https://buxdao.com';
 
   useEffect(() => {
     const fetchSupplyData = async () => {
       try {
-        const response = await fetch('/api/token-metrics');
+        const response = await fetch(`${baseUrl}/api/token-metrics`);
         const data = await response.json();
         
         // Format the values with specific decimal places
@@ -54,7 +59,7 @@ const BuxInfo = () => {
 
     const fetchTopHolders = async () => {
       try {
-        const response = await fetch('/api/top-holders');
+        const response = await fetch(`${baseUrl}/api/top-holders`);
         const data = await response.json();
         
         // Calculate USD values for holders
