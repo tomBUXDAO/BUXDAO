@@ -4,6 +4,7 @@ import axios from 'axios';
 import pkg from 'pg';
 const { Pool } = pkg;
 import dotenv from 'dotenv';
+import { Connection, PublicKey, LAMPORTS_PER_SOL } from '@solana/web3.js';
 
 dotenv.config();
 
@@ -153,6 +154,123 @@ app.get('/api/printful/products/:id', async (req, res) => {
   } catch (error) {
     console.error('Error fetching product from Printful:', error);
     res.status(500).json({ error: error.message });
+  }
+});
+
+// Add token metrics endpoint
+app.get('/api/token-metrics', async (req, res) => {
+  try {
+    // Get supply metrics from database
+    const result = await pool.query(`
+      SELECT 
+        SUM(balance) as total_supply,
+        SUM(CASE WHEN is_exempt = FALSE THEN balance ELSE 0 END) as public_supply,
+        SUM(CASE WHEN is_exempt = TRUE THEN balance ELSE 0 END) as exempt_supply
+      FROM bux_holders
+    `);
+
+    const metrics = result.rows[0];
+
+    // Get current SOL price
+    const solPriceResponse = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd');
+    const solPriceData = await solPriceResponse.json();
+    const solPrice = solPriceData.solana?.usd || 0;
+
+    // Get LP wallet balance using Solana RPC
+    const connection = new Connection('https://api.mainnet-beta.solana.com');
+    const lpWalletAddress = new PublicKey('3WNHW6sr1sQdbRjovhPrxgEJdWASZ43egGWMMNrhgoRR');
+    const lpBalance = await connection.getBalance(lpWalletAddress);
+    const lpBalanceInSol = (lpBalance / LAMPORTS_PER_SOL) + 20.2; // Convert lamports to SOL and add debt
+
+    // Calculate token value (LP balance / public supply)
+    const tokenValueInSol = metrics.public_supply > 0 ? lpBalanceInSol / metrics.public_supply : 0;
+
+    console.log('Token Metrics:', {
+      totalSupply: metrics.total_supply,
+      publicSupply: metrics.public_supply,
+      exemptSupply: metrics.exempt_supply,
+      lpBalanceInSol,
+      solPrice,
+      tokenValueInSol
+    });
+
+    res.json({
+      totalSupply: metrics.total_supply || 0,
+      publicSupply: metrics.public_supply || 0,
+      exemptSupply: metrics.exempt_supply || 0,
+      liquidityPool: lpBalanceInSol,
+      solPrice: solPrice,
+      tokenValue: tokenValueInSol
+    });
+
+  } catch (error) {
+    console.error('Error fetching token metrics:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Add top holders endpoint
+app.get('/api/top-holders', async (req, res) => {
+  try {
+    // Get token metrics first for LP and public supply
+    const metricsResult = await pool.query(`
+      SELECT 
+        SUM(CASE WHEN is_exempt = FALSE THEN balance ELSE 0 END) as public_supply
+      FROM bux_holders
+    `);
+    
+    // Get LP balance
+    const connection = new Connection('https://api.mainnet-beta.solana.com');
+    const lpWalletAddress = new PublicKey('3WNHW6sr1sQdbRjovhPrxgEJdWASZ43egGWMMNrhgoRR');
+    const lpBalance = await connection.getBalance(lpWalletAddress);
+    const lpBalanceInSol = (lpBalance / LAMPORTS_PER_SOL) + 20.2;
+    
+    // Calculate token value
+    const publicSupply = metricsResult.rows[0].public_supply;
+    const tokenValueInSol = publicSupply > 0 ? lpBalanceInSol / publicSupply : 0;
+
+    // Get SOL price
+    const solPriceResponse = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd');
+    const solPriceData = await solPriceResponse.json();
+    const solPrice = solPriceData.solana?.usd || 0;
+
+    // Get top 5 non-exempt holders by balance
+    const result = await pool.query(`
+      SELECT 
+        wallet_address as address,
+        owner_name as discord_name,
+        balance as amount,
+        is_exempt,
+        ROUND((balance * 100.0 / (
+          SELECT SUM(balance) FROM bux_holders WHERE is_exempt = FALSE
+        )), 2) as percentage
+      FROM bux_holders 
+      WHERE is_exempt = FALSE
+      ORDER BY balance DESC 
+      LIMIT 5
+    `);
+
+    console.log('Top holders query result:', result.rows);
+
+    // Format the data
+    const holders = result.rows.map(holder => {
+      const balanceInSol = Number(holder.amount) * tokenValueInSol;
+      const balanceInUsd = balanceInSol * solPrice;
+      
+      return {
+        address: holder.discord_name || holder.address.slice(0, 4) + '...' + holder.address.slice(-4),
+        amount: Number(holder.amount).toLocaleString(),
+        percentage: holder.percentage + '%',
+        value: `${balanceInSol.toFixed(2)} SOL ($${balanceInUsd.toFixed(2)})`
+      };
+    });
+
+    console.log('Formatted holders:', holders);
+    res.json({ holders });
+
+  } catch (error) {
+    console.error('Error fetching top holders:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 

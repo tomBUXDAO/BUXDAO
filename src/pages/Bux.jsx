@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { 
   XCircleIcon, 
   ShieldCheckIcon, 
@@ -10,13 +11,49 @@ import {
 } from '@heroicons/react/24/outline';
 
 const Bux = () => {
-  // Moving the state and data from BuxInfo component
-  const tokenData = {
-    totalSupply: '10,000,000',
-    publicSupply: '1,000,000',
-    liquidityPool: '250,000',
-    tokenValue: '$0.12'
-  };
+  const [tokenData, setTokenData] = useState({
+    totalSupply: '0',
+    publicSupply: '0',
+    exemptSupply: '0',
+    liquidityPool: '0',
+    solPrice: 0,
+    tokenValue: 0
+  });
+
+  const [topHolders, setTopHolders] = useState([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Fetch token metrics
+        const metricsResponse = await fetch('http://localhost:3001/api/token-metrics');
+        const metricsData = await metricsResponse.json();
+        
+        // Format the values
+        const formatNumber = (num) => Number(num).toLocaleString(undefined, { maximumFractionDigits: 2 });
+        const formatSol = (num) => Number(num).toFixed(2);
+        const formatTokenValue = (num) => Number(num).toFixed(8);
+        
+        setTokenData({
+          totalSupply: formatNumber(metricsData.totalSupply),
+          publicSupply: formatNumber(metricsData.publicSupply),
+          exemptSupply: formatNumber(metricsData.exemptSupply),
+          liquidityPool: formatSol(metricsData.liquidityPool),
+          solPrice: metricsData.solPrice,
+          tokenValue: formatTokenValue(metricsData.tokenValue)
+        });
+
+        // Fetch top holders
+        const holdersResponse = await fetch('http://localhost:3001/api/top-holders');
+        const holdersData = await holdersResponse.json();
+        setTopHolders(holdersData.holders);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   const revenueSources = [
     {
@@ -45,14 +82,6 @@ const Bux = () => {
       description: 'A new collection is planned for launch in 2025 with all mint fees being added to the pot',
       icon: SparklesIcon
     }
-  ];
-
-  const topHolders = [
-    { address: '8xJ4...3Rfq', amount: '100,000', percentage: '10%' },
-    { address: '9vK5...7Tpw', amount: '75,000', percentage: '7.5%' },
-    { address: '3mN2...8Yxc', amount: '50,000', percentage: '5%' },
-    { address: '5pL7...1Hdn', amount: '25,000', percentage: '2.5%' },
-    { address: '2wQ9...4Kfm', amount: '10,000', percentage: '1%' }
   ];
 
   return (
@@ -116,11 +145,21 @@ const Bux = () => {
                   </div>
                   <div>
                     <p className="text-gray-300 text-sm mb-1">Liquidity Pool</p>
-                    <p className="text-gray-200 font-semibold text-xl">{tokenData.liquidityPool}</p>
+                    <p className="text-gray-200 font-semibold text-xl">
+                      {tokenData.liquidityPool} SOL
+                      <span className="text-gray-400 text-sm ml-1">
+                        {tokenData.solPrice ? `($${(Number(tokenData.liquidityPool) * tokenData.solPrice).toLocaleString(undefined, { maximumFractionDigits: 2 })})` : ''}
+                      </span>
+                    </p>
                   </div>
                   <div>
                     <p className="text-gray-300 text-sm mb-1">Token Value</p>
-                    <p className="text-gray-200 font-semibold text-xl">{tokenData.tokenValue}</p>
+                    <p className="text-gray-200 font-semibold text-xl">
+                      {tokenData.tokenValue} SOL
+                      <span className="text-gray-400 text-sm ml-1">
+                        {tokenData.solPrice ? `($${(Number(tokenData.tokenValue) * tokenData.solPrice).toLocaleString(undefined, { maximumFractionDigits: 2 })})` : ''}
+                      </span>
+                    </p>
                   </div>
                 </div>
               </div>
@@ -165,20 +204,22 @@ const Bux = () => {
                     Top Holders
                   </h3>
                   <div className="overflow-x-auto">
-                    <table className="w-full">
+                    <table className="w-full text-sm">
                       <thead>
-                        <tr className="text-gray-400 text-sm">
-                          <th className="text-left pb-2">Address</th>
-                          <th className="text-left pb-2">Amount</th>
-                          <th className="text-left pb-2">%</th>
+                        <tr className="text-gray-400">
+                          <th className="text-left pb-2 w-1/4">Holder</th>
+                          <th className="text-right pb-2 w-1/4">Amount</th>
+                          <th className="text-right pb-2 w-1/4">Share</th>
+                          <th className="text-right pb-2 w-1/4">Value</th>
                         </tr>
                       </thead>
                       <tbody>
                         {topHolders.map((holder, index) => (
                           <tr key={index} className="text-gray-200">
                             <td className="py-2 text-purple-400">{holder.address}</td>
-                            <td className="py-2">{holder.amount}</td>
-                            <td className="py-2">{holder.percentage}</td>
+                            <td className="py-2 text-right">{holder.amount}</td>
+                            <td className="py-2 text-right">{holder.percentage}</td>
+                            <td className="py-2 text-right">{holder.value}</td>
                           </tr>
                         ))}
                       </tbody>

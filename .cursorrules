@@ -1,0 +1,84 @@
+# BUXDAO.com Project Brief
+
+## Project Overview
+BUXDAO is a community-owned NFT project on the Solana blockchain, focused on providing passive income through NFT holdings.
+
+## Key Components
+
+### Frontend (React + Vite)
+- `/src/components/` - React components
+- `/src/pages/` - Page components
+- `/src/styles/` - CSS and styling files
+- `/public/` - Static assets (images, gifs)
+
+### Backend (Edge Functions)
+- `/api/` - API endpoints
+  - `/printful/` - Printful integration for merch
+  - `/collections/` - NFT collection data
+  - `/celebcatz/` - Celebrity Catz specific endpoints
+  - `/auth/` - Discord OAuth and wallet verification
+  - `/holders/` - Holder verification and role management
+
+### Collections
+1. FCKed Catz
+2. Money Monsters
+3. A.I. BitBots
+4. Money Monsters 3D
+5. Celebrity Catz
+
+### Database Schema
+```sql
+Table: holders
+- wallet_address (primary key)
+- discord_id
+- discord_username
+- last_verified
+- holdings_count
+- roles
+```
+
+### Environment Variables Required
+- `PRINTFUL_API_KEY` - For merch store integration
+- `POSTGRES_URL` - Database connection string
+- `DISCORD_CLIENT_ID` - Discord OAuth app ID
+- `DISCORD_CLIENT_SECRET` - Discord OAuth secret
+- `DISCORD_BOT_TOKEN` - Discord bot token for role management
+
+### Authentication Flow
+1. User initiates Discord login
+2. OAuth2 redirect and callback
+3. User connects Solana wallet
+4. System verifies NFT ownership
+5. Database entry created/updated
+6. Discord roles assigned
+
+### Build Commands
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run start` - Run development server with API
+
+### Important Notes
+- All API requests should be rate-limited
+- Images should be optimized before deployment
+- Ensure CORS is properly configured for API endpoints
+- Keep sensitive data in .env (not in git)
+- Use Tailwind for styling
+- Maintain mobile responsiveness
+- Implement proper error handling for auth flows
+- Cache NFT ownership data to reduce RPC calls
+- Regular revalidation of holder status
+
+### Git Rules
+- Keep commits atomic and descriptive
+- Don't commit environment files
+- Don't commit large binary files
+- Use feature branches for major changes
+
+### Dependencies
+- React 18.3+
+- Vite 5.4+
+- TailwindCSS 3.4+
+- Express 4.21+
+- PostgreSQL (via Neon)
+- Discord.js
+- @solana/web3.js 

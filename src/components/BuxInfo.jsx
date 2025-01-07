@@ -11,13 +11,46 @@ import {
 } from '@heroicons/react/24/outline';
 
 const BuxInfo = () => {
-  // Example state - replace with real data fetching
   const [tokenData, setTokenData] = useState({
-    totalSupply: '10,000,000',
-    publicSupply: '1,000,000',
+    totalSupply: '0',
+    publicSupply: '0',
+    exemptSupply: '0',
     liquidityPool: '250,000',
     tokenValue: '$0.12'
   });
+
+  const [topHolders, setTopHolders] = useState([]);
+
+  useEffect(() => {
+    const fetchSupplyData = async () => {
+      try {
+        const response = await fetch('/api/token-metrics');
+        const data = await response.json();
+        setTokenData({
+          totalSupply: Number(data.totalSupply).toLocaleString(),
+          publicSupply: Number(data.publicSupply).toLocaleString(),
+          exemptSupply: Number(data.exemptSupply).toLocaleString(),
+          liquidityPool: Number(data.liquidityPool).toLocaleString(),
+          tokenValue: '$' + data.tokenValue
+        });
+      } catch (error) {
+        console.error('Error fetching token metrics:', error);
+      }
+    };
+
+    const fetchTopHolders = async () => {
+      try {
+        const response = await fetch('/api/top-holders');
+        const data = await response.json();
+        setTopHolders(data.holders);
+      } catch (error) {
+        console.error('Error fetching top holders:', error);
+      }
+    };
+
+    fetchSupplyData();
+    fetchTopHolders();
+  }, []);
 
   const revenueSources = [
     {
@@ -46,14 +79,6 @@ const BuxInfo = () => {
       description: 'A new collection is planned for launch in 2025 with all mint fees being added to the pot',
       icon: SparklesIcon
     }
-  ];
-
-  const topHolders = [
-    { address: '8xJ4...3Rfq', amount: '100,000', percentage: '10%' },
-    { address: '9vK5...7Tpw', amount: '75,000', percentage: '7.5%' },
-    { address: '3mN2...8Yxc', amount: '50,000', percentage: '5%' },
-    { address: '5pL7...1Hdn', amount: '25,000', percentage: '2.5%' },
-    { address: '2wQ9...4Kfm', amount: '10,000', percentage: '1%' }
   ];
 
   return (
@@ -103,11 +128,15 @@ const BuxInfo = () => {
             <div className="space-y-6">
               <div>
                 <p className="text-gray-700 mb-2">Total Supply</p>
-                <p className="text-gray-900 font-bold text-3xl">{tokenData.totalSupply}</p>
+                <p className="text-gray-900 font-bold text-3xl">{Number(tokenData.totalSupply).toLocaleString()}</p>
               </div>
               <div>
                 <p className="text-gray-700 mb-2">Public Supply</p>
-                <p className="text-gray-900 font-bold text-3xl">{tokenData.publicSupply}</p>
+                <p className="text-gray-900 font-bold text-3xl">{Number(tokenData.publicSupply).toLocaleString()}</p>
+              </div>
+              <div>
+                <p className="text-gray-700 mb-2">Exempt Supply</p>
+                <p className="text-gray-900 font-bold text-3xl">{Number(tokenData.exemptSupply).toLocaleString()}</p>
               </div>
               <div>
                 <p className="text-gray-700 mb-2">Liquidity Pool</p>
@@ -150,16 +179,16 @@ const BuxInfo = () => {
                 <thead>
                   <tr className="text-gray-700 text-sm border-b border-gray-300">
                     <th className="text-left pb-4">Address</th>
-                    <th className="text-left pb-4">Amount</th>
-                    <th className="text-left pb-4">%</th>
+                    <th className="text-right pb-4">Amount</th>
+                    <th className="text-right pb-4">%</th>
                   </tr>
                 </thead>
                 <tbody>
                   {topHolders.map((holder, index) => (
                     <tr key={index} className="text-gray-900 border-b border-gray-200 last:border-0">
                       <td className="py-4 text-purple-700">{holder.address}</td>
-                      <td className="py-4">{holder.amount}</td>
-                      <td className="py-4">{holder.percentage}</td>
+                      <td className="py-4 text-right">{holder.amount}</td>
+                      <td className="py-4 text-right">{holder.percentage}</td>
                     </tr>
                   ))}
                 </tbody>
