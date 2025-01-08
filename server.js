@@ -16,10 +16,13 @@ app.use(cors({
     'http://localhost:3001',
     'https://buxdao-3-0.vercel.app',
     'https://buxdao.com',
-    'https://www.buxdao.com'
+    'https://www.buxdao.com',
+    'https://api.buxdao.com'
   ],
-  methods: ['GET', 'POST'],
-  credentials: true
+  methods: ['GET', 'POST', 'OPTIONS'],
+  credentials: true,
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+  optionsSuccessStatus: 200
 }));
 app.use(express.json());
 
