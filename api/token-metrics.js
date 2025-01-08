@@ -13,11 +13,14 @@ export default async function handler(req, res) {
     return;
   }
 
+  let client;
   try {
     console.log('Fetching token metrics...');
     
     // Create database client
-    const client = createClient();
+    client = createClient({
+      connectionString: process.env.POSTGRES_URL_NON_POOLING
+    });
     await client.connect();
     
     // Get supply metrics from database
@@ -90,8 +93,6 @@ export default async function handler(req, res) {
     const tokenValueInUsd = tokenValueInSol * solPrice;
     const lpUsdValue = lpBalanceInSol * solPrice;
 
-    await client.end();
-
     res.setHeader('Cache-Control', 'public, s-maxage=60');
     res.status(200).json({
       totalSupply: Number(metrics.total_supply) || 0,
@@ -111,5 +112,9 @@ export default async function handler(req, res) {
       message: error.message,
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
+  } finally {
+    if (client) {
+      await client.end();
+    }
   }
 } 

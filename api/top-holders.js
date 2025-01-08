@@ -12,6 +12,7 @@ export default async function handler(req, res) {
     return;
   }
 
+  let client;
   try {
     const type = req.query.type || 'bux';
     const collection = req.query.collection || 'all';
@@ -20,7 +21,9 @@ export default async function handler(req, res) {
     const ME_ESCROW = '1BWutmTvYPwDtmw9abTkS4Ssr8no61spGAvW1X6NDix';
 
     // Create database client
-    const client = createClient();
+    client = createClient({
+      connectionString: process.env.POSTGRES_URL_NON_POOLING
+    });
     await client.connect();
 
     // Get SOL price
@@ -114,7 +117,6 @@ export default async function handler(req, res) {
         })
         .slice(0, 5);
 
-      await client.end();
       res.setHeader('Cache-Control', 'public, s-maxage=60');
       return res.status(200).json({ holders });
     }
@@ -184,7 +186,6 @@ export default async function handler(req, res) {
         })
         .slice(0, 5);
 
-      await client.end();
       res.setHeader('Cache-Control', 'public, s-maxage=60');
       return res.status(200).json({ holders });
     }
@@ -214,12 +215,10 @@ export default async function handler(req, res) {
         value: `${(Number(holder.amount) * 0.069).toFixed(2)} SOL ($${(Number(holder.amount) * 0.069 * solPrice).toFixed(2)})`
       }));
 
-      await client.end();
       res.setHeader('Cache-Control', 'public, s-maxage=60');
       return res.status(200).json({ holders });
     }
 
-    await client.end();
     return res.status(400).json({ error: 'Invalid type parameter' });
 
   } catch (error) {
@@ -229,5 +228,9 @@ export default async function handler(req, res) {
       message: error.message,
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
+  } finally {
+    if (client) {
+      await client.end();
+    }
   }
 }
