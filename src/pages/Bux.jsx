@@ -21,6 +21,7 @@ const Bux = () => {
   });
 
   const [topHolders, setTopHolders] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [viewType, setViewType] = useState('bux'); // 'bux', 'nfts', 'combined'
   const [selectedCollection, setSelectedCollection] = useState('all');
   
@@ -40,8 +41,9 @@ const Bux = () => {
 
   useEffect(() => {
     const fetchData = async () => {
+      setIsLoading(true);
       try {
-        // Fetch token metrics
+        // Always fetch token metrics for BUX values
         const metricsResponse = await fetch(`${baseUrl}/api/token-metrics`, {
           headers: {
             'Accept': 'application/json',
@@ -85,6 +87,9 @@ const Bux = () => {
         setTopHolders(holdersData.holders);
       } catch (error) {
         console.error('Error fetching data:', error);
+        setTopHolders([]);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -249,10 +254,10 @@ const Bux = () => {
                     >
                       <option value="bux">BUX Only</option>
                       <option value="nfts">NFTs Only</option>
-                      <option value="combined">BUX + NFTs</option>
+                      <option value="bux,nfts">BUX + NFTs</option>
                     </select>
                     
-                    {viewType !== 'bux' && (
+                    {viewType === 'nfts' && (
                       <select 
                         className="bg-gray-800 border border-purple-400/20 rounded-lg px-3 py-2 text-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-400"
                         value={selectedCollection}
@@ -268,26 +273,60 @@ const Bux = () => {
                   </div>
 
                   <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="text-gray-400">
-                          <th className="text-left pb-2 w-1/4">Holder</th>
-                          <th className="text-right pb-2 w-1/4">Amount</th>
-                          <th className="text-right pb-2 w-1/4">Share</th>
-                          <th className="text-right pb-2 w-1/4">Value</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {topHolders.map((holder, index) => (
-                          <tr key={index} className="text-gray-200">
-                            <td className="py-2 text-purple-400">{holder.address}</td>
-                            <td className="py-2 text-right">{holder.amount}</td>
-                            <td className="py-2 text-right">{holder.percentage}</td>
-                            <td className="py-2 text-right">{holder.value}</td>
+                    {isLoading ? (
+                      <div className="text-gray-400 text-center py-4">Loading...</div>
+                    ) : (
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="text-gray-400">
+                            <th className="text-left pb-2">Holder</th>
+                            {viewType === 'bux' ? (
+                              <>
+                                <th className="text-right pb-2">BUX Balance</th>
+                                <th className="text-right pb-2">Share</th>
+                                <th className="text-right pb-2">Value</th>
+                              </>
+                            ) : viewType === 'nfts' ? (
+                              <>
+                                <th className="text-right pb-2">NFTs</th>
+                                <th className="text-right pb-2">Value</th>
+                              </>
+                            ) : (
+                              <>
+                                <th className="text-right pb-2">BUX Balance</th>
+                                <th className="text-right pb-2">NFTs</th>
+                                <th className="text-right pb-2">Value</th>
+                              </>
+                            )}
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody>
+                          {topHolders.map((holder, index) => (
+                            <tr key={index} className="text-gray-200">
+                              <td className="py-2 text-purple-400">{holder.address}</td>
+                              {viewType === 'bux' ? (
+                                <>
+                                  <td className="py-2 text-right">{holder.amount}</td>
+                                  <td className="py-2 text-right">{holder.percentage}</td>
+                                  <td className="py-2 text-right">{holder.value}</td>
+                                </>
+                              ) : viewType === 'nfts' ? (
+                                <>
+                                  <td className="py-2 text-right">{holder.amount}</td>
+                                  <td className="py-2 text-right">{holder.value}</td>
+                                </>
+                              ) : (
+                                <>
+                                  <td className="py-2 text-right">{holder.bux}</td>
+                                  <td className="py-2 text-right">{holder.nfts}</td>
+                                  <td className="py-2 text-right">{holder.value}</td>
+                                </>
+                              )}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
                   </div>
                 </div>
               </div>

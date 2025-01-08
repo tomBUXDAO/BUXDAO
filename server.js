@@ -5,6 +5,7 @@ import pkg from 'pg';
 const { Pool } = pkg;
 import dotenv from 'dotenv';
 import { Connection, PublicKey, LAMPORTS_PER_SOL } from '@solana/web3.js';
+import NodeCache from 'node-cache';
 
 dotenv.config();
 
@@ -29,6 +30,25 @@ const pool = new Pool({
     rejectUnauthorized: false
   }
 });
+
+const cache = new NodeCache({ stdTTL: 60 }); // Cache for 60 seconds
+
+// Helper function to get token metrics
+async function getTokenMetrics() {
+  const lpWalletAddress = new PublicKey('3WNHW6sr1sQdbRjovhPrxgEJdWASZ43egGWMMNrhgoRR');
+  const connection = new Connection('https://api.mainnet-beta.solana.com');
+  const lpBalance = await connection.getBalance(lpWalletAddress);
+  const lpBalanceInSol = (lpBalance / LAMPORTS_PER_SOL) + 20.2;
+
+  const metricsResult = await pool.query(`
+    SELECT SUM(CASE WHEN is_exempt = FALSE THEN balance ELSE 0 END) as public_supply
+    FROM bux_holders
+  `);
+  const publicSupply = metricsResult.rows[0].public_supply;
+  const tokenValueInSol = lpBalanceInSol / publicSupply;
+
+  return { lpBalanceInSol, tokenValueInSol };
+}
 
 // Stats endpoint
 app.get('/api/collections/:symbol/stats', async (req, res) => {
@@ -160,7 +180,19 @@ app.get('/api/printful/products/:id', async (req, res) => {
 // Add token metrics endpoint
 app.get('/api/token-metrics', async (req, res) => {
   try {
+    console.log('Fetching token metrics...');
+    
+    // Test database connection
+    try {
+      await pool.query('SELECT NOW()');
+      console.log('Database connection successful');
+    } catch (dbError) {
+      console.error('Database connection error:', dbError);
+      throw new Error('Database connection failed');
+    }
+
     // Get supply metrics from database
+    console.log('Querying supply metrics...');
     const result = await pool.query(`
       SELECT 
         SUM(balance) as total_supply,
@@ -169,18 +201,62 @@ app.get('/api/token-metrics', async (req, res) => {
       FROM bux_holders
     `);
 
+    console.log('Raw supply metrics:', result.rows[0]);
     const metrics = result.rows[0];
 
-    // Get current SOL price
-    const solPriceResponse = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd');
-    const solPriceData = await solPriceResponse.json();
-    const solPrice = solPriceData.solana?.usd || 0;
+    // Get current SOL price with caching
+    let solPrice = cache.get('solPrice');
+    if (solPrice === undefined) {
+      try {
+        console.log('Fetching SOL price from CoinGecko...');
+        const solPriceResponse = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd');
+        if (!solPriceResponse.ok) {
+          throw new Error(`CoinGecko API error: ${solPriceResponse.statusText}`);
+        }
+        const solPriceData = await solPriceResponse.json();
+        solPrice = Number(solPriceData.solana?.usd || 0);
+        cache.set('solPrice', solPrice);
+      } catch (error) {
+        console.error('Error fetching SOL price:', error);
+        solPrice = cache.get('solPrice') || 0;
+      }
+    }
+    console.log('SOL price:', solPrice);
 
-    // Get LP wallet balance using Solana RPC
-    const connection = new Connection('https://api.mainnet-beta.solana.com');
+    // Get LP balance with fallback RPC endpoints
+    const RPC_ENDPOINTS = [
+      'https://api.mainnet-beta.solana.com',
+      'https://solana-mainnet.g.alchemy.com/v2/demo',
+      'https://rpc.ankr.com/solana',
+      'https://solana.getblock.io/mainnet-beta',
+      'https://mainnet.helius-rpc.com/?api-key=15319bf4-5b40-4958-ac8d-6313aa55eb92'
+    ];
+
+    let lpBalance = null;
     const lpWalletAddress = new PublicKey('3WNHW6sr1sQdbRjovhPrxgEJdWASZ43egGWMMNrhgoRR');
-    const lpBalance = await connection.getBalance(lpWalletAddress);
-    const lpBalanceInSol = (lpBalance / LAMPORTS_PER_SOL) + 20.2; // Convert lamports to SOL and add debt
+
+    for (const endpoint of RPC_ENDPOINTS) {
+      try {
+        console.log(`Trying RPC endpoint: ${endpoint}`);
+        const connection = new Connection(endpoint);
+        lpBalance = await connection.getBalance(lpWalletAddress);
+        if (lpBalance !== null) {
+          console.log(`Successfully got balance from ${endpoint}`);
+          break;
+        }
+      } catch (error) {
+        console.error(`Failed to fetch balance from ${endpoint}:`, error.message);
+        continue;
+      }
+    }
+
+    if (lpBalance === null) {
+      console.warn('Using fallback LP balance');
+      lpBalance = 32.380991533 * LAMPORTS_PER_SOL;
+    }
+
+    const lpBalanceInSol = (lpBalance / LAMPORTS_PER_SOL) + 20.2;
+    console.log('LP balance in SOL:', lpBalanceInSol);
 
     // Calculate token value (LP balance / public supply) with high precision
     const publicSupplyNum = Number(metrics.public_supply) || 1; // Prevent division by zero
@@ -215,8 +291,13 @@ app.get('/api/token-metrics', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error fetching token metrics:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error('Error in token metrics endpoint:', error);
+    console.error('Error stack:', error.stack);
+    res.status(500).json({ 
+      error: 'Internal server error',
+      message: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 });
 
@@ -224,160 +305,222 @@ app.get('/api/token-metrics', async (req, res) => {
 app.get('/api/top-holders', async (req, res) => {
   try {
     const { type = 'bux', collection = 'all' } = req.query;
-    let query = '';
-    
-    // Get token metrics first for LP and public supply
-    const metricsResult = await pool.query(`
-      SELECT 
-        SUM(CASE WHEN is_exempt = FALSE THEN balance ELSE 0 END) as public_supply
-      FROM bux_holders
-    `);
-    
-    // Get LP balance
-    const connection = new Connection('https://api.mainnet-beta.solana.com');
-    const lpWalletAddress = new PublicKey('3WNHW6sr1sQdbRjovhPrxgEJdWASZ43egGWMMNrhgoRR');
-    const lpBalance = await connection.getBalance(lpWalletAddress);
-    const lpBalanceInSol = (lpBalance / LAMPORTS_PER_SOL) + 20.2;
-    
-    // Calculate token value
-    const publicSupply = metricsResult.rows[0].public_supply;
-    const tokenValueInSol = publicSupply > 0 ? lpBalanceInSol / publicSupply : 0;
+    const PROJECT_WALLET = 'CatzBPyMJcQgnAZ9hCtSNzDTrLLsRxerJYwh5LMe87kY';
+    const ME_ESCROW = '1BWutmTvYPwDtmw9abTkS4Ssr8no61spGAvW1X6NDix';
+    let query;
+    let result;
 
-    // Get SOL price
-    const solPriceResponse = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd');
-    const solPriceData = await solPriceResponse.json();
-    const solPrice = solPriceData.solana?.usd || 0;
-
-    // Build query based on view type
-    switch (type) {
-      case 'bux':
-        query = `
-          SELECT 
-            wallet_address as address,
-            owner_name as discord_name,
-            balance as amount,
-            is_exempt,
-            ROUND((balance * 100.0 / (
-              SELECT SUM(balance) FROM bux_holders WHERE is_exempt = FALSE
-            )), 2) as percentage
-          FROM bux_holders 
-          WHERE is_exempt = FALSE
-          ORDER BY balance DESC 
-          LIMIT 5
-        `;
-        break;
-        
-      case 'nfts':
-        query = `
-          SELECT 
-            wallet_address as address,
-            owner_name as discord_name,
-            COUNT(*) as amount,
-            ROUND((COUNT(*) * 100.0 / (
-              SELECT COUNT(*) FROM nft_holders WHERE ${collection !== 'all' ? "collection = $1 AND" : ''} 1=1
-            )), 2) as percentage
-          FROM nft_holders
-          WHERE ${collection !== 'all' ? "collection = $1 AND" : ''} 1=1
-          GROUP BY wallet_address, owner_name
-          ORDER BY amount DESC
-          LIMIT 5
-        `;
-        break;
-        
-      case 'combined':
-        query = `
-          WITH bux_amounts AS (
-            SELECT 
-              wallet_address,
-              owner_name,
-              balance as bux_balance
-            FROM bux_holders
-            WHERE is_exempt = FALSE
-          ),
-          nft_amounts AS (
-            SELECT 
-              wallet_address,
-              owner_name,
-              COUNT(*) as nft_count
-            FROM nft_holders
-            WHERE ${collection !== 'all' ? "collection = $1 AND" : ''} 1=1
-            GROUP BY wallet_address, owner_name
-          )
-          SELECT 
-            COALESCE(b.wallet_address, n.wallet_address) as address,
-            COALESCE(b.owner_name, n.owner_name) as discord_name,
-            COALESCE(b.bux_balance, 0) as bux_amount,
-            COALESCE(n.nft_count, 0) as nft_amount
-          FROM bux_amounts b
-          FULL OUTER JOIN nft_amounts n ON b.wallet_address = n.wallet_address
-          ORDER BY (COALESCE(b.bux_balance, 0) + COALESCE(n.nft_count, 0)) DESC
-          LIMIT 5
-        `;
-        break;
+    // Get SOL price with caching
+    let solPrice = cache.get('solPrice');
+    if (!solPrice) {
+      try {
+        const solPriceResponse = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd');
+        if (!solPriceResponse.ok) throw new Error(`CoinGecko API error: ${solPriceResponse.statusText}`);
+        const solPriceData = await solPriceResponse.json();
+        solPrice = Number(solPriceData.solana?.usd || 0);
+        cache.set('solPrice', solPrice);
+      } catch (error) {
+        console.error('Error fetching SOL price:', error);
+        solPrice = 195; // Fallback price
+      }
     }
 
-    // Execute query with or without collection parameter
-    const result = collection !== 'all' && type !== 'bux'
-      ? await pool.query(query, [collection])
-      : await pool.query(query);
+    // Get token metrics once
+    const { tokenValueInSol } = await getTokenMetrics();
 
-    // Format the data based on view type
-    const holders = result.rows.map(holder => {
-      let formattedHolder = {
-        address: holder.discord_name || holder.address.slice(0, 4) + '...' + holder.address.slice(-4)
+    if (type === 'bux,nfts') {
+      // Get BUX balances
+      const buxQuery = `
+        SELECT 
+          wallet_address,
+          owner_name as discord_name,
+          balance,
+          is_exempt
+        FROM bux_holders 
+        WHERE is_exempt = FALSE
+      `;
+      const buxResult = await pool.query(buxQuery);
+      
+      // Get all NFT holdings
+      const nftQuery = `
+        SELECT owner_wallet, symbol, COUNT(*) as count
+        FROM nft_metadata 
+        WHERE owner_wallet NOT IN ($1, $2)
+        AND owner_wallet IS NOT NULL 
+        AND owner_wallet != ''
+        GROUP BY owner_wallet, symbol
+      `;
+      const nftResult = await pool.query(nftQuery, [PROJECT_WALLET, ME_ESCROW]);
+
+      // Default floor prices
+      const floorPrices = {
+        'FCKEDCATZ': 0.045,
+        'MM': 0.069,
+        'AIBB': 0.35,
+        'MM3D': 0.04,
+        'CelebCatz': 0.489
       };
 
-      switch (type) {
-        case 'bux':
-          const balanceInSol = Number(holder.amount) * tokenValueInSol;
-          const balanceInUsd = balanceInSol * solPrice;
-          formattedHolder = {
-            ...formattedHolder,
-            amount: Number(holder.amount).toLocaleString(),
-            percentage: holder.percentage + '%',
-            value: `${balanceInSol.toFixed(2)} SOL ($${balanceInUsd.toFixed(2)})`
+      // Combine holdings
+      const combinedHoldings = {};
+      
+      // Add BUX holdings
+      for (const holder of buxResult.rows) {
+        const wallet = holder.wallet_address;
+        if (!combinedHoldings[wallet]) {
+          combinedHoldings[wallet] = {
+            address: holder.discord_name || wallet.slice(0, 4) + '...' + wallet.slice(-4),
+            buxBalance: Number(holder.balance),
+            nftCount: 0,
+            buxValue: Number(holder.balance) * tokenValueInSol,
+            nftValue: 0
           };
-          break;
-
-        case 'nfts':
-          formattedHolder = {
-            ...formattedHolder,
-            amount: holder.amount.toString(),
-            percentage: holder.percentage + '%',
-            value: `${holder.amount} NFTs`
-          };
-          break;
-
-        case 'combined':
-          const buxBalanceInSol = Number(holder.bux_amount) * tokenValueInSol;
-          const buxBalanceInUsd = buxBalanceInSol * solPrice;
-          formattedHolder = {
-            ...formattedHolder,
-            amount: `${Number(holder.bux_amount).toLocaleString()} BUX, ${holder.nft_amount} NFTs`,
-            percentage: '-',
-            value: `${buxBalanceInSol.toFixed(2)} SOL ($${buxBalanceInUsd.toFixed(2)})`
-          };
-          break;
+        }
       }
 
-      return formattedHolder;
-    });
+      // Add NFT holdings
+      for (const nft of nftResult.rows) {
+        const wallet = nft.owner_wallet;
+        if (!combinedHoldings[wallet]) {
+          combinedHoldings[wallet] = {
+            address: wallet.slice(0, 4) + '...' + wallet.slice(-4),
+            buxBalance: 0,
+            nftCount: 0,
+            buxValue: 0,
+            nftValue: 0
+          };
+        }
+        combinedHoldings[wallet].nftCount += Number(nft.count);
+        combinedHoldings[wallet].nftValue += Number(nft.count) * (floorPrices[nft.symbol] || 0);
+      }
 
-    res.json({ holders });
+      // Format and sort combined holdings
+      const holders = Object.values(combinedHoldings)
+        .map(holder => ({
+          address: holder.address,
+          bux: holder.buxBalance.toLocaleString(),
+          nfts: `${holder.nftCount} NFTs`,
+          value: `${(holder.buxValue + holder.nftValue).toFixed(2)} SOL ($${((holder.buxValue + holder.nftValue) * solPrice).toFixed(2)})`
+        }))
+        .sort((a, b) => {
+          const valueA = parseFloat(a.value.split(' ')[0]);
+          const valueB = parseFloat(b.value.split(' ')[0]);
+          return valueB - valueA;
+        })
+        .slice(0, 5);
+
+      return res.json({ holders });
+    }
+
+    if (type === 'nfts') {
+      // Map frontend names to DB symbols
+      const dbSymbols = {
+        'fckedcatz': 'FCKEDCATZ',
+        'moneymonsters': 'MM',
+        'aibitbots': 'AIBB',
+        'moneymonsters3d': 'MM3D',
+        'celebcatz': 'CelebCatz'
+      };
+
+      // Default floor prices (in case ME API fails)
+      const floorPrices = {
+        'FCKEDCATZ': 0.045,
+        'MM': 0.069,
+        'AIBB': 0.35,
+        'MM3D': 0.04,
+        'CelebCatz': 0.489
+      };
+
+      // Get NFT counts
+      const dbSymbol = collection !== 'all' ? dbSymbols[collection] : null;
+      query = `
+        SELECT owner_wallet, symbol, COUNT(*) as count
+        FROM nft_metadata 
+        WHERE owner_wallet NOT IN ($1, $2)
+        AND owner_wallet IS NOT NULL 
+        AND owner_wallet != ''
+        ${dbSymbol ? 'AND symbol = $3' : ''}
+        GROUP BY owner_wallet, symbol
+      `;
+      
+      const params = dbSymbol ? [PROJECT_WALLET, ME_ESCROW, dbSymbol] : [PROJECT_WALLET, ME_ESCROW];
+      result = await pool.query(query, params);
+
+      // Calculate totals
+      const totals = {};
+      for (const row of result.rows) {
+        const { owner_wallet, symbol, count } = row;
+        if (!totals[owner_wallet]) {
+          totals[owner_wallet] = { nfts: 0, value: 0 };
+        }
+        totals[owner_wallet].nfts += Number(count);
+        totals[owner_wallet].value += Number(count) * (floorPrices[symbol] || 0);
+      }
+
+      // Format response
+      const holders = Object.entries(totals)
+        .map(([wallet, data]) => ({
+          address: wallet.slice(0, 4) + '...' + wallet.slice(-4),
+          amount: `${data.nfts} NFTs`,
+          value: `${data.value.toFixed(2)} SOL ($${(data.value * solPrice).toFixed(2)})`
+        }))
+        .sort((a, b) => {
+          const valueA = parseFloat(a.value.split(' ')[0]);
+          const valueB = parseFloat(b.value.split(' ')[0]);
+          return valueB - valueA;
+        })
+        .slice(0, 5);
+
+      return res.json({ holders });
+    }
+
+    if (type === 'bux') {
+      // Get BUX holders
+      query = `
+        SELECT 
+          wallet_address as address,
+          owner_name as discord_name,
+          balance as amount,
+          is_exempt,
+          ROUND((balance * 100.0 / (
+            SELECT SUM(balance) FROM bux_holders WHERE is_exempt = FALSE
+          )), 2) as percentage
+        FROM bux_holders 
+        WHERE is_exempt = FALSE
+        ORDER BY balance DESC 
+        LIMIT 5
+      `;
+      
+      result = await pool.query(query);
+
+      // Format BUX holders
+      const holders = result.rows.map(holder => {
+        const balanceInSol = Number(holder.amount) * tokenValueInSol;
+        const balanceInUsd = balanceInSol * solPrice;
+        return {
+          address: holder.discord_name || holder.address.slice(0, 4) + '...' + holder.address.slice(-4),
+          amount: Number(holder.amount).toLocaleString(),
+          percentage: holder.percentage + '%',
+          value: `${balanceInSol.toFixed(2)} SOL ($${balanceInUsd.toFixed(2)})`
+        };
+      });
+
+      return res.json({ holders });
+    }
+
+    return res.status(400).json({ error: 'Invalid type parameter' });
 
   } catch (error) {
-    console.error('Error fetching top holders:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error('Error in top holders endpoint:', error);
+    res.status(500).json({ error: 'Internal server error', message: error.message });
   }
 });
 
-// Start the server when this file is run directly
-if (process.env.NODE_ENV !== 'production') {
-  const PORT = process.env.PORT || 3001;
-  app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-  });
-}
+// Start the server
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
 
 // Export the Express app
-export default app; 
+export default app;
