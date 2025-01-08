@@ -16,6 +16,14 @@
   ],
   "routes": [
     {
+      "src": "/api/token-metrics",
+      "dest": "/api/token-metrics.js"
+    },
+    {
+      "src": "/api/top-holders",
+      "dest": "/api/top-holders.js"
+    },
+    {
       "src": "/api/collections/([^/]+)/stats",
       "dest": "/api/collections/[symbol]/stats.js"
     },
