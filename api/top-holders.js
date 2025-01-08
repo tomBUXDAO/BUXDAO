@@ -1,27 +1,20 @@
 import { sql } from '@vercel/postgres';
 
-export const config = {
-  runtime: 'edge'
-};
-
-export default async function handler(req) {
-  // Handle CORS preflight
+export default async function handler(req, res) {
+  // Handle CORS
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', '*');
+  
+  // Handle preflight request
   if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      status: 204,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET,OPTIONS',
-        'Access-Control-Allow-Headers': '*',
-        'Access-Control-Max-Age': '86400'
-      }
-    });
+    res.status(200).end();
+    return;
   }
 
   try {
-    const url = new URL(req.url);
-    const type = url.searchParams.get('type') || 'bux';
-    const collection = url.searchParams.get('collection') || 'all';
+    const type = req.query.type || 'bux';
+    const collection = req.query.collection || 'all';
 
     const PROJECT_WALLET = 'CatzBPyMJcQgnAZ9hCtSNzDTrLLsRxerJYwh5LMe87kY';
     const ME_ESCROW = '1BWutmTvYPwDtmw9abTkS4Ssr8no61spGAvW1X6NDix';
@@ -117,14 +110,8 @@ export default async function handler(req) {
         })
         .slice(0, 5);
 
-      return new Response(JSON.stringify({ holders }), {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-          'Cache-Control': 'public, s-maxage=60'
-        }
-      });
+      res.setHeader('Cache-Control', 'public, s-maxage=60');
+      return res.status(200).json({ holders });
     }
 
     if (type === 'nfts') {
@@ -192,14 +179,8 @@ export default async function handler(req) {
         })
         .slice(0, 5);
 
-      return new Response(JSON.stringify({ holders }), {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-          'Cache-Control': 'public, s-maxage=60'
-        }
-      });
+      res.setHeader('Cache-Control', 'public, s-maxage=60');
+      return res.status(200).json({ holders });
     }
 
     if (type === 'bux') {
@@ -227,36 +208,18 @@ export default async function handler(req) {
         value: `${(Number(holder.amount) * 0.069).toFixed(2)} SOL ($${(Number(holder.amount) * 0.069 * solPrice).toFixed(2)})`
       }));
 
-      return new Response(JSON.stringify({ holders }), {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-          'Cache-Control': 'public, s-maxage=60'
-        }
-      });
+      res.setHeader('Cache-Control', 'public, s-maxage=60');
+      return res.status(200).json({ holders });
     }
 
-    return new Response(JSON.stringify({ error: 'Invalid type parameter' }), {
-      status: 400,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      }
-    });
+    return res.status(400).json({ error: 'Invalid type parameter' });
 
   } catch (error) {
     console.error('Error in top holders endpoint:', error);
-    return new Response(JSON.stringify({ 
+    return res.status(500).json({ 
       error: 'Internal server error',
       message: error.message,
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-    }), {
-      status: 500,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      }
     });
   }
 }

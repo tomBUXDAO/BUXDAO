@@ -1,22 +1,16 @@
 import { sql } from '@vercel/postgres';
 import { Connection, PublicKey, LAMPORTS_PER_SOL } from '@solana/web3.js';
 
-export const config = {
-  runtime: 'edge'
-};
-
-export default async function handler(req) {
-  // Handle CORS preflight
+export default async function handler(req, res) {
+  // Handle CORS
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', '*');
+  
+  // Handle preflight request
   if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      status: 204,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET,OPTIONS',
-        'Access-Control-Allow-Headers': '*',
-        'Access-Control-Max-Age': '86400'
-      }
-    });
+    res.status(200).end();
+    return;
   }
 
   try {
@@ -92,7 +86,8 @@ export default async function handler(req) {
     const tokenValueInUsd = tokenValueInSol * solPrice;
     const lpUsdValue = lpBalanceInSol * solPrice;
 
-    return new Response(JSON.stringify({
+    res.setHeader('Cache-Control', 'public, s-maxage=60');
+    res.status(200).json({
       totalSupply: Number(metrics.total_supply) || 0,
       publicSupply: Number(metrics.public_supply) || 0,
       exemptSupply: Number(metrics.exempt_supply) || 0,
@@ -101,27 +96,14 @@ export default async function handler(req) {
       tokenValue: tokenValueInSol,
       tokenValueUsd: tokenValueInUsd,
       lpUsdValue: lpUsdValue
-    }), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Cache-Control': 'public, s-maxage=60'
-      }
     });
 
   } catch (error) {
     console.error('Error in token metrics endpoint:', error);
-    return new Response(JSON.stringify({ 
+    res.status(500).json({ 
       error: 'Internal server error',
       message: error.message,
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-    }), {
-      status: 500,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      }
     });
   }
 } 
