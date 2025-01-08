@@ -367,6 +367,77 @@ const Bux = () => {
               </div>
             </div>
           </div>
+
+          {/* Rewards Section */}
+          <div className="mt-16 mb-16">
+            <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 text-center leading-relaxed mb-16 py-2">
+              Daily Rewards
+            </h2>
+          </div>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Left Column - BUXBOT Info */}
+            <div className="space-y-6 text-gray-200 text-xl border-2 border-purple-400/20 rounded-2xl py-8 px-8">
+              <div className="flex items-start gap-4">
+                <SparklesIcon className="w-10 h-10 text-purple-400 flex-shrink-0 mt-1" />
+                <p>
+                  When holders link discord profile and wallet address, they become eligible for daily rewards
+                </p>
+              </div>
+              
+              <div className="flex items-start gap-4">
+                <BanknotesIcon className="w-10 h-10 text-purple-400 flex-shrink-0 mt-1" />
+                <p>
+                  Rewards are paid per unlisted NFT and credited in $BUX to users CLAIM accounts
+                </p>
+              </div>
+              
+              <div className="flex items-start gap-4">
+                <UsersIcon className="w-10 h-10 text-purple-400 flex-shrink-0 mt-1" />
+                <p>
+                  BUXBOT is synced with Discord so it will automatically keep all holder based roles updated
+                </p>
+              </div>
+              
+              <div className="flex items-start gap-4">
+                <ShieldCheckIcon className="w-10 h-10 text-purple-400 flex-shrink-0 mt-1" />
+                <p>
+                  Roles are refreshed daily and rewards paid based on NFT holdings at the end of 24 hours
+                </p>
+              </div>
+            </div>
+
+            {/* Right Column - Reward Allocations */}
+            <div className="bg-gray-800/50 rounded-xl p-6">
+              <h4 className="text-2xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 mb-6">Daily Reward Allocations</h4>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center border-b border-gray-700 pb-2">
+                  <span className="text-gray-200">Celeb Catz</span>
+                  <span className="text-purple-400 font-semibold ml-4">20 $BUX</span>
+                </div>
+                <div className="flex justify-between items-center border-b border-gray-700 pb-2">
+                  <span className="text-gray-200">Money Monsters 3D</span>
+                  <span className="text-purple-400 font-semibold ml-4">7 $BUX</span>
+                </div>
+                <div className="flex justify-between items-center border-b border-gray-700 pb-2">
+                  <span className="text-gray-200">FCKed Catz</span>
+                  <span className="text-purple-400 font-semibold ml-4">5 $BUX</span>
+                </div>
+                <div className="flex justify-between items-center border-b border-gray-700 pb-2">
+                  <span className="text-gray-200">Money Monsters</span>
+                  <span className="text-purple-400 font-semibold ml-4">5 $BUX</span>
+                </div>
+                <div className="flex justify-between items-center border-b border-gray-700 pb-2">
+                  <span className="text-gray-200">A.I. BitBots</span>
+                  <span className="text-purple-400 font-semibold ml-4">3 $BUX</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-200">Collab Collections</span>
+                  <span className="text-purple-400 font-semibold ml-4">1 $BUX</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
     </div>
