@@ -37,25 +37,31 @@ const Bux = () => {
   // Get the base URL for API calls
   const baseUrl = window.location.hostname === 'localhost' 
     ? 'http://localhost:3001' 
-    : 'https://api.buxdao.com';
+    : 'https://buxdao.com';
 
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
       try {
+        console.log('Fetching from:', baseUrl); // Debug log
+        
         // Always fetch token metrics for BUX values
         const metricsResponse = await fetch(`${baseUrl}/api/token-metrics`, {
           headers: {
             'Accept': 'application/json',
             'Content-Type': 'application/json'
-          }
+          },
+          mode: 'cors',
+          credentials: 'same-origin'
         });
         
         if (!metricsResponse.ok) {
+          console.error('Metrics response error:', await metricsResponse.text());
           throw new Error(`HTTP error! status: ${metricsResponse.status}`);
         }
         
         const metricsData = await metricsResponse.json();
+        console.log('Metrics data:', metricsData); // Debug log
         
         // Format the values
         const formatNumber = (num) => Number(num).toLocaleString(undefined, { maximumFractionDigits: 2 });
@@ -76,14 +82,18 @@ const Bux = () => {
           headers: {
             'Accept': 'application/json',
             'Content-Type': 'application/json'
-          }
+          },
+          mode: 'cors',
+          credentials: 'same-origin'
         });
-        
+
         if (!holdersResponse.ok) {
+          console.error('Holders response error:', await holdersResponse.text());
           throw new Error(`HTTP error! status: ${holdersResponse.status}`);
         }
         
         const holdersData = await holdersResponse.json();
+        console.log('Holders data:', holdersData); // Debug log
         setTopHolders(holdersData.holders);
       } catch (error) {
         console.error('Error fetching data:', error);

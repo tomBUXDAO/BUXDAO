@@ -11,14 +11,23 @@ dotenv.config();
 
 const app = express();
 app.use(cors({
-  origin: [
-    'http://localhost:5173',
-    'http://localhost:3001',
-    'https://buxdao-3-0.vercel.app',
-    'https://buxdao.com',
-    'https://www.buxdao.com',
-    'https://api.buxdao.com'
-  ],
+  origin: function(origin, callback) {
+    const allowedOrigins = [
+      'http://localhost:5173',
+      'http://localhost:3001',
+      'https://buxdao.com',
+      'https://www.buxdao.com'
+    ];
+    
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   methods: ['GET', 'POST', 'OPTIONS'],
   credentials: true,
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
