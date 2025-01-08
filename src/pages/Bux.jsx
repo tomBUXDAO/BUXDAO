@@ -250,20 +250,20 @@ const Bux = () => {
 
           {/* Top Holders - Full Width */}
           <div className="bg-gray-900 rounded-xl p-6 hover:shadow-xl transition-shadow duration-300">
-            <div className="flex items-start gap-4">
-              <div className="bg-purple-600/20 p-3 rounded-lg">
-                <UsersIcon className="h-6 w-6 text-purple-400" />
-              </div>
-              <div className="flex-1">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-2xl md:text-3xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">
-                    Holders
-                  </h3>
-                  <span className="text-gray-400 text-sm">Listed NFTs are not included in holder counts</span>
+            <div className="flex flex-col lg:flex-row items-start gap-4">
+              <div className="flex items-center gap-4 w-full lg:w-auto">
+                <div className="bg-purple-600/20 p-3 rounded-lg">
+                  <UsersIcon className="h-6 w-6 text-purple-400" />
                 </div>
+                <h3 className="text-2xl md:text-3xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">
+                  Holders
+                </h3>
+              </div>
+              <div className="flex-1 w-full">
+                <span className="block text-gray-400 text-sm mb-4">Listed NFTs are not included in holder counts</span>
                 
                 {/* Filter Controls */}
-                <div className="flex flex-col sm:flex-row gap-4 mb-6">
+                <div className="flex flex-col lg:flex-row gap-4 mb-6">
                   <select 
                     className="bg-gray-800 border border-purple-400/20 rounded-lg px-3 py-2 text-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-400"
                     value={viewType}
@@ -294,40 +294,41 @@ const Bux = () => {
                     <div className="text-gray-400 text-center py-4">Loading...</div>
                   ) : (
                     <div className="max-h-[400px] overflow-y-auto relative border border-gray-700 rounded-lg">
-                      <table className="w-full text-sm table-fixed">
+                      <table className="w-full text-sm whitespace-nowrap">
                         <thead className="sticky top-0 bg-gray-900/95 backdrop-blur-sm shadow-lg z-10 text-gray-400">
                           <tr className="border-b border-gray-700">
                             {viewType === 'bux' ? (
                               <>
-                                <th className="text-left py-4 px-4 w-1/4 text-purple-300">Holder</th>
-                                <th className="text-right py-4 px-4 w-1/6 text-purple-300">Share</th>
-                                <th className="text-right py-4 px-4 w-1/6 text-purple-300">Value (SOL)</th>
-                                <th className="text-right py-4 px-4 w-1/6 text-purple-300">Value (USD)</th>
+                                <th className="text-left py-4 px-6 min-w-[140px] text-purple-300">Holder</th>
+                                <th className="text-right py-4 px-6 min-w-[140px] text-purple-300">Balance</th>
+                                <th className="text-right py-4 px-6 min-w-[100px] text-purple-300">Share</th>
+                                <th className="text-right py-4 px-6 min-w-[120px] text-purple-300">Value (SOL)</th>
+                                <th className="text-right py-4 px-6 min-w-[120px] text-purple-300">Value (USD)</th>
                               </>
                             ) : viewType === 'nfts' ? (
                               <>
-                                <th className="text-left py-4 px-4 w-1/4 text-purple-300">Holder</th>
-                                <th className="text-right py-4 px-4 w-1/4 text-purple-300">NFTs</th>
-                                <th className="text-right py-4 px-4 w-1/4 text-purple-300">Value (SOL)</th>
-                                <th className="text-right py-4 px-4 w-1/4 text-purple-300">Value (USD)</th>
+                                <th className="text-left py-4 px-6 min-w-[140px] text-purple-300">Holder</th>
+                                <th className="text-right py-4 px-6 min-w-[100px] text-purple-300">NFTs</th>
+                                <th className="text-right py-4 px-6 min-w-[120px] text-purple-300">Value (SOL)</th>
+                                <th className="text-right py-4 px-6 min-w-[120px] text-purple-300">Value (USD)</th>
                               </>
                             ) : (
                               <>
-                                <th className="text-center py-4 px-4 w-[8%] text-purple-300">Rank</th>
-                                <th className="text-left py-4 px-4 w-[22%] text-purple-300">Holder</th>
-                                <th className="text-right py-4 px-4 w-[20%] text-purple-300">BUX Balance</th>
-                                <th className="text-right py-4 px-4 w-[15%] text-purple-300">NFTs</th>
-                                <th className="text-right py-4 px-4 w-[15%] text-purple-300">Value (SOL)</th>
-                                <th className="text-right py-4 px-4 w-[20%] text-purple-300">Value (USD)</th>
+                                <th className="text-center py-4 px-6 min-w-[80px] text-purple-300">Rank</th>
+                                <th className="text-left py-4 px-6 min-w-[140px] text-purple-300">Holder</th>
+                                <th className="text-right py-4 px-6 min-w-[140px] text-purple-300">BUX Balance</th>
+                                <th className="text-right py-4 px-6 min-w-[100px] text-purple-300">NFTs</th>
+                                <th className="text-right py-4 px-6 min-w-[120px] text-purple-300">Value (SOL)</th>
+                                <th className="text-right py-4 px-6 min-w-[120px] text-purple-300">Value (USD)</th>
                               </>
                             )}
                           </tr>
                         </thead>
-                        <tbody className="px-4">
+                        <tbody>
                           {topHolders.map((holder, index) => (
                             <tr key={index} className={`text-gray-200 border-b border-gray-800 ${index % 2 === 0 ? 'bg-gray-800/50' : 'bg-transparent'}`}>
                               {viewType === 'bux,nfts' && (
-                                <td className="py-3 px-4 text-center font-semibold">
+                                <td className="py-3 px-6 text-center font-semibold">
                                   {index === 0 && <span title="1st Place" className="text-yellow-500">🥇 1</span>}
                                   {index === 1 && <span title="2nd Place" className="text-gray-300">🥈 2</span>}
                                   {index === 2 && <span title="3rd Place" className="text-amber-600">🥉 3</span>}
@@ -336,25 +337,26 @@ const Bux = () => {
                                   {index >= 25 && <span title={`Rank ${index + 1}`} className="text-amber-600">● {index + 1}</span>}
                                 </td>
                               )}
-                              <td className="py-3 px-4 text-purple-400">{holder.address}</td>
+                              <td className="py-3 px-6 text-purple-400">{holder.address}</td>
                               {viewType === 'bux' ? (
                                 <>
-                                  <td className="py-3 px-4 text-right">{holder.percentage}</td>
-                                  <td className="py-3 px-4 text-right">{holder.value.split(' ')[0]} SOL</td>
-                                  <td className="py-3 px-4 text-right">${holder.value.split('($')[1]?.replace(')', '')}</td>
+                                  <td className="py-3 px-6 text-right">{holder.amount}</td>
+                                  <td className="py-3 px-6 text-right">{holder.percentage}</td>
+                                  <td className="py-3 px-6 text-right">{holder.value.split(' ')[0]} SOL</td>
+                                  <td className="py-3 px-6 text-right">${holder.value.split('($')[1]?.replace(')', '')}</td>
                                 </>
                               ) : viewType === 'nfts' ? (
                                 <>
-                                  <td className="py-3 px-4 text-right">{holder.amount.split(' ')[0]}</td>
-                                  <td className="py-3 px-4 text-right">{holder.value.split(' ')[0]} SOL</td>
-                                  <td className="py-3 px-4 text-right">${holder.value.split('($')[1]?.replace(')', '')}</td>
+                                  <td className="py-3 px-6 text-right">{holder.amount.split(' ')[0]}</td>
+                                  <td className="py-3 px-6 text-right">{holder.value.split(' ')[0]} SOL</td>
+                                  <td className="py-3 px-6 text-right">${holder.value.split('($')[1]?.replace(')', '')}</td>
                                 </>
                               ) : (
                                 <>
-                                  <td className="py-3 px-4 text-right">{holder.bux}</td>
-                                  <td className="py-3 px-4 text-right">{holder.nfts ? holder.nfts.split(' ')[0] : holder.nftCount}</td>
-                                  <td className="py-3 px-4 text-right">{holder.value.split(' ')[0]} SOL</td>
-                                  <td className="py-3 px-4 text-right">${holder.value.split('($')[1]?.replace(')', '')}</td>
+                                  <td className="py-3 px-6 text-right">{holder.bux}</td>
+                                  <td className="py-3 px-6 text-right">{holder.nfts ? holder.nfts.split(' ')[0] : holder.nftCount}</td>
+                                  <td className="py-3 px-6 text-right">{holder.value.split(' ')[0]} SOL</td>
+                                  <td className="py-3 px-6 text-right">${holder.value.split('($')[1]?.replace(')', '')}</td>
                                 </>
                               )}
                             </tr>
