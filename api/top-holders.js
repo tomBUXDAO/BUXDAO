@@ -44,16 +44,40 @@ export default async function handler(req, res) {
     }
 
     if (type === 'bux,nfts') {
-      // Get BUX balances
+      // Get BUX balances and total supply for token value calculation
       const buxResult = await client.query(`
+        WITH total_supply AS (
+          SELECT SUM(balance) as total_supply,
+                 SUM(CASE WHEN is_exempt = FALSE THEN balance ELSE 0 END) as public_supply
+          FROM bux_holders
+        )
         SELECT 
           wallet_address,
           owner_name as discord_name,
           balance,
-          is_exempt
+          is_exempt,
+          (SELECT public_supply FROM total_supply) as public_supply
         FROM bux_holders 
         WHERE is_exempt = FALSE
       `);
+      
+      // Get LP balance for token value calculation
+      const lpWalletAddress = new PublicKey('3WNHW6sr1sQdbRjovhPrxgEJdWASZ43egGWMMNrhgoRR');
+      let lpBalance = 32.380991533 * LAMPORTS_PER_SOL; // Default value
+
+      try {
+        const connection = new Connection('https://api.mainnet-beta.solana.com');
+        const balance = await connection.getBalance(lpWalletAddress);
+        if (balance !== null) {
+          lpBalance = balance;
+        }
+      } catch (error) {
+        console.error('Error fetching LP balance:', error);
+      }
+
+      const lpBalanceInSol = (lpBalance / LAMPORTS_PER_SOL) + 20.2;
+      const publicSupply = Number(buxResult.rows[0]?.public_supply) || 1;
+      const tokenValueInSol = lpBalanceInSol / publicSupply;
       
       // Get all NFT holdings
       const nftResult = await client.query(`
@@ -80,12 +104,15 @@ export default async function handler(req, res) {
       // Add BUX holdings
       for (const holder of buxResult.rows) {
         const wallet = holder.wallet_address;
+        const buxBalance = Number(holder.balance);
+        const buxValue = buxBalance * tokenValueInSol;
+        
         if (!combinedHoldings[wallet]) {
           combinedHoldings[wallet] = {
             address: holder.discord_name || wallet.slice(0, 4) + '...' + wallet.slice(-4),
-            buxBalance: Number(holder.balance),
+            buxBalance: buxBalance,
             nftCount: 0,
-            buxValue: 0,
+            buxValue: buxValue,
             nftValue: 0
           };
         }
