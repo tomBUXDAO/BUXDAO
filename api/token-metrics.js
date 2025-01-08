@@ -1,4 +1,5 @@
-import { createClient } from '@vercel/postgres';
+import pkg from 'pg';
+const { Pool } = pkg;
 import { Connection, PublicKey, LAMPORTS_PER_SOL } from '@solana/web3.js';
 
 export default async function handler(req, res) {
@@ -18,10 +19,13 @@ export default async function handler(req, res) {
     console.log('Fetching token metrics...');
     
     // Create database client
-    client = createClient({
-      connectionString: process.env.POSTGRES_URL_NON_POOLING
+    const pool = new Pool({
+      connectionString: process.env.POSTGRES_URL,
+      ssl: {
+        rejectUnauthorized: false
+      }
     });
-    await client.connect();
+    client = await pool.connect();
     
     // Get supply metrics from database
     console.log('Querying supply metrics...');
@@ -114,7 +118,7 @@ export default async function handler(req, res) {
     });
   } finally {
     if (client) {
-      await client.end();
+      client.release();
     }
   }
 } 

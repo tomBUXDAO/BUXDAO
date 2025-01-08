@@ -1,4 +1,5 @@
-import { createClient } from '@vercel/postgres';
+import pkg from 'pg';
+const { Pool } = pkg;
 
 export default async function handler(req, res) {
   // Handle CORS
@@ -21,10 +22,13 @@ export default async function handler(req, res) {
     const ME_ESCROW = '1BWutmTvYPwDtmw9abTkS4Ssr8no61spGAvW1X6NDix';
 
     // Create database client
-    client = createClient({
-      connectionString: process.env.POSTGRES_URL_NON_POOLING
+    const pool = new Pool({
+      connectionString: process.env.POSTGRES_URL,
+      ssl: {
+        rejectUnauthorized: false
+      }
     });
-    await client.connect();
+    client = await pool.connect();
 
     // Get SOL price
     let solPrice = 195; // Default price
@@ -230,7 +234,7 @@ export default async function handler(req, res) {
     });
   } finally {
     if (client) {
-      await client.end();
+      client.release();
     }
   }
 }
