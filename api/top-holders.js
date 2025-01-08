@@ -146,8 +146,7 @@ export default async function handler(req, res) {
           const valueA = parseFloat(a.value.split(' ')[0]);
           const valueB = parseFloat(b.value.split(' ')[0]);
           return valueB - valueA;
-        })
-        .slice(0, 5);
+        });
 
       res.setHeader('Cache-Control', 'public, s-maxage=60');
       return res.status(200).json({ holders });
@@ -215,8 +214,7 @@ export default async function handler(req, res) {
           const valueA = parseFloat(a.value.split(' ')[0]);
           const valueB = parseFloat(b.value.split(' ')[0]);
           return valueB - valueA;
-        })
-        .slice(0, 5);
+        });
 
       res.setHeader('Cache-Control', 'public, s-maxage=60');
       return res.status(200).json({ holders });
@@ -241,8 +239,7 @@ export default async function handler(req, res) {
           (SELECT public_supply FROM total_supply) as public_supply
         FROM bux_holders 
         WHERE is_exempt = FALSE
-        ORDER BY balance DESC 
-        LIMIT 5
+        ORDER BY balance DESC
       `);
 
       // Get LP balance for token value calculation

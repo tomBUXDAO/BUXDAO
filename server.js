@@ -418,8 +418,7 @@ app.get('/api/top-holders', async (req, res) => {
           const valueA = parseFloat(a.value.split(' ')[0]);
           const valueB = parseFloat(b.value.split(' ')[0]);
           return valueB - valueA;
-        })
-        .slice(0, 5);
+        });
 
       return res.json({ holders });
     }
@@ -480,8 +479,7 @@ app.get('/api/top-holders', async (req, res) => {
           const valueA = parseFloat(a.value.split(' ')[0]);
           const valueB = parseFloat(b.value.split(' ')[0]);
           return valueB - valueA;
-        })
-        .slice(0, 5);
+        });
 
       return res.json({ holders });
     }
@@ -499,8 +497,7 @@ app.get('/api/top-holders', async (req, res) => {
           )), 2) as percentage
         FROM bux_holders 
         WHERE is_exempt = FALSE
-        ORDER BY balance DESC 
-        LIMIT 5
+        ORDER BY balance DESC
       `;
       
       result = await pool.query(query);

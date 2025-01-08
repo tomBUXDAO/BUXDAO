@@ -257,7 +257,7 @@ const Bux = () => {
               <div className="flex-1">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-2xl md:text-3xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">
-                    Top Holders
+                    Holders
                   </h3>
                   <span className="text-gray-400 text-sm">Listed NFTs are not included in holder counts</span>
                 </div>
@@ -293,62 +293,75 @@ const Bux = () => {
                   {isLoading ? (
                     <div className="text-gray-400 text-center py-4">Loading...</div>
                   ) : (
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="text-gray-400">
-                          <th className="text-left pb-2">Holder</th>
-                          {viewType === 'bux' ? (
-                            <>
-                              <th className="text-right pb-2">BUX Balance</th>
-                              <th className="text-right pb-2">Share</th>
-                              <th className="text-right pb-2">Value (SOL)</th>
-                              <th className="text-right pb-2">Value (USD)</th>
-                            </>
-                          ) : viewType === 'nfts' ? (
-                            <>
-                              <th className="text-right pb-2">NFTs</th>
-                              <th className="text-right pb-2">Value (SOL)</th>
-                              <th className="text-right pb-2">Value (USD)</th>
-                            </>
-                          ) : (
-                            <>
-                              <th className="text-right pb-2">BUX Balance</th>
-                              <th className="text-right pb-2">NFTs</th>
-                              <th className="text-right pb-2">Value (SOL)</th>
-                              <th className="text-right pb-2">Value (USD)</th>
-                            </>
-                          )}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {topHolders.map((holder, index) => (
-                          <tr key={index} className="text-gray-200">
-                            <td className="py-2 text-purple-400">{holder.address}</td>
+                    <div className="max-h-[400px] overflow-y-auto relative border border-gray-700 rounded-lg">
+                      <table className="w-full text-sm table-fixed">
+                        <thead className="sticky top-0 bg-gray-900/95 backdrop-blur-sm shadow-lg z-10 text-gray-400">
+                          <tr className="border-b border-gray-700">
                             {viewType === 'bux' ? (
                               <>
-                                <td className="py-2 text-right">{holder.amount}</td>
-                                <td className="py-2 text-right">{holder.percentage}</td>
-                                <td className="py-2 text-right">{holder.value.split(' ')[0]} SOL</td>
-                                <td className="py-2 text-right">${holder.value.split('($')[1]?.replace(')', '')}</td>
+                                <th className="text-left py-4 px-4 w-1/4 text-purple-300">Holder</th>
+                                <th className="text-right py-4 px-4 w-1/6 text-purple-300">Share</th>
+                                <th className="text-right py-4 px-4 w-1/6 text-purple-300">Value (SOL)</th>
+                                <th className="text-right py-4 px-4 w-1/6 text-purple-300">Value (USD)</th>
                               </>
                             ) : viewType === 'nfts' ? (
                               <>
-                                <td className="py-2 text-right">{holder.amount.split(' ')[0]}</td>
-                                <td className="py-2 text-right">{holder.value.split(' ')[0]} SOL</td>
-                                <td className="py-2 text-right">${holder.value.split('($')[1]?.replace(')', '')}</td>
+                                <th className="text-left py-4 px-4 w-1/4 text-purple-300">Holder</th>
+                                <th className="text-right py-4 px-4 w-1/4 text-purple-300">NFTs</th>
+                                <th className="text-right py-4 px-4 w-1/4 text-purple-300">Value (SOL)</th>
+                                <th className="text-right py-4 px-4 w-1/4 text-purple-300">Value (USD)</th>
                               </>
                             ) : (
                               <>
-                                <td className="py-2 text-right">{holder.bux}</td>
-                                <td className="py-2 text-right">{holder.nfts.split(' ')[0]}</td>
-                                <td className="py-2 text-right">{holder.value.split(' ')[0]} SOL</td>
-                                <td className="py-2 text-right">${holder.value.split('($')[1]?.replace(')', '')}</td>
+                                <th className="text-center py-4 px-4 w-[8%] text-purple-300">Rank</th>
+                                <th className="text-left py-4 px-4 w-[22%] text-purple-300">Holder</th>
+                                <th className="text-right py-4 px-4 w-[20%] text-purple-300">BUX Balance</th>
+                                <th className="text-right py-4 px-4 w-[15%] text-purple-300">NFTs</th>
+                                <th className="text-right py-4 px-4 w-[15%] text-purple-300">Value (SOL)</th>
+                                <th className="text-right py-4 px-4 w-[20%] text-purple-300">Value (USD)</th>
                               </>
                             )}
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody className="px-4">
+                          {topHolders.map((holder, index) => (
+                            <tr key={index} className={`text-gray-200 border-b border-gray-800 ${index % 2 === 0 ? 'bg-gray-800/50' : 'bg-transparent'}`}>
+                              {viewType === 'bux,nfts' && (
+                                <td className="py-3 px-4 text-center font-semibold">
+                                  {index === 0 && <span title="1st Place" className="text-yellow-500">🥇 1</span>}
+                                  {index === 1 && <span title="2nd Place" className="text-gray-300">🥈 2</span>}
+                                  {index === 2 && <span title="3rd Place" className="text-amber-600">🥉 3</span>}
+                                  {index > 2 && index < 10 && <span title={`Top 10`} className="text-yellow-500">⭐ {index + 1}</span>}
+                                  {index >= 10 && index < 25 && <span title={`Top 25`} className="text-gray-300">⭐ {index + 1}</span>}
+                                  {index >= 25 && <span title={`Rank ${index + 1}`} className="text-amber-600">● {index + 1}</span>}
+                                </td>
+                              )}
+                              <td className="py-3 px-4 text-purple-400">{holder.address}</td>
+                              {viewType === 'bux' ? (
+                                <>
+                                  <td className="py-3 px-4 text-right">{holder.percentage}</td>
+                                  <td className="py-3 px-4 text-right">{holder.value.split(' ')[0]} SOL</td>
+                                  <td className="py-3 px-4 text-right">${holder.value.split('($')[1]?.replace(')', '')}</td>
+                                </>
+                              ) : viewType === 'nfts' ? (
+                                <>
+                                  <td className="py-3 px-4 text-right">{holder.amount.split(' ')[0]}</td>
+                                  <td className="py-3 px-4 text-right">{holder.value.split(' ')[0]} SOL</td>
+                                  <td className="py-3 px-4 text-right">${holder.value.split('($')[1]?.replace(')', '')}</td>
+                                </>
+                              ) : (
+                                <>
+                                  <td className="py-3 px-4 text-right">{holder.bux}</td>
+                                  <td className="py-3 px-4 text-right">{holder.nfts ? holder.nfts.split(' ')[0] : holder.nftCount}</td>
+                                  <td className="py-3 px-4 text-right">{holder.value.split(' ')[0]} SOL</td>
+                                  <td className="py-3 px-4 text-right">${holder.value.split('($')[1]?.replace(')', '')}</td>
+                                </>
+                              )}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   )}
                 </div>
               </div>
