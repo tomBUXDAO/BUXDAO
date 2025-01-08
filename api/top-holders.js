@@ -1,4 +1,4 @@
-import { sql } from '@vercel/postgres';
+import { createClient } from '@vercel/postgres';
 
 export default async function handler(req, res) {
   // Handle CORS
@@ -19,6 +19,10 @@ export default async function handler(req, res) {
     const PROJECT_WALLET = 'CatzBPyMJcQgnAZ9hCtSNzDTrLLsRxerJYwh5LMe87kY';
     const ME_ESCROW = '1BWutmTvYPwDtmw9abTkS4Ssr8no61spGAvW1X6NDix';
 
+    // Create database client
+    const client = createClient();
+    await client.connect();
+
     // Get SOL price
     let solPrice = 195; // Default price
     try {
@@ -33,7 +37,7 @@ export default async function handler(req, res) {
 
     if (type === 'bux,nfts') {
       // Get BUX balances
-      const buxResult = await sql`
+      const buxResult = await client.query(`
         SELECT 
           wallet_address,
           owner_name as discord_name,
@@ -41,17 +45,17 @@ export default async function handler(req, res) {
           is_exempt
         FROM bux_holders 
         WHERE is_exempt = FALSE
-      `;
+      `);
       
       // Get all NFT holdings
-      const nftResult = await sql`
+      const nftResult = await client.query(`
         SELECT owner_wallet, symbol, COUNT(*) as count
         FROM nft_metadata 
-        WHERE owner_wallet NOT IN (${PROJECT_WALLET}, ${ME_ESCROW})
+        WHERE owner_wallet NOT IN ($1, $2)
         AND owner_wallet IS NOT NULL 
         AND owner_wallet != ''
         GROUP BY owner_wallet, symbol
-      `;
+      `, [PROJECT_WALLET, ME_ESCROW]);
 
       // Default floor prices
       const floorPrices = {
@@ -110,6 +114,7 @@ export default async function handler(req, res) {
         })
         .slice(0, 5);
 
+      await client.end();
       res.setHeader('Cache-Control', 'public, s-maxage=60');
       return res.status(200).json({ holders });
     }
@@ -136,23 +141,23 @@ export default async function handler(req, res) {
       // Get NFT counts
       const dbSymbol = collection !== 'all' ? dbSymbols[collection] : null;
       const nftResult = dbSymbol 
-        ? await sql`
+        ? await client.query(`
             SELECT owner_wallet, symbol, COUNT(*) as count
             FROM nft_metadata 
-            WHERE owner_wallet NOT IN (${PROJECT_WALLET}, ${ME_ESCROW})
+            WHERE owner_wallet NOT IN ($1, $2)
             AND owner_wallet IS NOT NULL 
             AND owner_wallet != ''
-            AND symbol = ${dbSymbol}
+            AND symbol = $3
             GROUP BY owner_wallet, symbol
-          `
-        : await sql`
+          `, [PROJECT_WALLET, ME_ESCROW, dbSymbol])
+        : await client.query(`
             SELECT owner_wallet, symbol, COUNT(*) as count
             FROM nft_metadata 
-            WHERE owner_wallet NOT IN (${PROJECT_WALLET}, ${ME_ESCROW})
+            WHERE owner_wallet NOT IN ($1, $2)
             AND owner_wallet IS NOT NULL 
             AND owner_wallet != ''
             GROUP BY owner_wallet, symbol
-          `;
+          `, [PROJECT_WALLET, ME_ESCROW]);
 
       // Calculate totals
       const totals = {};
@@ -179,13 +184,14 @@ export default async function handler(req, res) {
         })
         .slice(0, 5);
 
+      await client.end();
       res.setHeader('Cache-Control', 'public, s-maxage=60');
       return res.status(200).json({ holders });
     }
 
     if (type === 'bux') {
       // Get BUX holders
-      const result = await sql`
+      const result = await client.query(`
         SELECT 
           wallet_address as address,
           owner_name as discord_name,
@@ -198,7 +204,7 @@ export default async function handler(req, res) {
         WHERE is_exempt = FALSE
         ORDER BY balance DESC 
         LIMIT 5
-      `;
+      `);
 
       // Format BUX holders
       const holders = result.rows.map(holder => ({
@@ -208,10 +214,12 @@ export default async function handler(req, res) {
         value: `${(Number(holder.amount) * 0.069).toFixed(2)} SOL ($${(Number(holder.amount) * 0.069 * solPrice).toFixed(2)})`
       }));
 
+      await client.end();
       res.setHeader('Cache-Control', 'public, s-maxage=60');
       return res.status(200).json({ holders });
     }
 
+    await client.end();
     return res.status(400).json({ error: 'Invalid type parameter' });
 
   } catch (error) {

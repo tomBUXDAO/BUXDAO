@@ -1,4 +1,4 @@
-import { sql } from '@vercel/postgres';
+import { createClient } from '@vercel/postgres';
 import { Connection, PublicKey, LAMPORTS_PER_SOL } from '@solana/web3.js';
 
 export default async function handler(req, res) {
@@ -16,15 +16,19 @@ export default async function handler(req, res) {
   try {
     console.log('Fetching token metrics...');
     
+    // Create database client
+    const client = createClient();
+    await client.connect();
+    
     // Get supply metrics from database
     console.log('Querying supply metrics...');
-    const result = await sql`
+    const result = await client.query(`
       SELECT 
         SUM(balance) as total_supply,
         SUM(CASE WHEN is_exempt = FALSE THEN balance ELSE 0 END) as public_supply,
         SUM(CASE WHEN is_exempt = TRUE THEN balance ELSE 0 END) as exempt_supply
       FROM bux_holders
-    `;
+    `);
 
     console.log('Raw supply metrics:', result.rows[0]);
     const metrics = result.rows[0];
@@ -85,6 +89,8 @@ export default async function handler(req, res) {
     const tokenValueInSol = lpBalanceInSol / publicSupplyNum;
     const tokenValueInUsd = tokenValueInSol * solPrice;
     const lpUsdValue = lpBalanceInSol * solPrice;
+
+    await client.end();
 
     res.setHeader('Cache-Control', 'public, s-maxage=60');
     res.status(200).json({
