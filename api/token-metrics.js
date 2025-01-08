@@ -97,6 +97,15 @@ export default async function handler(req, res) {
     const tokenValueInUsd = tokenValueInSol * solPrice;
     const lpUsdValue = lpBalanceInSol * solPrice;
 
+    // Log values for debugging
+    console.log('Calculation values:', {
+      lpBalanceInSol,
+      publicSupplyNum,
+      tokenValueInSol,
+      tokenValueInUsd,
+      lpUsdValue
+    });
+
     res.setHeader('Cache-Control', 'public, s-maxage=60');
     res.status(200).json({
       totalSupply: Number(metrics.total_supply) || 0,
