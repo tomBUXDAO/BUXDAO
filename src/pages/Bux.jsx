@@ -139,12 +139,12 @@ const Bux = () => {
     <div className="bg-black min-h-screen pt-20">
       {/* Hero Section */}
       <section className="bg-black py-16 sm:py-24">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 mb-6">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col items-center text-center">
+            <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 mb-6">
               $BUX - tokenomics kept simple
-            </h1>
-            <div className="max-w-3xl mx-auto space-y-6 text-gray-200 text-xl px-8 sm:px-16 border-2 border-purple-400/20 rounded-2xl py-8">
+            </h2>
+            <div className="max-w-3xl mx-auto space-y-6 text-gray-200 text-xl px-8 sm:px-16 border-2 border-purple-400/20 rounded-2xl py-8 mb-16">
               <div className="flex items-start gap-4">
                 <XCircleIcon className="w-10 h-10 text-purple-400 flex-shrink-0 mt-1" />
                 <p>
@@ -174,51 +174,54 @@ const Bux = () => {
               </div>
             </div>
           </div>
-          
-          {/* Token Metrics - Full Width */}
-          <div className="bg-gray-900 rounded-xl p-6 hover:shadow-xl transition-shadow duration-300 mb-8">
-            <div className="flex items-start gap-4">
-              <div className="bg-purple-600/20 p-3 rounded-lg">
-                <BanknotesIcon className="h-6 w-6 text-purple-400" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-2xl md:text-3xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 mb-4">
-                  Token Metrics
-                </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-                  <div>
-                    <p className="text-gray-300 text-sm mb-1">Total Supply</p>
-                    <p className="text-gray-200 font-semibold text-xl">{tokenData.totalSupply}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-300 text-sm mb-1">Public Supply</p>
-                    <p className="text-gray-200 font-semibold text-xl">{tokenData.publicSupply}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-300 text-sm mb-1">Liquidity Pool</p>
-                    <p className="text-gray-200 font-semibold text-xl">
-                      {tokenData.liquidityPool} SOL
-                      <span className="text-gray-400 text-sm ml-1">
-                        {tokenData.solPrice ? `($${(Number(tokenData.liquidityPool) * tokenData.solPrice).toLocaleString(undefined, { maximumFractionDigits: 2 })})` : ''}
-                      </span>
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-gray-300 text-sm mb-1">Token Value</p>
-                    <p className="text-gray-200 font-semibold text-xl">
-                      {tokenData.tokenValue} SOL
-                      <span className="text-gray-400 text-sm ml-1">
-                        {tokenData.solPrice ? `($${(Number(tokenData.tokenValue) * tokenData.solPrice).toLocaleString(undefined, { maximumFractionDigits: 2 })})` : ''}
-                      </span>
-                    </p>
+
+          {/* Two Column Layout for Token Metrics and Revenue Sources */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            {/* Token Metrics */}
+            <div className="bg-gray-900 rounded-xl p-6 hover:shadow-xl transition-shadow duration-300">
+              <div className="flex items-start gap-4">
+                <div className="bg-purple-600/20 p-3 rounded-lg">
+                  <BanknotesIcon className="h-6 w-6 text-purple-400" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-2xl md:text-3xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 mb-4">
+                    Token Metrics
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div>
+                      <p className="text-gray-300 text-sm mb-1">Total Supply</p>
+                      <p className="text-gray-200 font-semibold text-xl">{tokenData.totalSupply}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-300 text-sm mb-1">Public Supply</p>
+                      <p className="text-gray-200 font-semibold text-xl">{tokenData.publicSupply}</p>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <p className="text-gray-300 text-sm mb-1">Liquidity Pool</p>
+                      <p className="text-gray-200 font-semibold text-xl">
+                        {tokenData.liquidityPool} SOL
+                        <span className="text-gray-400 text-sm ml-1">
+                          {tokenData.solPrice ? `($${(Number(tokenData.liquidityPool) * tokenData.solPrice).toLocaleString(undefined, { maximumFractionDigits: 2 })})` : ''}
+                        </span>
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-gray-300 text-sm mb-1">Token Value (SOL)</p>
+                      <p className="text-gray-200 font-semibold text-xl">
+                        {tokenData.tokenValue} SOL
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-gray-300 text-sm mb-1">Token Value (USD)</p>
+                      <p className="text-gray-200 font-semibold text-xl">
+                        ${tokenData.solPrice ? (Number(tokenData.tokenValue) * tokenData.solPrice).toFixed(8) : '0.00'}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Two Column Layout for Revenue Sources and Top Holders */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* Revenue Sources */}
             <div className="bg-gray-900 rounded-xl p-6 hover:shadow-xl transition-shadow duration-300">
               <div className="flex items-start gap-4">
@@ -243,101 +246,110 @@ const Bux = () => {
                 </div>
               </div>
             </div>
+          </div>
 
-            {/* Top Holders */}
-            <div className="bg-gray-900 rounded-xl p-6 hover:shadow-xl transition-shadow duration-300">
-              <div className="flex items-start gap-4">
-                <div className="bg-purple-600/20 p-3 rounded-lg">
-                  <UsersIcon className="h-6 w-6 text-purple-400" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-2xl md:text-3xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 mb-4">
+          {/* Top Holders - Full Width */}
+          <div className="bg-gray-900 rounded-xl p-6 hover:shadow-xl transition-shadow duration-300">
+            <div className="flex items-start gap-4">
+              <div className="bg-purple-600/20 p-3 rounded-lg">
+                <UsersIcon className="h-6 w-6 text-purple-400" />
+              </div>
+              <div className="flex-1">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-2xl md:text-3xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">
                     Top Holders
                   </h3>
+                  <span className="text-gray-400 text-sm">Listed NFTs are not included in holder counts</span>
+                </div>
+                
+                {/* Filter Controls */}
+                <div className="flex flex-col sm:flex-row gap-4 mb-6">
+                  <select 
+                    className="bg-gray-800 border border-purple-400/20 rounded-lg px-3 py-2 text-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                    value={viewType}
+                    onChange={(e) => setViewType(e.target.value)}
+                  >
+                    <option value="bux">BUX Only</option>
+                    <option value="nfts">NFTs Only</option>
+                    <option value="bux,nfts">BUX + NFTs</option>
+                  </select>
                   
-                  {/* Filter Controls */}
-                  <div className="flex flex-col sm:flex-row gap-4 mb-6">
+                  {viewType === 'nfts' && (
                     <select 
                       className="bg-gray-800 border border-purple-400/20 rounded-lg px-3 py-2 text-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-400"
-                      value={viewType}
-                      onChange={(e) => setViewType(e.target.value)}
+                      value={selectedCollection}
+                      onChange={(e) => setSelectedCollection(e.target.value)}
                     >
-                      <option value="bux">BUX Only</option>
-                      <option value="nfts">NFTs Only</option>
-                      <option value="bux,nfts">BUX + NFTs</option>
+                      {collections.map(collection => (
+                        <option key={collection.id} value={collection.id}>
+                          {collection.name}
+                        </option>
+                      ))}
                     </select>
-                    
-                    {viewType === 'nfts' && (
-                      <select 
-                        className="bg-gray-800 border border-purple-400/20 rounded-lg px-3 py-2 text-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-400"
-                        value={selectedCollection}
-                        onChange={(e) => setSelectedCollection(e.target.value)}
-                      >
-                        {collections.map(collection => (
-                          <option key={collection.id} value={collection.id}>
-                            {collection.name}
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                  </div>
+                  )}
+                </div>
 
-                  <div className="overflow-x-auto">
-                    {isLoading ? (
-                      <div className="text-gray-400 text-center py-4">Loading...</div>
-                    ) : (
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="text-gray-400">
-                            <th className="text-left pb-2">Holder</th>
+                <div className="overflow-x-auto">
+                  {isLoading ? (
+                    <div className="text-gray-400 text-center py-4">Loading...</div>
+                  ) : (
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="text-gray-400">
+                          <th className="text-left pb-2">Holder</th>
+                          {viewType === 'bux' ? (
+                            <>
+                              <th className="text-right pb-2">BUX Balance</th>
+                              <th className="text-right pb-2">Share</th>
+                              <th className="text-right pb-2">Value (SOL)</th>
+                              <th className="text-right pb-2">Value (USD)</th>
+                            </>
+                          ) : viewType === 'nfts' ? (
+                            <>
+                              <th className="text-right pb-2">NFTs</th>
+                              <th className="text-right pb-2">Value (SOL)</th>
+                              <th className="text-right pb-2">Value (USD)</th>
+                            </>
+                          ) : (
+                            <>
+                              <th className="text-right pb-2">BUX Balance</th>
+                              <th className="text-right pb-2">NFTs</th>
+                              <th className="text-right pb-2">Value (SOL)</th>
+                              <th className="text-right pb-2">Value (USD)</th>
+                            </>
+                          )}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {topHolders.map((holder, index) => (
+                          <tr key={index} className="text-gray-200">
+                            <td className="py-2 text-purple-400">{holder.address}</td>
                             {viewType === 'bux' ? (
                               <>
-                                <th className="text-right pb-2">BUX Balance</th>
-                                <th className="text-right pb-2">Share</th>
-                                <th className="text-right pb-2">Value</th>
+                                <td className="py-2 text-right">{holder.amount}</td>
+                                <td className="py-2 text-right">{holder.percentage}</td>
+                                <td className="py-2 text-right">{holder.value.split(' ')[0]} SOL</td>
+                                <td className="py-2 text-right">${holder.value.split('($')[1]?.replace(')', '')}</td>
                               </>
                             ) : viewType === 'nfts' ? (
                               <>
-                                <th className="text-right pb-2">NFTs</th>
-                                <th className="text-right pb-2">Value</th>
+                                <td className="py-2 text-right">{holder.amount.split(' ')[0]}</td>
+                                <td className="py-2 text-right">{holder.value.split(' ')[0]} SOL</td>
+                                <td className="py-2 text-right">${holder.value.split('($')[1]?.replace(')', '')}</td>
                               </>
                             ) : (
                               <>
-                                <th className="text-right pb-2">BUX Balance</th>
-                                <th className="text-right pb-2">NFTs</th>
-                                <th className="text-right pb-2">Value</th>
+                                <td className="py-2 text-right">{holder.bux}</td>
+                                <td className="py-2 text-right">{holder.nfts.split(' ')[0]}</td>
+                                <td className="py-2 text-right">{holder.value.split(' ')[0]} SOL</td>
+                                <td className="py-2 text-right">${holder.value.split('($')[1]?.replace(')', '')}</td>
                               </>
                             )}
                           </tr>
-                        </thead>
-                        <tbody>
-                          {topHolders.map((holder, index) => (
-                            <tr key={index} className="text-gray-200">
-                              <td className="py-2 text-purple-400">{holder.address}</td>
-                              {viewType === 'bux' ? (
-                                <>
-                                  <td className="py-2 text-right">{holder.amount}</td>
-                                  <td className="py-2 text-right">{holder.percentage}</td>
-                                  <td className="py-2 text-right">{holder.value}</td>
-                                </>
-                              ) : viewType === 'nfts' ? (
-                                <>
-                                  <td className="py-2 text-right">{holder.amount}</td>
-                                  <td className="py-2 text-right">{holder.value}</td>
-                                </>
-                              ) : (
-                                <>
-                                  <td className="py-2 text-right">{holder.bux}</td>
-                                  <td className="py-2 text-right">{holder.nfts}</td>
-                                  <td className="py-2 text-right">{holder.value}</td>
-                                </>
-                              )}
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    )}
-                  </div>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
                 </div>
               </div>
             </div>
