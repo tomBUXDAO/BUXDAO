@@ -22,7 +22,7 @@ const Bux = () => {
 
   const [topHolders, setTopHolders] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [viewType, setViewType] = useState('bux'); // 'bux', 'nfts', 'combined'
+  const [viewType, setViewType] = useState('bux,nfts'); // 'bux', 'nfts', 'combined'
   const [selectedCollection, setSelectedCollection] = useState('all');
   
   const collections = [
@@ -250,8 +250,8 @@ const Bux = () => {
 
           {/* Top Holders - Full Width */}
           <div className="bg-gray-900 rounded-xl p-6 hover:shadow-xl transition-shadow duration-300">
-            <div className="flex flex-col lg:flex-row items-start gap-4">
-              <div className="flex items-center gap-4 w-full lg:w-auto">
+            <div className="flex flex-col items-start gap-4">
+              <div className="flex items-center gap-4 w-full">
                 <div className="bg-purple-600/20 p-3 rounded-lg">
                   <UsersIcon className="h-6 w-6 text-purple-400" />
                 </div>
@@ -263,15 +263,15 @@ const Bux = () => {
                 <span className="block text-gray-400 text-sm mb-4">Listed NFTs are not included in holder counts</span>
                 
                 {/* Filter Controls */}
-                <div className="flex flex-col lg:flex-row gap-4 mb-6">
+                <div className="flex flex-col gap-4 mb-6">
                   <select 
                     className="bg-gray-800 border border-purple-400/20 rounded-lg px-3 py-2 text-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-400"
                     value={viewType}
                     onChange={(e) => setViewType(e.target.value)}
                   >
+                    <option value="bux,nfts">BUX + NFTs</option>
                     <option value="bux">BUX Only</option>
                     <option value="nfts">NFTs Only</option>
-                    <option value="bux,nfts">BUX + NFTs</option>
                   </select>
                   
                   {viewType === 'nfts' && (
