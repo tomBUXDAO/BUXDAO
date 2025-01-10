@@ -16,6 +16,9 @@ export default async function handler(req, res) {
       process.env.NODE_ENV === 'production' ? '.buxdao.com' : ''
     }; Max-Age=${10 * 60}`); // 10 minutes
 
+    // Pre-encode the scope parameter
+    const encodedScope = encodeURIComponent('identify guilds.join');
+
     // Build OAuth URL with official Discord format
     const params = new URLSearchParams({
       client_id: process.env.DISCORD_CLIENT_ID,
@@ -23,7 +26,7 @@ export default async function handler(req, res) {
         ? 'https://buxdao.com/api/auth/discord/callback'
         : 'http://localhost:3001/api/auth/discord/callback',
       response_type: 'code',
-      scope: 'identify guilds.join',
+      scope: encodedScope,
       state: state
     });
 
