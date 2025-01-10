@@ -1,22 +1,20 @@
-import express from 'express';
 import crypto from 'crypto';
 
-const router = express.Router();
+export default async function handler(req, res) {
+  if (req.method !== 'GET') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
 
-router.get('/', (req, res) => {
   try {
     // Generate state parameter for security
     const state = crypto.randomBytes(16).toString('hex');
     
     // Set state in cookie for verification
-    res.cookie('discord_state', state, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 1000 * 60 * 10, // 10 minutes
-      path: '/',
-      domain: process.env.NODE_ENV === 'production' ? '.buxdao.com' : undefined
-    });
+    res.setHeader('Set-Cookie', `discord_state=${state}; HttpOnly; ${
+      process.env.NODE_ENV === 'production' ? 'Secure; ' : ''
+    }SameSite=Lax; Path=/; Domain=${
+      process.env.NODE_ENV === 'production' ? '.buxdao.com' : ''
+    }; Max-Age=${10 * 60}`); // 10 minutes
 
     // Build OAuth URL
     const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID;
@@ -33,12 +31,11 @@ router.get('/', (req, res) => {
       prompt: 'consent'
     });
 
-    // Use 302 redirect to ensure proper redirection
-    res.status(302).redirect(`https://discord.com/api/oauth2/authorize?${params.toString()}`);
+    // Use 302 redirect
+    res.setHeader('Location', `https://discord.com/api/oauth2/authorize?${params.toString()}`);
+    return res.status(302).end();
   } catch (error) {
     console.error('Discord auth error:', error);
-    res.status(500).json({ error: 'Failed to initiate Discord authentication' });
+    return res.status(500).json({ error: 'Failed to initiate Discord authentication' });
   }
-});
-
-export default router; 
+} 
