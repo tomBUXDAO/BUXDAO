@@ -1,14 +1,31 @@
-import express from 'express';
 import pool from '../../config/database.js';
 
-const router = express.Router();
+export default async function handler(req, res) {
+  // Set CORS headers
+  const origin = req.headers.origin;
+  const allowedOrigins = [
+    'http://localhost:5173',
+    'http://localhost:3001',
+    'https://buxdao.com',
+    'https://www.buxdao.com'
+  ];
 
-// Test route
-router.get('/test', (req, res) => {
-  res.json({ status: 'Wallet endpoint is working' });
-});
+  if (allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  }
 
-router.post('/', async (req, res) => {
+  // Handle preflight request
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
   console.log('Received wallet verification request:', req.body);
   
   try {
@@ -47,7 +64,7 @@ router.post('/', async (req, res) => {
       await pool.query('COMMIT');
       console.log('Transaction committed');
 
-      res.json({
+      return res.status(200).json({
         success: true,
         user: result.rows[0],
         roles: roles
@@ -62,11 +79,9 @@ router.post('/', async (req, res) => {
 
   } catch (error) {
     console.error('Wallet verification error:', error);
-    res.status(500).json({ 
+    return res.status(500).json({ 
       error: 'Verification failed',
       details: error.message
     });
   }
-});
-
-export default router;
+}
