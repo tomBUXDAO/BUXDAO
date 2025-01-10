@@ -27,7 +27,7 @@ export default async function handler(req, res) {
     authUrl.searchParams.append('client_id', DISCORD_CLIENT_ID);
     authUrl.searchParams.append('redirect_uri', redirectUri);
     authUrl.searchParams.append('response_type', 'code');
-    authUrl.searchParams.append('scope', 'identify guilds.join');
+    authUrl.searchParams.append('scope', encodeURIComponent('identify guilds.join'));
     authUrl.searchParams.append('state', state);
     authUrl.searchParams.append('prompt', 'consent');
 
