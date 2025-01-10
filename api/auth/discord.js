@@ -22,11 +22,14 @@ export default async function handler(req, res) {
       ? 'https://buxdao.com/api/auth/discord/callback'
       : 'http://localhost:3001/api/auth/discord/callback';
 
+    // Properly encode scopes
+    const scopes = ['identify', 'guilds.join'].join('%20');
+
     const params = new URLSearchParams({
       client_id: DISCORD_CLIENT_ID,
       redirect_uri: redirectUri,
       response_type: 'code',
-      scope: 'identify guilds.join',
+      scope: scopes,
       state: state,
       prompt: 'consent'
     });
