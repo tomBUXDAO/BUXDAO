@@ -1,30 +1,30 @@
-import express from 'express';
-import cors from 'cors';
+export default async function handler(req, res) {
+  if (req.method !== 'GET') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
 
-const router = express.Router();
+  // Set CORS headers
+  const origin = req.headers.origin;
+  const allowedOrigins = [
+    'http://localhost:5173',
+    'http://localhost:3001',
+    'https://buxdao.com',
+    'https://www.buxdao.com'
+  ];
 
-const corsOptions = {
-  origin: function(origin, callback) {
-    const allowedOrigins = [
-      'http://localhost:5173',
-      'http://localhost:3001',
-      'https://buxdao.com',
-      'https://www.buxdao.com'
-    ];
-    
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true,
-  methods: ['GET', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Cookie'],
-  exposedHeaders: ['Set-Cookie']
-};
+  if (allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, Cookie');
+    res.setHeader('Access-Control-Expose-Headers', 'Set-Cookie');
+  }
 
-router.get('/', cors(corsOptions), async (req, res) => {
+  // Handle preflight request
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   try {
     const token = req.cookies.discord_token;
     if (!token) {
@@ -40,23 +40,17 @@ router.get('/', cors(corsOptions), async (req, res) => {
 
     if (!userResponse.ok) {
       // Clear invalid token
-      res.clearCookie('discord_token', { 
-        path: '/',
-        sameSite: 'Lax',
-        secure: process.env.NODE_ENV === 'production'
-      });
-      res.clearCookie('discord_user', { 
-        path: '/',
-        sameSite: 'Lax',
-        secure: process.env.NODE_ENV === 'production'
-      });
+      res.setHeader('Set-Cookie', [
+        'discord_token=; HttpOnly; Path=/; Max-Age=0',
+        'discord_user=; Path=/; Max-Age=0'
+      ]);
       return res.status(401).json({ authenticated: false });
     }
 
     const userData = await userResponse.json();
 
     // Return user data
-    res.json({
+    return res.status(200).json({
       authenticated: true,
       user: {
         discord_id: userData.id,
@@ -67,8 +61,6 @@ router.get('/', cors(corsOptions), async (req, res) => {
 
   } catch (error) {
     console.error('Auth check error:', error);
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
-});
-
-export default router; 
+} 
