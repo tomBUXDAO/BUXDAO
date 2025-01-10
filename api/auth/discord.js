@@ -1,41 +1,37 @@
-export const config = {
-  runtime: 'edge'
-};
+import express from 'express';
+import crypto from 'crypto';
 
-const DISCORD_API = 'https://discord.com/api/v10';
-const CLIENT_ID = process.env.DISCORD_CLIENT_ID;
-const CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
-const REDIRECT_URI = process.env.NODE_ENV === 'production' 
-  ? 'https://buxdao.com/api/auth/discord/callback'
-  : 'http://localhost:5173/api/auth/discord/callback';
+const router = express.Router();
 
-export default async function handler(req) {
-  // Handle CORS
-  if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      status: 204,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET,OPTIONS',
-        'Access-Control-Allow-Headers': '*',
-        'Access-Control-Max-Age': '86400'
-      }
-    });
-  }
+router.get('/', (req, res) => {
+  // Generate state parameter for security
+  const state = crypto.randomBytes(16).toString('hex');
+  
+  // Set state in cookie for verification
+  res.cookie('discord_state', state, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 1000 * 60 * 10, // 10 minutes
+    path: '/',
+    domain: process.env.NODE_ENV === 'production' ? '.buxdao.com' : undefined
+  });
 
-  // Redirect to Discord OAuth
+  // Build OAuth URL
+  const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID;
+  const redirectUri = process.env.NODE_ENV === 'production'
+    ? 'https://buxdao.com/api/auth/discord/callback'
+    : 'http://localhost:3001/api/auth/discord/callback';
+
   const params = new URLSearchParams({
-    client_id: CLIENT_ID,
-    redirect_uri: REDIRECT_URI,
+    client_id: DISCORD_CLIENT_ID,
+    redirect_uri: redirectUri,
     response_type: 'code',
-    scope: 'identify guilds.join'
+    scope: 'identify guilds.join',
+    state: state
   });
 
-  return new Response(null, {
-    status: 302,
-    headers: {
-      'Location': `${DISCORD_API}/oauth2/authorize?${params.toString()}`,
-      'Access-Control-Allow-Origin': '*'
-    }
-  });
-} 
+  res.redirect(`https://discord.com/api/oauth2/authorize?${params.toString()}`);
+});
+
+export default router; 

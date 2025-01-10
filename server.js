@@ -1,13 +1,18 @@
+import dotenv from 'dotenv';
+// Load environment variables before anything else
+dotenv.config();
+
 import express from 'express';
 import cors from 'cors';
 import axios from 'axios';
-import pkg from 'pg';
-const { Pool } = pkg;
-import dotenv from 'dotenv';
 import { Connection, PublicKey, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import NodeCache from 'node-cache';
-
-dotenv.config();
+import cookieParser from 'cookie-parser';
+import client from './config/database.js';
+import authCheckRouter from './api/auth/check.js';
+import discordAuthRouter from './api/auth/discord.js';
+import discordCallbackRouter from './api/auth/discord/callback.js';
+import walletAuthRouter from './api/auth/wallet.js';
 
 const app = express();
 app.use(cors({
@@ -30,16 +35,35 @@ app.use(cors({
   },
   methods: ['GET', 'POST', 'OPTIONS'],
   credentials: true,
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Cookie'],
+  exposedHeaders: ['Set-Cookie'],
   optionsSuccessStatus: 200
 }));
 app.use(express.json());
+app.use(cookieParser(process.env.COOKIE_SECRET));
 
-// Database setup
-const pool = new Pool({
-  connectionString: process.env.POSTGRES_URL,
-  ssl: {
-    rejectUnauthorized: false
+// Debug middleware for all requests
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.path}`);
+  console.log('Headers:', req.headers);
+  console.log('Cookies:', req.cookies);
+  next();
+});
+
+// Use auth routers
+app.use('/api/auth/check', authCheckRouter);
+app.use('/api/auth/discord', discordAuthRouter);
+app.use('/api/auth/discord/callback', discordCallbackRouter);
+app.use('/api/auth/wallet', walletAuthRouter);
+
+// Serve static files from the dist directory
+app.use(express.static('dist'));
+
+// Catch-all route to serve the frontend
+app.get('*', (req, res) => {
+  // Exclude API routes from the catch-all
+  if (!req.path.startsWith('/api/')) {
+    res.sendFile('index.html', { root: 'dist' });
   }
 });
 
@@ -52,7 +76,7 @@ async function getTokenMetrics() {
   const lpBalance = await connection.getBalance(lpWalletAddress);
   const lpBalanceInSol = (lpBalance / LAMPORTS_PER_SOL) + 20.2;
 
-  const metricsResult = await pool.query(`
+  const metricsResult = await client.query(`
     SELECT SUM(CASE WHEN is_exempt = FALSE THEN balance ELSE 0 END) as public_supply
     FROM bux_holders
   `);
@@ -99,7 +123,7 @@ app.get('/api/celebcatz/images', async (req, res) => {
     };
     
     console.log('Executing query...');
-    const result = await pool.query(query);
+    const result = await client.query(query);
     console.log(`Query completed. Found ${result.rows.length} images`);
     
     if (result.rows.length === 0) {
@@ -196,7 +220,7 @@ app.get('/api/token-metrics', async (req, res) => {
     
     // Test database connection
     try {
-      await pool.query('SELECT NOW()');
+      await client.query('SELECT NOW()');
       console.log('Database connection successful');
     } catch (dbError) {
       console.error('Database connection error:', dbError);
@@ -205,7 +229,7 @@ app.get('/api/token-metrics', async (req, res) => {
 
     // Get supply metrics from database
     console.log('Querying supply metrics...');
-    const result = await pool.query(`
+    const result = await client.query(`
       SELECT 
         SUM(balance) as total_supply,
         SUM(CASE WHEN is_exempt = FALSE THEN balance ELSE 0 END) as public_supply,
@@ -351,7 +375,7 @@ app.get('/api/top-holders', async (req, res) => {
         FROM bux_holders 
         WHERE is_exempt = FALSE
       `;
-      const buxResult = await pool.query(buxQuery);
+      const buxResult = await client.query(buxQuery);
       
       // Get all NFT holdings
       const nftQuery = `
@@ -362,7 +386,7 @@ app.get('/api/top-holders', async (req, res) => {
         AND owner_wallet != ''
         GROUP BY owner_wallet, symbol
       `;
-      const nftResult = await pool.query(nftQuery, [PROJECT_WALLET, ME_ESCROW]);
+      const nftResult = await client.query(nftQuery, [PROJECT_WALLET, ME_ESCROW]);
 
       // Default floor prices
       const floorPrices = {
@@ -455,7 +479,7 @@ app.get('/api/top-holders', async (req, res) => {
       `;
       
       const params = dbSymbol ? [PROJECT_WALLET, ME_ESCROW, dbSymbol] : [PROJECT_WALLET, ME_ESCROW];
-      result = await pool.query(query, params);
+      result = await client.query(query, params);
 
       // Calculate totals
       const totals = {};
@@ -500,7 +524,7 @@ app.get('/api/top-holders', async (req, res) => {
         ORDER BY balance DESC
       `;
       
-      result = await pool.query(query);
+      result = await client.query(query);
 
       // Format BUX holders
       const holders = result.rows.map(holder => {

@@ -8,9 +8,11 @@ export default defineConfig({
     proxy: {
       '/api': {
         target: 'http://localhost:3001',
-        changeOrigin: true
+        changeOrigin: true,
+        secure: false
       }
-    }
+    },
+    cors: true
   },
   build: {
     outDir: 'dist',
@@ -20,6 +22,26 @@ export default defineConfig({
         manualChunks: undefined,
       },
     },
+  },
+  resolve: {
+    extensions: ['.js', '.jsx', '.ts', '.tsx'],
+    alias: {
+      '@': '/src',
+    },
+  },
+  optimizeDeps: {
+    include: [
+      'react',
+      'react-dom',
+      '@solana/wallet-adapter-react',
+      '@solana/wallet-adapter-react-ui',
+      '@solana/wallet-adapter-base',
+      '@solana/wallet-adapter-wallets',
+      '@solana/web3.js'
+    ],
+    esbuildOptions: {
+      target: 'esnext'
+    }
   },
   publicDir: 'public',
 }) 

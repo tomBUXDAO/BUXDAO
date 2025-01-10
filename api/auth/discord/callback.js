@@ -1,100 +1,163 @@
-import { sql } from '@vercel/postgres';
+import express from 'express';
+import axios from 'axios';
+import pool from '../../../config/database.js';
 
-export const config = {
-  runtime: 'edge'
-};
+const router = express.Router();
 
-const DISCORD_API = 'https://discord.com/api/v10';
-const CLIENT_ID = process.env.DISCORD_CLIENT_ID;
-const CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
-const REDIRECT_URI = process.env.NODE_ENV === 'production' 
-  ? 'https://buxdao.com/api/auth/discord/callback'
-  : 'http://localhost:5173/api/auth/discord/callback';
+router.get('/', async (req, res) => {
+  const { code, state } = req.query;
 
-async function getDiscordUser(access_token) {
-  const response = await fetch(`${DISCORD_API}/users/@me`, {
-    headers: {
-      Authorization: `Bearer ${access_token}`,
-    },
-  });
-  return response.json();
-}
+  // Verify state parameter
+  const storedState = req.cookies.discord_state;
+  if (!state || !storedState || state !== storedState) {
+    console.error('State verification failed:', { 
+      provided: state, 
+      stored: storedState 
+    });
+    const redirectUrl = process.env.NODE_ENV === 'production'
+      ? 'https://buxdao.com/verify'
+      : 'http://localhost:5173/verify';
+    return res.redirect(`${redirectUrl}?error=${encodeURIComponent('Invalid state parameter')}`);
+  }
 
-export default async function handler(req) {
+  if (!code) {
+    console.error('No code provided in callback');
+    const redirectUrl = process.env.NODE_ENV === 'production'
+      ? 'https://buxdao.com/verify'
+      : 'http://localhost:5173/verify';
+    return res.redirect(`${redirectUrl}?error=${encodeURIComponent('No code provided')}`);
+  }
+
   try {
-    const { searchParams } = new URL(req.url);
-    const code = searchParams.get('code');
+    // Get the redirect URI from environment or fallback
+    const redirectUri = process.env.NODE_ENV === 'production'
+      ? 'https://buxdao.com/api/auth/discord/callback'
+      : 'http://localhost:3001/api/auth/discord/callback';
 
-    if (!code) {
-      return new Response(JSON.stringify({ error: 'No code provided' }), {
-        status: 400,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*'
-        }
-      });
-    }
-
-    // Exchange code for token
-    const tokenResponse = await fetch(`${DISCORD_API}/oauth2/token`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({
-        client_id: CLIENT_ID,
-        client_secret: CLIENT_SECRET,
-        grant_type: 'authorization_code',
+    // Exchange code for access token
+    const tokenResponse = await axios.post('https://discord.com/api/oauth2/token', 
+      new URLSearchParams({
+        client_id: process.env.DISCORD_CLIENT_ID,
+        client_secret: process.env.DISCORD_CLIENT_SECRET,
         code,
-        redirect_uri: REDIRECT_URI,
-      }),
+        grant_type: 'authorization_code',
+        redirect_uri: redirectUri,
+        scope: 'identify guilds.join',
+      }), {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+      }
+    );
+
+    const { access_token, token_type } = tokenResponse.data;
+
+    // Get user data
+    const userResponse = await axios.get('https://discord.com/api/users/@me', {
+      headers: {
+        authorization: `${token_type} ${access_token}`,
+      },
     });
 
-    const tokenData = await tokenResponse.json();
+    const userData = userResponse.data;
 
-    if (!tokenResponse.ok) {
-      throw new Error('Failed to get access token');
+    // Add user to server if not already a member
+    try {
+      await axios.put(
+        `https://discord.com/api/guilds/${process.env.DISCORD_GUILD_ID}/members/${userData.id}`,
+        {
+          access_token
+        },
+        {
+          headers: {
+            'Authorization': `Bot ${process.env.DISCORD_BOT_TOKEN}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+    } catch (err) {
+      console.log('Error adding user to server:', err.message);
+      // Continue even if this fails - they might already be a member
     }
 
-    // Get user info
-    const userData = await getDiscordUser(tokenData.access_token);
+    // Store user data in cookies with proper settings
+    const userInfo = {
+      discord_id: userData.id,
+      discord_username: userData.username,
+      avatar: userData.avatar
+    };
 
-    // Update or create user in database
-    const result = await sql`
-      INSERT INTO holders (discord_id, discord_username, last_verified)
-      VALUES (${userData.id}, ${`${userData.username}#${userData.discriminator}`}, NOW())
-      ON CONFLICT (discord_id) 
-      DO UPDATE SET 
-        discord_username = ${`${userData.username}#${userData.discriminator}`},
-        last_verified = NOW()
-      RETURNING *
-    `;
-
-    // Return success with user data
-    return new Response(JSON.stringify({
-      success: true,
-      user: result.rows[0]
-    }), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        // Set session cookie
-        'Set-Cookie': `discord_token=${tokenData.access_token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${tokenData.expires_in}`
-      }
+    // Set cookies with proper security settings
+    res.cookie('discord_token', access_token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      path: '/'
     });
+
+    res.cookie('discord_user', JSON.stringify(userInfo), {
+      httpOnly: false, // Allow frontend to read user data
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      path: '/'
+    });
+
+    // Clear the state cookie since we're done with OAuth
+    res.clearCookie('discord_state', { 
+      path: '/',
+      domain: process.env.NODE_ENV === 'production' ? '.buxdao.com' : undefined
+    });
+
+    // Check if user exists in database
+    try {
+      const result = await pool.query(
+        'SELECT * FROM user_roles WHERE discord_id = $1',
+        [userData.id]
+      );
+
+      if (result.rows.length === 0) {
+        // Create new user entry
+        await pool.query(
+          'INSERT INTO user_roles (discord_id, discord_name) VALUES ($1, $2)',
+          [userData.id, userData.username]
+        );
+      } else {
+        // Update existing user
+        await pool.query(
+          'UPDATE user_roles SET discord_name = $1, last_updated = CURRENT_TIMESTAMP WHERE discord_id = $2',
+          [userData.username, userData.id]
+        );
+      }
+    } catch (dbError) {
+      console.error('Database operation failed:', dbError);
+      // Continue with the flow even if database operations fail
+    }
+
+    // Redirect back to frontend verification page
+    const frontendUrl = process.env.NODE_ENV === 'production'
+      ? 'https://buxdao.com/verify'
+      : 'http://localhost:5173/verify';
+    
+    res.redirect(frontendUrl);
 
   } catch (error) {
     console.error('Discord callback error:', error);
-    return new Response(JSON.stringify({ 
-      error: 'Authentication failed',
-      details: error.message
-    }), {
-      status: 500,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      }
-    });
+    
+    // Clear cookies on error
+    res.clearCookie('discord_token', { path: '/' });
+    res.clearCookie('discord_user', { path: '/' });
+    res.clearCookie('discord_state', { path: '/' });
+
+    // Redirect back with error
+    const redirectUrl = process.env.NODE_ENV === 'production'
+      ? 'https://buxdao.com/verify'
+      : 'http://localhost:5173/verify';
+    
+    const errorMessage = error.response?.data?.error_description || error.message;
+    res.redirect(`${redirectUrl}?error=${encodeURIComponent(errorMessage)}`);
   }
-} 
+});
+
+export default router; 
