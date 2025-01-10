@@ -1,10 +1,11 @@
-import express from 'express';
 import axios from 'axios';
 import pool from '../../../config/database.js';
 
-const router = express.Router();
+export default async function handler(req, res) {
+  if (req.method !== 'GET') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
 
-router.get('/', async (req, res) => {
   const { code, state } = req.query;
 
   // Verify state parameter
@@ -88,27 +89,17 @@ router.get('/', async (req, res) => {
     };
 
     // Set cookies with proper security settings
-    res.cookie('discord_token', access_token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      path: '/'
-    });
-
-    res.cookie('discord_user', JSON.stringify(userInfo), {
-      httpOnly: false, // Allow frontend to read user data
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      path: '/'
-    });
-
-    // Clear the state cookie since we're done with OAuth
-    res.clearCookie('discord_state', { 
-      path: '/',
-      domain: process.env.NODE_ENV === 'production' ? '.buxdao.com' : undefined
-    });
+    res.setHeader('Set-Cookie', [
+      `discord_token=${access_token}; HttpOnly; ${
+        process.env.NODE_ENV === 'production' ? 'Secure; ' : ''
+      }SameSite=Lax; Path=/; Max-Age=${7 * 24 * 60 * 60}`,
+      
+      `discord_user=${JSON.stringify(userInfo)}; ${
+        process.env.NODE_ENV === 'production' ? 'Secure; ' : ''
+      }SameSite=Lax; Path=/; Max-Age=${7 * 24 * 60 * 60}`,
+      
+      'discord_state=; HttpOnly; Path=/; Max-Age=0'
+    ]);
 
     // Check if user exists in database
     try {
@@ -140,15 +131,18 @@ router.get('/', async (req, res) => {
       ? 'https://buxdao.com/verify'
       : 'http://localhost:5173/verify';
     
-    res.redirect(frontendUrl);
+    res.setHeader('Location', frontendUrl);
+    return res.status(302).end();
 
   } catch (error) {
     console.error('Discord callback error:', error);
     
     // Clear cookies on error
-    res.clearCookie('discord_token', { path: '/' });
-    res.clearCookie('discord_user', { path: '/' });
-    res.clearCookie('discord_state', { path: '/' });
+    res.setHeader('Set-Cookie', [
+      'discord_token=; HttpOnly; Path=/; Max-Age=0',
+      'discord_user=; Path=/; Max-Age=0',
+      'discord_state=; HttpOnly; Path=/; Max-Age=0'
+    ]);
 
     // Redirect back with error
     const redirectUrl = process.env.NODE_ENV === 'production'
@@ -156,8 +150,7 @@ router.get('/', async (req, res) => {
       : 'http://localhost:5173/verify';
     
     const errorMessage = error.response?.data?.error_description || error.message;
-    res.redirect(`${redirectUrl}?error=${encodeURIComponent(errorMessage)}`);
+    res.setHeader('Location', `${redirectUrl}?error=${encodeURIComponent(errorMessage)}`);
+    return res.status(302).end();
   }
-});
-
-export default router; 
+} 
