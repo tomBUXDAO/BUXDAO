@@ -1,6 +1,6 @@
 {
   "version": 2,
-  // Trigger redeploy - Jan 10, 2024
+  "buildHint": "2024-01-10-1",
   "builds": [
     {
       "src": "package.json",
