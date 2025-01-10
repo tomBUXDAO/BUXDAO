@@ -22,17 +22,11 @@ export default async function handler(req, res) {
       ? 'https://buxdao.com/api/auth/discord/callback'
       : 'http://localhost:3001/api/auth/discord/callback';
 
-    // Create the authorization URL directly
-    const authUrl = new URL('https://discord.com/api/oauth2/authorize');
-    authUrl.searchParams.append('client_id', DISCORD_CLIENT_ID);
-    authUrl.searchParams.append('redirect_uri', redirectUri);
-    authUrl.searchParams.append('response_type', 'code');
-    authUrl.searchParams.append('scope', encodeURIComponent('identify guilds.join'));
-    authUrl.searchParams.append('state', state);
-    authUrl.searchParams.append('prompt', 'consent');
+    // Manually construct the URL with exact format Discord expects
+    const authUrl = `https://discord.com/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=identify%20guilds.join&state=${state}&prompt=consent`;
 
     // Use 302 redirect
-    res.setHeader('Location', authUrl.toString());
+    res.setHeader('Location', authUrl);
     return res.status(302).end();
   } catch (error) {
     console.error('Discord auth error:', error);
