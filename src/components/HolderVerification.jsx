@@ -105,12 +105,12 @@ const HolderVerification = () => {
   }, [location]);
 
   const handleDiscordLogin = () => {
-    setError(null); // Clear any existing errors
+    setError(null);
     setIsLoading(true);
     
     try {
-      // Redirect to backend auth endpoint
-      window.location.href = `${API_BASE}/api/auth/discord`;
+      // Use window.location.replace for proper redirection
+      window.location.replace(`${API_BASE}/api/auth/discord`);
     } catch (err) {
       console.error('Error initiating Discord login:', err);
       setError('Failed to initiate Discord login. Please try again.');
