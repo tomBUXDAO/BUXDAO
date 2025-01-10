@@ -16,14 +16,19 @@ export default async function handler(req, res) {
       process.env.NODE_ENV === 'production' ? '.buxdao.com' : ''
     }; Max-Age=${10 * 60}`); // 10 minutes
 
-    // Build OAuth URL
-    const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID;
-    const redirectUri = process.env.NODE_ENV === 'production'
-      ? 'https://buxdao.com/api/auth/discord/callback'
-      : 'http://localhost:3001/api/auth/discord/callback';
+    // Build OAuth URL with official Discord format
+    const params = new URLSearchParams({
+      client_id: process.env.DISCORD_CLIENT_ID,
+      redirect_uri: process.env.NODE_ENV === 'production'
+        ? 'https://buxdao.com/api/auth/discord/callback'
+        : 'http://localhost:3001/api/auth/discord/callback',
+      response_type: 'code',
+      scope: 'identify guilds.join',
+      state: state
+    });
 
-    // Manually construct the URL with exact format Discord expects
-    const authUrl = `https://discord.com/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=identify%20guilds.join&state=${state}&prompt=consent`;
+    // Use Discord's official OAuth endpoint
+    const authUrl = `https://discord.com/api/oauth2/authorize?${params.toString()}`;
 
     // Use 302 redirect
     res.setHeader('Location', authUrl);
