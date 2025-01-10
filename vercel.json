@@ -19,6 +19,22 @@
   ],
   "routes": [
     {
+      "src": "/api/auth/discord",
+      "dest": "/api/auth/discord.js"
+    },
+    {
+      "src": "/api/auth/discord/callback",
+      "dest": "/api/auth/discord/callback.js"
+    },
+    {
+      "src": "/api/auth/check",
+      "dest": "/api/auth/check.js"
+    },
+    {
+      "src": "/api/auth/wallet",
+      "dest": "/api/auth/wallet.js"
+    },
+    {
       "src": "/api/token-metrics",
       "dest": "/api/token-metrics.js"
     },
