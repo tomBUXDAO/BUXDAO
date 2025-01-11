@@ -19,24 +19,12 @@
   ],
   "routes": [
     {
-      "src": "/api/auth/discord",
-      "dest": "/api/auth/discord.js"
+      "src": "/api/auth/(.*)",
+      "dest": "/api/auth/index.js"
     },
     {
-      "src": "/api/auth/discord/callback",
-      "dest": "/api/auth/discord/callback.js"
-    },
-    {
-      "src": "/api/auth/check",
-      "dest": "/api/auth/check.js"
-    },
-    {
-      "src": "/api/auth/wallet",
-      "dest": "/api/auth/wallet.js"
-    },
-    {
-      "src": "/api/auth/logout",
-      "dest": "/api/auth/logout.js"
+      "src": "/api/celebcatz/(.*)",
+      "dest": "/api/celebcatz/index.js"
     },
     {
       "src": "/api/token-metrics",
@@ -48,19 +36,7 @@
     },
     {
       "src": "/api/collections/([^/]+)/stats",
-      "dest": "/api/collections/[symbol]/stats.js"
-    },
-    {
-      "src": "/api/celebcatz/images",
-      "dest": "/api/index.js"
-    },
-    {
-      "src": "/api/printful/products/([^/]+)",
-      "dest": "/api/printful/products/[id].js"
-    },
-    {
-      "src": "/api/printful/products",
-      "dest": "/api/printful/products.js"
+      "dest": "/api/collections/index.js?collection=$1"
     },
     {
       "src": "/(.*)",
