@@ -37,13 +37,9 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Parse URL path more carefully
-    const url = new URL(req.url, ORIGIN);
-    const pathParts = url.pathname.split('/').filter(Boolean);
-    const endpoint = pathParts[pathParts.length - 1];
-    
-    console.log('[Auth] URL:', req.url);
-    console.log('[Auth] Path parts:', pathParts);
+    // Get the endpoint from the last part of the path
+    const endpoint = req.url.split('/').filter(Boolean).pop()?.split('?')[0] || '';
+    console.log('[Auth] Request URL:', req.url);
     console.log('[Auth] Endpoint:', endpoint);
 
     switch(endpoint) {
