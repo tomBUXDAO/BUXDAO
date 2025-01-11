@@ -67,11 +67,15 @@ async function handleCheck(req, res) {
   }
 
   try {
+    console.log('[Auth Check] Request headers:', req.headers);
     const cookies = req.headers.cookie ? parse(req.headers.cookie) : {};
+    console.log('[Auth Check] Parsed cookies:', cookies);
     const discordToken = cookies.discord_token;
     const discordUser = cookies.discord_user;
 
     if (!discordToken || !discordUser) {
+      console.log('[Auth Check] Missing token or user');
+      res.setHeader('Content-Type', 'application/json');
       return res.status(401).json({ 
         authenticated: false,
         error: 'Not authenticated' 
@@ -86,7 +90,9 @@ async function handleCheck(req, res) {
     });
 
     if (!response.ok) {
+      console.log('[Auth Check] Invalid token response:', response.status);
       clearAuthCookies(res);
+      res.setHeader('Content-Type', 'application/json');
       return res.status(401).json({ 
         authenticated: false,
         error: 'Invalid token' 
@@ -96,20 +102,25 @@ async function handleCheck(req, res) {
     let user;
     try {
       user = JSON.parse(discordUser);
+      console.log('[Auth Check] Parsed user data successfully');
     } catch (e) {
+      console.error('[Auth Check] Failed to parse user data:', e);
       clearAuthCookies(res);
+      res.setHeader('Content-Type', 'application/json');
       return res.status(401).json({ 
         authenticated: false,
         error: 'Invalid user data' 
       });
     }
 
+    res.setHeader('Content-Type', 'application/json');
     return res.status(200).json({ 
       authenticated: true,
       user
     });
   } catch (error) {
-    console.error('Auth check error:', error);
+    console.error('[Auth Check] Error:', error);
+    res.setHeader('Content-Type', 'application/json');
     return res.status(500).json({ 
       authenticated: false,
       error: 'Failed to check authentication status' 

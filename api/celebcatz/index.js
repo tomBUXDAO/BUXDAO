@@ -14,10 +14,11 @@ export default async function handler(req, res) {
     : 'http://localhost:5173');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept');
+  res.setHeader('Content-Type', 'application/json');
 
   // Handle preflight
   if (req.method === 'OPTIONS') {
-    res.status(200).end();
+    res.status(200).json({});
     return;
   }
 
@@ -27,6 +28,7 @@ export default async function handler(req, res) {
 
   // Parse the URL to get the endpoint
   const endpoint = req.url.split('/')[1]; // 'images' or undefined
+  console.log('[CelebCatz] Endpoint:', endpoint);
 
   if (endpoint === 'images') {
     console.log('[CelebCatz] Starting image fetch request');
@@ -39,16 +41,18 @@ export default async function handler(req, res) {
         
         // Fetch images from database
         const result = await client.query('SELECT image_url, name FROM celebcatz_images ORDER BY id ASC');
-        console.log('[CelebCatz] Successfully fetched images from database');
+        console.log('[CelebCatz] Successfully fetched images:', result.rows.length);
         
         return res.status(200).json({ images: result.rows });
       } catch (dbError) {
         console.error('[CelebCatz] Database connection test failed:', dbError);
         // Return test data in development
         if (process.env.NODE_ENV !== 'production') {
+          console.log('[CelebCatz] Returning test data in development');
           return res.status(200).json({ images: TEST_IMAGES });
         }
         // In production, return empty array instead of failing
+        console.log('[CelebCatz] Returning empty array in production');
         return res.status(200).json({ images: [] });
       }
     } catch (error) {
