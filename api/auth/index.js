@@ -226,15 +226,18 @@ async function handleDiscordAuth(req, res) {
     authUrl.searchParams.append('state', state);
     authUrl.searchParams.append('prompt', 'consent');
 
+    console.log('[Discord Auth] Client ID:', DISCORD_CLIENT_ID);
+    console.log('[Discord Auth] Callback URL:', CALLBACK_URL);
     console.log('[Discord Auth] Redirecting to:', authUrl.toString());
 
+    // Set state cookie and redirect
     res.setHeader('Set-Cookie', serialize('discord_state', state, cookieOptions));
-    res.writeHead(302, { Location: authUrl.toString() });
-    res.end();
+    res.setHeader('Location', authUrl.toString());
+    res.status(302).end();
   } catch (error) {
     console.error('[Discord Auth] Error:', error);
-    res.writeHead(302, { Location: ORIGIN + '/verify?error=' + encodeURIComponent(error.message) });
-    res.end();
+    res.setHeader('Location', ORIGIN + '/verify?error=' + encodeURIComponent(error.message));
+    res.status(302).end();
   }
 }
 
