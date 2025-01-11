@@ -208,38 +208,34 @@ async function handleDiscordAuth(req, res) {
     const state = crypto.randomBytes(16).toString('hex');
     
     // Set state cookie for verification in callback
-    res.setHeader('Set-Cookie', serialize('discord_state', state, {
+    const cookieOptions = {
       path: '/',
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       maxAge: 60 * 5 // 5 minutes
-    }));
+    };
 
-    // Construct Discord OAuth URL
-    const params = new URLSearchParams({
-      client_id: DISCORD_CLIENT_ID,
-      redirect_uri: CALLBACK_URL,
-      response_type: 'code',
-      scope: 'identify guilds.join',
-      state: state,
-      prompt: 'consent'
-    });
+    // Build Discord OAuth URL
+    const authUrl = new URL('https://discord.com/api/oauth2/authorize');
+    authUrl.searchParams.append('client_id', DISCORD_CLIENT_ID);
+    authUrl.searchParams.append('redirect_uri', CALLBACK_URL);
+    authUrl.searchParams.append('response_type', 'code');
+    authUrl.searchParams.append('scope', 'identify guilds.join');
+    authUrl.searchParams.append('state', state);
+    authUrl.searchParams.append('prompt', 'consent');
 
-    // Log the redirect URL for debugging
-    console.log('[Discord Auth] Redirecting to:', `https://discord.com/api/oauth2/authorize?${params.toString()}`);
+    // Log the URL for debugging
+    console.log('[Discord Auth] Redirecting to:', authUrl.toString());
 
-    // Send redirect response
-    res.writeHead(302, {
-      'Location': `https://discord.com/api/oauth2/authorize?${params.toString()}`
-    });
-    res.end();
+    // Set cookie and redirect headers
+    res.setHeader('Set-Cookie', serialize('discord_state', state, cookieOptions));
+    res.setHeader('Location', authUrl.toString());
+    res.status(302).end();
   } catch (error) {
     console.error('[Discord Auth] Error:', error);
-    return res.status(500).json({ 
-      error: 'Failed to initiate Discord auth',
-      details: error.message 
-    });
+    res.setHeader('Location', ORIGIN + '/verify?error=' + encodeURIComponent(error.message));
+    res.status(302).end();
   }
 }
 
