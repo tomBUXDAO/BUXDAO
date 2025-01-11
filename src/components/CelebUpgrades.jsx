@@ -33,10 +33,13 @@ const CelebUpgrades = () => {
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      const { images } = await response.json();
+      const data = await response.json();
+      if (!data || !data.images) {
+        throw new Error('Invalid response format');
+      }
       
       // Filter for only celebs 1-79
-      const filteredImages = images.filter(img => {
+      const filteredImages = data.images.filter(img => {
         const num = parseInt(img.name.match(/\d+/)?.[0] || "0");
         return num >= 1 && num <= 79;
       });
