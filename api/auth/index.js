@@ -24,10 +24,11 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', ORIGIN);
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept');
+  res.setHeader('Content-Type', 'application/json');
 
   // Handle preflight
   if (req.method === 'OPTIONS') {
-    res.status(200).end();
+    res.status(200).json({});
     return;
   }
 
@@ -66,12 +67,15 @@ async function handleCheck(req, res) {
   }
 
   try {
-    const cookies = parse(req.headers.cookie || '');
+    const cookies = req.headers.cookie ? parse(req.headers.cookie) : {};
     const discordToken = cookies.discord_token;
     const discordUser = cookies.discord_user;
 
     if (!discordToken || !discordUser) {
-      return res.status(401).json({ error: 'Not authenticated' });
+      return res.status(401).json({ 
+        authenticated: false,
+        error: 'Not authenticated' 
+      });
     }
 
     // Verify Discord token is still valid
@@ -83,16 +87,33 @@ async function handleCheck(req, res) {
 
     if (!response.ok) {
       clearAuthCookies(res);
-      return res.status(401).json({ error: 'Invalid token' });
+      return res.status(401).json({ 
+        authenticated: false,
+        error: 'Invalid token' 
+      });
+    }
+
+    let user;
+    try {
+      user = JSON.parse(discordUser);
+    } catch (e) {
+      clearAuthCookies(res);
+      return res.status(401).json({ 
+        authenticated: false,
+        error: 'Invalid user data' 
+      });
     }
 
     return res.status(200).json({ 
       authenticated: true,
-      user: JSON.parse(discordUser)
+      user
     });
   } catch (error) {
     console.error('Auth check error:', error);
-    return res.status(500).json({ error: 'Failed to check authentication status' });
+    return res.status(500).json({ 
+      authenticated: false,
+      error: 'Failed to check authentication status' 
+    });
   }
 }
 

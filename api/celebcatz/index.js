@@ -48,13 +48,14 @@ export default async function handler(req, res) {
         if (process.env.NODE_ENV !== 'production') {
           return res.status(200).json({ images: TEST_IMAGES });
         }
-        throw dbError;
+        // In production, return empty array instead of failing
+        return res.status(200).json({ images: [] });
       }
     } catch (error) {
       console.error('[CelebCatz] Error:', error);
-      return res.status(500).json({ error: 'Failed to fetch CelebCatz images' });
+      return res.status(500).json({ error: 'Internal server error', images: [] });
     }
   }
 
-  return res.status(404).json({ error: 'Endpoint not found' });
+  return res.status(404).json({ error: 'Not found' });
 } 
