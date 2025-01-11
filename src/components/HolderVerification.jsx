@@ -6,6 +6,7 @@ import { DiscordIcon } from './Icons';
 import { ArrowRightOnRectangleIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { useUser } from '../contexts/UserContext';
 import { WalletModalButton } from './WalletModalButton';
+import crypto from 'crypto';
 
 const HolderVerification = () => {
   const { publicKey, connected, disconnect } = useWallet();
@@ -59,8 +60,11 @@ const HolderVerification = () => {
     setIsLoading(true);
     
     try {
+      const state = crypto.randomBytes(16).toString('hex');
+      const discordUrl = `https://discord.com/oauth2/authorize?response_type=code&client_id=1326719755779969044&scope=identify%20guilds.join&state=${state}&redirect_uri=${encodeURIComponent(`${API_BASE}/api/auth/discord/callback`)}&prompt=consent`;
+      
       // Use window.location.replace for proper redirection
-      window.location.replace(`${API_BASE}/api/auth/discord`);
+      window.location.replace(discordUrl);
     } catch (err) {
       console.error('Error initiating Discord login:', err);
       setError('Failed to initiate Discord login. Please try again.');
