@@ -6,7 +6,13 @@ import { DiscordIcon } from './Icons';
 import { ArrowRightOnRectangleIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { useUser } from '../contexts/UserContext';
 import { WalletModalButton } from './WalletModalButton';
-import crypto from 'crypto';
+
+// Helper function to generate random state
+function generateState() {
+  const array = new Uint8Array(16);
+  crypto.getRandomValues(array);
+  return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+}
 
 const HolderVerification = () => {
   const { publicKey, connected, disconnect } = useWallet();
@@ -60,7 +66,7 @@ const HolderVerification = () => {
     setIsLoading(true);
     
     try {
-      const state = crypto.randomBytes(16).toString('hex');
+      const state = generateState();
       const discordUrl = `https://discord.com/oauth2/authorize?response_type=code&client_id=1326719755779969044&scope=identify%20guilds.join&state=${state}&redirect_uri=${encodeURIComponent(`${API_BASE}/api/auth/discord/callback`)}&prompt=consent`;
       
       // Use window.location.replace for proper redirection
