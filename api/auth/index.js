@@ -218,21 +218,14 @@ async function handleDiscordAuth(req, res) {
       maxAge: 60 * 5
     };
 
-    const authUrl = new URL('https://discord.com/api/oauth2/authorize');
-    authUrl.searchParams.append('client_id', DISCORD_CLIENT_ID);
-    authUrl.searchParams.append('redirect_uri', CALLBACK_URL);
-    authUrl.searchParams.append('response_type', 'code');
-    authUrl.searchParams.append('scope', 'identify guilds.join');
-    authUrl.searchParams.append('state', state);
-    authUrl.searchParams.append('prompt', 'consent');
-
-    console.log('[Discord Auth] Client ID:', DISCORD_CLIENT_ID);
-    console.log('[Discord Auth] Callback URL:', CALLBACK_URL);
-    console.log('[Discord Auth] Redirecting to:', authUrl.toString());
+    // Use the exact Discord OAuth URL
+    const discordUrl = `https://discord.com/oauth2/authorize?response_type=code&client_id=${DISCORD_CLIENT_ID}&scope=identify%20guilds.join&state=${state}&redirect_uri=${encodeURIComponent(CALLBACK_URL)}&prompt=consent`;
+    
+    console.log('[Discord Auth] Redirecting to:', discordUrl);
 
     // Set state cookie and redirect
     res.setHeader('Set-Cookie', serialize('discord_state', state, cookieOptions));
-    res.setHeader('Location', authUrl.toString());
+    res.setHeader('Location', discordUrl);
     res.status(302).end();
   } catch (error) {
     console.error('[Discord Auth] Error:', error);
