@@ -221,12 +221,19 @@ async function handleDiscordAuth(req, res) {
       client_id: DISCORD_CLIENT_ID,
       redirect_uri: CALLBACK_URL,
       response_type: 'code',
-      scope: 'identify',
-      state: state
+      scope: 'identify guilds.join',
+      state: state,
+      prompt: 'consent'
     });
 
-    // Redirect to Discord OAuth
-    res.redirect(302, `https://discord.com/api/oauth2/authorize?${params.toString()}`);
+    // Log the redirect URL for debugging
+    console.log('[Discord Auth] Redirecting to:', `https://discord.com/api/oauth2/authorize?${params.toString()}`);
+
+    // Send redirect response
+    res.writeHead(302, {
+      'Location': `https://discord.com/api/oauth2/authorize?${params.toString()}`
+    });
+    res.end();
   } catch (error) {
     console.error('[Discord Auth] Error:', error);
     return res.status(500).json({ 
