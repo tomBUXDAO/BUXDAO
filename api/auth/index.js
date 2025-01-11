@@ -250,22 +250,20 @@ async function handleDiscordCallback(req, res) {
     }
 
     console.log('[Discord Callback] Exchanging code for token...');
-    const params = new URLSearchParams({
-      client_id: DISCORD_CLIENT_ID,
-      client_secret: DISCORD_CLIENT_SECRET,
-      grant_type: 'authorization_code',
-      code: code,
-      redirect_uri: CALLBACK_URL,
-    });
+    const params = new URLSearchParams();
+    params.append('client_id', DISCORD_CLIENT_ID);
+    params.append('client_secret', DISCORD_CLIENT_SECRET);
+    params.append('grant_type', 'authorization_code');
+    params.append('code', code);
+    params.append('redirect_uri', CALLBACK_URL);
 
     console.log('[Discord Callback] Token request params:', params.toString());
     console.log('[Discord Callback] Callback URL:', CALLBACK_URL);
 
-    const tokenResponse = await fetch('https://discord.com/api/v9/oauth2/token', {
+    const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Accept': 'application/json'
+        'Content-Type': 'application/x-www-form-urlencoded'
       },
       body: params.toString()
     });
@@ -274,7 +272,12 @@ async function handleDiscordCallback(req, res) {
     console.log('[Discord Callback] Token response:', responseText);
 
     if (!tokenResponse.ok) {
-      throw new Error(`Failed to get token from Discord: ${responseText}`);
+      console.error('[Discord Callback] Token exchange failed:', {
+        status: tokenResponse.status,
+        statusText: tokenResponse.statusText,
+        response: responseText
+      });
+      throw new Error(`Failed to get token from Discord: ${tokenResponse.status} ${tokenResponse.statusText}`);
     }
 
     let tokenData;
@@ -286,16 +289,19 @@ async function handleDiscordCallback(req, res) {
     }
 
     console.log('[Discord Callback] Got token, fetching user data...');
-    const userResponse = await fetch('https://discord.com/api/v9/users/@me', {
+    const userResponse = await fetch('https://discord.com/api/users/@me', {
       headers: {
-        'Authorization': `Bearer ${tokenData.access_token}`,
-        'Accept': 'application/json'
+        'Authorization': `Bearer ${tokenData.access_token}`
       }
     });
 
     if (!userResponse.ok) {
       const userResponseText = await userResponse.text();
-      console.error('[Discord Callback] User data fetch failed:', userResponseText);
+      console.error('[Discord Callback] User data fetch failed:', {
+        status: userResponse.status,
+        statusText: userResponse.statusText,
+        response: userResponseText
+      });
       throw new Error('Failed to get user data from Discord');
     }
 
