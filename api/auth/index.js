@@ -242,7 +242,15 @@ async function handleDiscordCallback(req, res) {
 
   try {
     const { code, state } = req.query;
+    const cookies = parse(req.headers.cookie || '');
     
+    // Verify state parameter
+    if (!state || !cookies.discord_state || state !== cookies.discord_state) {
+      console.error('[Discord Callback] Invalid state parameter');
+      res.setHeader('Location', ORIGIN + '/verify?error=' + encodeURIComponent('Invalid state parameter'));
+      return res.status(302).end();
+    }
+
     if (!code) {
       console.error('[Discord Callback] No code provided');
       res.setHeader('Location', ORIGIN + '/verify?error=' + encodeURIComponent('No code provided'));
@@ -263,7 +271,9 @@ async function handleDiscordCallback(req, res) {
     const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json',
+        'User-Agent': 'BUXDAO Discord OAuth'
       },
       body: params.toString()
     });
@@ -291,7 +301,8 @@ async function handleDiscordCallback(req, res) {
     console.log('[Discord Callback] Got token, fetching user data...');
     const userResponse = await fetch('https://discord.com/api/users/@me', {
       headers: {
-        'Authorization': `Bearer ${tokenData.access_token}`
+        'Authorization': `Bearer ${tokenData.access_token}`,
+        'User-Agent': 'BUXDAO Discord OAuth'
       }
     });
 
@@ -307,6 +318,12 @@ async function handleDiscordCallback(req, res) {
 
     const userData = await userResponse.json();
     console.log('[Discord Callback] Got user data, setting cookies...');
+
+    // Clear state cookie
+    res.setHeader('Set-Cookie', serialize('discord_state', '', {
+      path: '/',
+      expires: new Date(0)
+    }));
 
     setAuthCookies(res, tokenData.access_token, userData);
 
