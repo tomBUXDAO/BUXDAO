@@ -35,25 +35,17 @@ const Bux = () => {
   ];
 
   // Get the base URL for API calls
-  const baseUrl = window.location.hostname === 'localhost' 
-    ? 'http://localhost:3001' 
-    : 'https://buxdao.com';
+  const baseUrl = 'https://buxdao.com';    // Use production API
 
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        console.log('Fetching from:', baseUrl); // Debug log
+        // Debug log
+        console.log('Fetching from:', `${baseUrl}/api/token-metrics`);
         
         // Always fetch token metrics for BUX values
-        const metricsResponse = await fetch(`${baseUrl}/api/token-metrics`, {
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-          },
-          mode: 'cors',
-          credentials: 'same-origin'
-        });
+        const metricsResponse = await fetch(`${baseUrl}/api/token-metrics`);
         
         if (!metricsResponse.ok) {
           console.error('Metrics response error:', await metricsResponse.text());
@@ -78,14 +70,7 @@ const Bux = () => {
         });
 
         // Fetch top holders with filters
-        const holdersResponse = await fetch(`${baseUrl}/api/top-holders?type=${viewType}&collection=${selectedCollection}`, {
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-          },
-          mode: 'cors',
-          credentials: 'same-origin'
-        });
+        const holdersResponse = await fetch(`${baseUrl}/api/top-holders?type=${viewType}&collection=${selectedCollection}`);
 
         if (!holdersResponse.ok) {
           console.error('Holders response error:', await holdersResponse.text());

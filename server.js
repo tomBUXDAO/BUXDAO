@@ -13,6 +13,8 @@ import authCheckRouter from './api/auth/check.js';
 import discordAuthRouter from './api/auth/discord.js';
 import discordCallbackRouter from './api/auth/discord/callback.js';
 import walletAuthRouter from './api/auth/wallet.js';
+import collectionsRouter from './api/collections/index.js';
+import celebcatzRouter from './api/celebcatz/index.js';
 
 const app = express();
 app.use(cors({
@@ -27,27 +29,50 @@ app.use(cors({
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
     
-    if (allowedOrigins.indexOf(origin) !== -1) {
+    if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
       callback(null, true);
     } else {
+      console.log('CORS blocked origin:', origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
-  methods: ['GET', 'POST', 'OPTIONS'],
+  methods: ['GET', 'POST', 'HEAD', 'OPTIONS'],
   credentials: true,
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Cookie'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Cookie', 'Origin'],
   exposedHeaders: ['Set-Cookie'],
-  optionsSuccessStatus: 200
+  optionsSuccessStatus: 200,
+  preflightContinue: false
 }));
 app.use(express.json());
 app.use(cookieParser(process.env.COOKIE_SECRET));
 
 // Debug middleware for all requests
 app.use((req, res, next) => {
-  console.log(`${req.method} ${req.path}`);
-  console.log('Headers:', req.headers);
-  console.log('Cookies:', req.cookies);
+  const startTime = Date.now();
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path} - Origin: ${req.headers.origin}`);
+  
+  // Add response logging
+  const oldSend = res.send;
+  res.send = function(data) {
+    const duration = Date.now() - startTime;
+    console.log(`[${new Date().toISOString()}] Response ${res.statusCode} sent in ${duration}ms`);
+    return oldSend.apply(res, arguments);
+  };
+  
   next();
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Global error handler caught:', err);
+  console.error('Stack trace:', err.stack);
+  
+  // Send appropriate error response
+  res.status(err.status || 500).json({
+    error: err.message || 'Internal Server Error',
+    code: err.code,
+    path: req.path
+  });
 });
 
 // Use auth routers
@@ -55,6 +80,8 @@ app.use('/api/auth/check', authCheckRouter);
 app.use('/api/auth/discord', discordAuthRouter);
 app.use('/api/auth/discord/callback', discordCallbackRouter);
 app.use('/api/auth/wallet', walletAuthRouter);
+app.use('/api/collections', collectionsRouter);
+app.use('/api/celebcatz', celebcatzRouter);
 
 // Serve static files from the dist directory
 app.use(express.static('dist'));
@@ -86,60 +113,55 @@ async function getTokenMetrics() {
   return { lpBalanceInSol, tokenValueInSol };
 }
 
-// Stats endpoint
-app.get('/api/collections/:symbol/stats', async (req, res) => {
-  const { symbol } = req.params;
-  
-  try {
-    const response = await axios.get(`https://api-mainnet.magiceden.dev/v2/collections/${symbol}/stats`);
-    res.json(response.data);
-  } catch (error) {
-    console.error(`Error fetching stats for ${symbol}:`, error.message);
-    res.status(500).json({ error: 'Failed to fetch stats' });
-  }
-});
-
-// Add celebcatz images endpoint with optimized query
+// Add celebcatz images endpoint with better error handling
 app.get('/api/celebcatz/images', async (req, res) => {
-  console.log('Endpoint hit: /api/celebcatz/images');
-  
-  // Set a timeout for the request
-  req.setTimeout(30000);
-  res.setTimeout(30000);
+  console.log(`[${new Date().toISOString()}] Fetching CelebCatz images`);
   
   try {
     const query = {
       text: `
         SELECT image_url, name 
         FROM nft_metadata 
-        WHERE symbol = $1 
-        AND name LIKE $2 
-        AND CAST(NULLIF(regexp_replace(name, '.*#', ''), '') AS INTEGER) <= $3
+        WHERE symbol = 'CelebCatz' 
+        AND name LIKE 'Celebrity Catz #%'
         ORDER BY CAST(NULLIF(regexp_replace(name, '.*#', ''), '') AS INTEGER)
-      `,
-      values: ['CelebCatz', 'Celebrity Catz #%', 79],
-      // Set a query timeout
-      query_timeout: 25000
+      `
     };
     
-    console.log('Executing query...');
+    // Set CORS headers explicitly
+    res.header('Access-Control-Allow-Origin', 'http://localhost:5173');
+    res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, Origin');
+    
+    console.log(`[${new Date().toISOString()}] Executing CelebCatz query:`, query.text);
     const result = await client.query(query);
-    console.log(`Query completed. Found ${result.rows.length} images`);
+    console.log(`[${new Date().toISOString()}] Query completed. Found ${result.rows.length} images`);
     
     if (result.rows.length === 0) {
-      console.log('No images found');
+      console.log(`[${new Date().toISOString()}] No images found`);
       return res.json([]);
     }
     
+    // Log a sample of the data
+    console.log('Sample data:', result.rows.slice(0, 2));
+    
     res.json(result.rows);
   } catch (error) {
-    console.error('Database query failed:', error);
-    if (error.code) {
-      console.error('Error code:', error.code);
-    }
-    if (error.message) {
-      console.error('Error message:', error.message);
-    }
+    console.error(`[${new Date().toISOString()}] Database query failed:`, error);
+    console.error('Error details:', {
+      code: error.code,
+      message: error.message,
+      detail: error.detail,
+      schema: error.schema,
+      table: error.table,
+      constraint: error.constraint
+    });
+    
+    // Set CORS headers even for errors
+    res.header('Access-Control-Allow-Origin', 'http://localhost:5173');
+    res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, Origin');
+    
     res.status(500).json({ 
       error: 'Failed to fetch images', 
       details: error.message,
@@ -551,7 +573,7 @@ app.get('/api/top-holders', async (req, res) => {
 
 // Start the server
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server is running on port ${PORT}`);
 });
 

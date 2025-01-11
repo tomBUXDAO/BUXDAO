@@ -1,58 +1,30 @@
-export const config = {
-  runtime: 'edge'
-};
+export default async function handler(req, res) {
+  // Set CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-export default async function handler(req) {
-  // Handle CORS preflight
+  // Handle OPTIONS request
   if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      status: 204,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET,OPTIONS',
-        'Access-Control-Allow-Headers': '*',
-        'Access-Control-Max-Age': '86400'
-      }
-    });
+    res.status(200).end();
+    return;
   }
 
-  // Only allow GET requests
-  if (req.method !== 'GET') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      }
-    });
-  }
-
-  // Extract symbol from URL path
-  const url = new URL(req.url);
-  const paths = url.pathname.split('/');
-  const symbol = paths[paths.length - 2]; // Get second to last segment
+  const { symbol } = req.query;
+  console.log('Fetching stats for:', symbol);
 
   try {
-    console.log(`Fetching stats for collection: ${symbol}`);
     const response = await fetch(`https://api-mainnet.magiceden.dev/v2/collections/${symbol}/stats`);
     const data = await response.json();
-
-    return new Response(JSON.stringify(data), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Cache-Control': 'public, s-maxage=60'
-      }
-    });
+    
+    // Add cache control headers
+    res.setHeader('Cache-Control', 'public, s-maxage=60');
+    return res.status(200).json(data);
   } catch (error) {
-    console.error(`Error fetching stats for ${symbol}:`, error.message);
-    return new Response(JSON.stringify({ error: 'Failed to fetch stats' }), {
-      status: 500,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      }
+    console.error('Error fetching stats:', error);
+    return res.status(500).json({ 
+      error: 'Failed to fetch stats',
+      details: error.message
     });
   }
 } 

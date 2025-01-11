@@ -10,7 +10,7 @@ const COLLECTION_SUPPLIES = {
 };
 
 // Get the base API URL based on environment
-const API_BASE_URL = '/api';  // This will work both locally and in production
+const API_BASE_URL = '/api';  // Use Vite proxy
 
 const collections = [
   { 
@@ -55,6 +55,12 @@ const collections = [
   }
 ];
 
+const statsCache = {
+  data: null,
+  timestamp: null,
+  CACHE_DURATION: 60 * 1000 // 1 minute
+};
+
 const Collection = () => {
   const [loading, setLoading] = useState(true);
   const [collectionData, setCollectionData] = useState(collections);
@@ -82,38 +88,79 @@ const Collection = () => {
   useEffect(() => {
     const fetchCollectionData = async () => {
       try {
-        const fetchedData = await Promise.all(
+        setLoading(true);  // Set loading to true when starting fetch
+        
+        // Check cache first
+        const now = Date.now();
+        if (statsCache.data && statsCache.timestamp && (now - statsCache.timestamp < statsCache.CACHE_DURATION)) {
+          setCollectionData(statsCache.data);
+          setLoading(false);  // Set loading to false after setting data
+          return;
+        }
+
+        const results = await Promise.allSettled(
           collections.map(async (collection) => {
-            const response = await fetch(`${API_BASE_URL}/collections/${collection.symbol}/stats`);
-            if (!response.ok) {
-              throw new Error(`HTTP error! status: ${response.status}`);
+            try {
+              const response = await fetch(`${API_BASE_URL}/collections/${collection.symbol}/stats`, {
+                headers: {
+                  'Accept': 'application/json'
+                }
+              });
+
+              if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+              }
+              const data = await response.json();
+              
+              const floorPriceInSol = Number(data.floorPrice || 0) / 1000000000;
+              
+              return {
+                ...collection,
+                floorPrice: isNaN(floorPriceInSol) ? '0.00' : floorPriceInSol.toFixed(2),
+                totalSupply: COLLECTION_SUPPLIES[collection.symbol].toLocaleString()
+              };
+            } catch (error) {
+              console.warn(`Failed to fetch ${collection.symbol} data:`, error);
+              return {
+                ...collection,
+                floorPrice: '0.00',
+                totalSupply: COLLECTION_SUPPLIES[collection.symbol].toLocaleString()
+              };
             }
-            const data = await response.json();
-            
-            const floorPriceInSol = Number(data.floorPrice || 0) / 1000000000;
-            
-            return {
-              ...collection,
-              floorPrice: isNaN(floorPriceInSol) ? '0.00' : floorPriceInSol.toFixed(2),
-              totalSupply: COLLECTION_SUPPLIES[collection.symbol].toLocaleString()
-            };
           })
         );
+
+        const fetchedData = results.map((result, index) => {
+          if (result.status === 'fulfilled') {
+            return result.value;
+          }
+          return {
+            ...collections[index],
+            floorPrice: '0.00',
+            totalSupply: COLLECTION_SUPPLIES[collections[index].symbol].toLocaleString()
+          };
+        });
+
+        // Update cache
+        statsCache.data = fetchedData;
+        statsCache.timestamp = now;
+        
         setCollectionData(fetchedData);
-        setLoading(false);
+        setLoading(false);  // Set loading to false after setting data
       } catch (error) {
-        console.error('Error fetching collection data:', error);
-        setCollectionData(collections.map(collection => ({
+        console.error('Failed to fetch collection data:', error);
+        // Use cached data if available, otherwise use default values
+        setCollectionData(statsCache.data || collections.map(collection => ({
           ...collection,
           floorPrice: '0.00',
           totalSupply: COLLECTION_SUPPLIES[collection.symbol].toLocaleString()
         })));
-        setLoading(false);
+        setLoading(false);  // Set loading to false even if there's an error
       }
     };
 
     fetchCollectionData();
-  }, []);
+  }, []); // Empty dependency array since we only want to fetch once on mount
 
   useEffect(() => {
     const fetchSolPrice = async () => {
@@ -280,6 +327,10 @@ const Collection = () => {
                         src={collection.image} 
                         alt={collection.title}
                         className="w-full h-full object-cover" 
+                        loading="lazy"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                        }}
                       />
                     </div>
                     <div className="p-4 sm:p-6">
