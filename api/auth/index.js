@@ -18,6 +18,15 @@ const CALLBACK_URL = process.env.NODE_ENV === 'production'
   ? 'https://buxdao.com/api/auth/discord/callback'
   : 'http://localhost:3001/api/auth/discord/callback';
 
+// Cookie settings
+const COOKIE_OPTIONS = {
+  path: '/',
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'lax',
+  domain: process.env.NODE_ENV === 'production' ? 'buxdao.com' : 'localhost'
+};
+
 export default async function handler(req, res) {
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -211,17 +220,15 @@ async function handleDiscordAuth(req, res) {
   try {
     const state = crypto.randomBytes(16).toString('hex');
     const cookieOptions = {
-      path: '/',
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 5
+      ...COOKIE_OPTIONS,
+      maxAge: 60 * 5 // 5 minutes
     };
 
     // Use the exact Discord OAuth URL
     const discordUrl = `https://discord.com/oauth2/authorize?response_type=code&client_id=${DISCORD_CLIENT_ID}&scope=identify%20guilds.join&state=${state}&redirect_uri=${encodeURIComponent(CALLBACK_URL)}&prompt=consent`;
     
     console.log('[Discord Auth] Redirecting to:', discordUrl);
+    console.log('[Discord Auth] Setting state cookie with options:', cookieOptions);
 
     // Set state cookie and redirect
     res.setHeader('Set-Cookie', serialize('discord_state', state, cookieOptions));
@@ -243,6 +250,10 @@ async function handleDiscordCallback(req, res) {
   try {
     const { code, state } = req.query;
     const cookies = parse(req.headers.cookie || '');
+    
+    console.log('[Discord Callback] Cookies:', cookies);
+    console.log('[Discord Callback] State from query:', state);
+    console.log('[Discord Callback] State from cookie:', cookies.discord_state);
     
     // Verify state parameter
     if (!state || !cookies.discord_state || state !== cookies.discord_state) {
@@ -321,7 +332,7 @@ async function handleDiscordCallback(req, res) {
 
     // Clear state cookie
     res.setHeader('Set-Cookie', serialize('discord_state', '', {
-      path: '/',
+      ...COOKIE_OPTIONS,
       expires: new Date(0)
     }));
 
@@ -414,11 +425,8 @@ async function handleLogout(req, res) {
 // Helper functions
 function setAuthCookies(res, token, userData) {
   const cookieOptions = {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    path: '/',
-    domain: process.env.NODE_ENV === 'production' ? '.buxdao.com' : 'localhost',
+    ...COOKIE_OPTIONS,
+    maxAge: 60 * 60 * 24 * 7 // 7 days
   };
 
   res.setHeader('Set-Cookie', [
@@ -433,12 +441,8 @@ function setAuthCookies(res, token, userData) {
 
 function clearAuthCookies(res) {
   const cookieOptions = {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    path: '/',
-    domain: process.env.NODE_ENV === 'production' ? '.buxdao.com' : 'localhost',
-    maxAge: 0,
+    ...COOKIE_OPTIONS,
+    expires: new Date(0)
   };
 
   res.setHeader('Set-Cookie', [
