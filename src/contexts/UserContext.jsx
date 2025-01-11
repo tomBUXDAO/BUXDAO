@@ -58,9 +58,31 @@ export const UserProvider = ({ children }) => {
 
   const handleLogout = async () => {
     try {
-      // Clear cookies
-      document.cookie = 'discord_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-      document.cookie = 'discord_user=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+      console.log('Initiating logout...');
+      // Call logout endpoint
+      const response = await fetch(`${API_BASE}/api/auth/logout`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      });
+
+      let data;
+      try {
+        data = await response.json();
+      } catch (e) {
+        console.error('Failed to parse logout response:', e);
+        throw new Error('Invalid server response');
+      }
+      
+      if (!response.ok) {
+        console.error('Logout failed:', data);
+        throw new Error(data.details || 'Logout failed');
+      }
+      
+      console.log('Logout successful, clearing state...');
       
       // Reset state
       setDiscordUser(null);
@@ -68,10 +90,20 @@ export const UserProvider = ({ children }) => {
       
       // Disconnect wallet if connected
       if (connected) {
-        disconnect();
+        await disconnect();
       }
+
+      // Force reload to clear any cached state
+      window.location.reload();
     } catch (err) {
       console.error('Logout failed:', err);
+      // Continue with state reset even if server logout fails
+      setDiscordUser(null);
+      setInitialized(false);
+      if (connected) {
+        await disconnect();
+      }
+      window.location.reload();
     }
   };
 

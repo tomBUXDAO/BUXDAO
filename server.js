@@ -13,16 +13,17 @@ import authCheckRouter from './api/auth/check.js';
 import discordAuthRouter from './api/auth/discord.js';
 import discordCallbackRouter from './api/auth/discord/callback.js';
 import walletAuthRouter from './api/auth/wallet.js';
+import logoutRouter from './api/auth/logout.js';
 import collectionsRouter from './api/collections/index.js';
 import celebcatzRouter from './api/celebcatz/index.js';
 import topHoldersHandler from './api/top-holders.js';
 
 const app = express();
 app.use(cors({
-  origin: ['http://localhost:5173'],
+  origin: ['http://localhost:5173', 'https://buxdao.com', 'https://www.buxdao.com'],
   credentials: true,
   methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Accept']
+  allowedHeaders: ['Content-Type', 'Accept', 'Authorization']
 }));
 app.use(express.json());
 app.use(cookieParser(process.env.COOKIE_SECRET));
@@ -61,6 +62,7 @@ app.use('/api/auth/check', authCheckRouter);
 app.use('/api/auth/discord', discordAuthRouter);
 app.use('/api/auth/discord/callback', discordCallbackRouter);
 app.use('/api/auth/wallet', walletAuthRouter);
+app.use('/api/auth/logout', logoutRouter);
 app.use('/api/collections', collectionsRouter);
 app.use('/api/celebcatz', celebcatzRouter);
 app.use('/api/top-holders', topHoldersHandler);

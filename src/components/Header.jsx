@@ -178,7 +178,7 @@ const Header = () => {
                   onMouseEnter={() => setIsUserDropdownOpen(true)}
                   onMouseLeave={() => setIsUserDropdownOpen(false)}
                 >
-                  <button className="flex items-center space-x-3 text-gray-300 hover:text-white">
+                  <button className="flex items-center space-x-3 text-gray-300 hover:text-white py-2">
                     <img 
                       src={`https://cdn.discordapp.com/avatars/${discordUser.discord_id}/${discordUser.avatar}.png`}
                       alt={discordUser.discord_username}
@@ -190,8 +190,8 @@ const Header = () => {
 
                   {/* User Dropdown */}
                   <div 
-                    className={`absolute right-0 w-48 mt-2 rounded-md shadow-lg bg-gray-900 ring-1 ring-black ring-opacity-5 transform transition-all duration-200 origin-top ${
-                      isUserDropdownOpen ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2 pointer-events-none'
+                    className={`absolute right-0 w-48 rounded-md shadow-lg bg-gray-900 ring-1 ring-black ring-opacity-5 transform transition-all duration-200 origin-top-right ${
+                      isUserDropdownOpen ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-1 pointer-events-none'
                     }`}
                   >
                     <div className="py-1">

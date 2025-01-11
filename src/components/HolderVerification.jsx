@@ -5,6 +5,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { DiscordIcon } from './Icons';
 import { ArrowRightOnRectangleIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { useUser } from '../contexts/UserContext';
+import { WalletModalButton } from './WalletModalButton';
 
 const HolderVerification = () => {
   const { publicKey, connected, disconnect } = useWallet();
