@@ -36,6 +36,7 @@ const HolderVerification = () => {
       const code = searchParams.get('code');
       const state = searchParams.get('state');
       const error = searchParams.get('error');
+      const storedState = localStorage.getItem('discord_state');
 
       if (error) {
         console.error('OAuth error:', decodeURIComponent(error));
@@ -46,6 +47,14 @@ const HolderVerification = () => {
       if (code) {
         setLoading(true);
         try {
+          // Verify state matches
+          if (!state || !storedState || state !== storedState) {
+            throw new Error('Invalid state parameter');
+          }
+
+          // Clear stored state
+          localStorage.removeItem('discord_state');
+
           // Include state parameter in callback
           window.location.href = `${API_BASE}/api/auth/discord/callback?code=${code}&state=${state}`;
           return;
@@ -68,6 +77,9 @@ const HolderVerification = () => {
     try {
       const state = generateState();
       const discordUrl = `https://discord.com/oauth2/authorize?response_type=code&client_id=1326719755779969044&scope=identify%20guilds.join&state=${state}&redirect_uri=${encodeURIComponent(`${API_BASE}/api/auth/discord/callback`)}&prompt=consent`;
+      
+      // Store state in localStorage for verification
+      localStorage.setItem('discord_state', state);
       
       // Use window.location.replace for proper redirection
       window.location.replace(discordUrl);

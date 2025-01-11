@@ -242,13 +242,13 @@ async function handleDiscordCallback(req, res) {
 
   try {
     const { code, state } = req.query;
-    const cookies = parse(req.headers.cookie || '');
-    const storedState = cookies.discord_state;
-
-    if (!storedState || storedState !== state) {
-      return res.status(400).json({ error: 'Invalid state' });
+    
+    if (!code) {
+      console.error('[Discord Callback] No code provided');
+      return res.status(400).json({ error: 'No code provided' });
     }
 
+    console.log('[Discord Callback] Exchanging code for token...');
     const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
       method: 'POST',
       headers: {
@@ -264,10 +264,13 @@ async function handleDiscordCallback(req, res) {
     });
 
     if (!tokenResponse.ok) {
+      console.error('[Discord Callback] Token exchange failed:', await tokenResponse.text());
       throw new Error('Failed to get token from Discord');
     }
 
     const tokenData = await tokenResponse.json();
+    console.log('[Discord Callback] Got token, fetching user data...');
+
     const userResponse = await fetch('https://discord.com/api/users/@me', {
       headers: {
         Authorization: `Bearer ${tokenData.access_token}`,
@@ -275,17 +278,20 @@ async function handleDiscordCallback(req, res) {
     });
 
     if (!userResponse.ok) {
+      console.error('[Discord Callback] User data fetch failed:', await userResponse.text());
       throw new Error('Failed to get user data from Discord');
     }
 
     const userData = await userResponse.json();
+    console.log('[Discord Callback] Got user data, setting cookies...');
+
     setAuthCookies(res, tokenData.access_token, userData);
 
     // Redirect back to verify page
     res.setHeader('Location', ORIGIN + '/verify');
     return res.status(302).end();
   } catch (error) {
-    console.error('Discord callback error:', error);
+    console.error('[Discord Callback] Error:', error);
     res.setHeader('Location', ORIGIN + '/verify?error=' + encodeURIComponent(error.message));
     return res.status(302).end();
   }
