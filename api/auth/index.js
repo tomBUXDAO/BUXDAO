@@ -37,9 +37,14 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Parse URL path
-    const endpoint = req.url.split('/').pop().split('?')[0]; // Get the last part of the path before any query params
-    console.log('[Auth] Endpoint:', endpoint, 'URL:', req.url);
+    // Parse URL path more carefully
+    const url = new URL(req.url, ORIGIN);
+    const pathParts = url.pathname.split('/').filter(Boolean);
+    const endpoint = pathParts[pathParts.length - 1];
+    
+    console.log('[Auth] URL:', req.url);
+    console.log('[Auth] Path parts:', pathParts);
+    console.log('[Auth] Endpoint:', endpoint);
 
     switch(endpoint) {
       case 'check':
@@ -60,7 +65,11 @@ export default async function handler(req, res) {
     }
   } catch (error) {
     console.error('[Auth] Error:', error);
-    return res.status(500).json({ error: 'Internal server error', details: error.message });
+    return res.status(500).json({ 
+      error: 'Internal server error', 
+      details: error.message,
+      url: req.url
+    });
   }
 }
 
