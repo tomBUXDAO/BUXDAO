@@ -269,36 +269,33 @@ async function handleDiscordCallback(req, res) {
     }
 
     console.log('[Discord Callback] Exchanging code for token...');
-    const params = new URLSearchParams();
-    params.append('client_id', DISCORD_CLIENT_ID);
-    params.append('client_secret', DISCORD_CLIENT_SECRET);
-    params.append('grant_type', 'authorization_code');
-    params.append('code', code);
-    params.append('redirect_uri', CALLBACK_URL);
+    const params = new URLSearchParams({
+      client_id: DISCORD_CLIENT_ID,
+      client_secret: DISCORD_CLIENT_SECRET,
+      grant_type: 'authorization_code',
+      code: code,
+      redirect_uri: CALLBACK_URL
+    });
 
     console.log('[Discord Callback] Token request params:', params.toString());
     console.log('[Discord Callback] Callback URL:', CALLBACK_URL);
 
-    const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
+    const tokenResponse = await fetch('https://discord.com/api/v9/oauth2/token', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
         'Accept': 'application/json',
         'User-Agent': 'BUXDAO Discord OAuth'
       },
-      body: params.toString()
+      body: params
     });
 
     const responseText = await tokenResponse.text();
+    console.log('[Discord Callback] Token response status:', tokenResponse.status);
     console.log('[Discord Callback] Token response:', responseText);
 
     if (!tokenResponse.ok) {
-      console.error('[Discord Callback] Token exchange failed:', {
-        status: tokenResponse.status,
-        statusText: tokenResponse.statusText,
-        response: responseText
-      });
-      throw new Error(`Failed to get token from Discord: ${tokenResponse.status} ${tokenResponse.statusText}`);
+      throw new Error(`Token exchange failed: ${tokenResponse.status} ${responseText}`);
     }
 
     let tokenData;
@@ -309,32 +306,34 @@ async function handleDiscordCallback(req, res) {
       throw new Error('Invalid token response from Discord');
     }
 
+    if (!tokenData.access_token) {
+      throw new Error('No access token in response');
+    }
+
     console.log('[Discord Callback] Got token, fetching user data...');
-    const userResponse = await fetch('https://discord.com/api/users/@me', {
+    const userResponse = await fetch('https://discord.com/api/v9/users/@me', {
       headers: {
         'Authorization': `Bearer ${tokenData.access_token}`,
+        'Accept': 'application/json',
         'User-Agent': 'BUXDAO Discord OAuth'
       }
     });
 
     if (!userResponse.ok) {
       const userResponseText = await userResponse.text();
-      console.error('[Discord Callback] User data fetch failed:', {
-        status: userResponse.status,
-        statusText: userResponse.statusText,
-        response: userResponseText
-      });
-      throw new Error('Failed to get user data from Discord');
+      throw new Error(`Failed to get user data: ${userResponse.status} ${userResponseText}`);
     }
 
     const userData = await userResponse.json();
-    console.log('[Discord Callback] Got user data, setting cookies...');
+    console.log('[Discord Callback] Got user data:', userData.id);
 
-    // Clear state cookie
-    res.setHeader('Set-Cookie', serialize('discord_state', '', {
-      ...COOKIE_OPTIONS,
-      expires: new Date(0)
-    }));
+    // Clear state cookie and set auth cookies
+    res.setHeader('Set-Cookie', [
+      serialize('discord_state', '', {
+        ...COOKIE_OPTIONS,
+        expires: new Date(0)
+      })
+    ]);
 
     setAuthCookies(res, tokenData.access_token, userData);
 
