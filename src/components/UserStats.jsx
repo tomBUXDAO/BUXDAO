@@ -60,11 +60,15 @@ export default function UserStats() {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-4 animate-pulse bg-gradient-to-r from-black/40 to-transparent border border-white/20 rounded-lg py-4 pl-4 pr-8 max-w-2xl">
+      <div className="flex items-center gap-4 bg-gradient-to-r from-black/40 to-transparent border border-white/20 rounded-lg py-4 pl-4 pr-8 max-w-2xl">
         <div className="w-16 h-16 bg-gray-700 rounded-full"></div>
-        <div className="w-16 h-16 bg-gray-700 rounded-full"></div>
-        <div className="h-5 bg-gray-700 rounded w-32"></div>
-        <div className="ml-auto h-5 bg-gray-700 rounded w-24"></div>
+        <div className="flex flex-col gap-2 flex-1">
+          <div className="flex items-center justify-center gap-3">
+            <div className="w-14 h-14 bg-gray-700 rounded-full"></div>
+            <div className="h-5 bg-gray-700 rounded w-32"></div>
+          </div>
+          <div className="h-5 bg-gray-700 rounded w-24 mx-auto"></div>
+        </div>
       </div>
     );
   }
@@ -85,15 +89,19 @@ export default function UserStats() {
           <span className="text-black text-2xl font-bold">{userStats.rank}</span>
         </div>
       </div>
-      {discordUser?.discord_id && discordUser?.avatar && (
-        <img 
-          src={`https://cdn.discordapp.com/avatars/${discordUser.discord_id}/${discordUser.avatar}.png`}
-          alt={discordUser.discord_username}
-          className="w-14 h-14 rounded-full"
-        />
-      )}
-      <span className="text-gray-200 text-lg">{discordUser?.discord_username || '-'}</span>
-      <span className="ml-auto text-purple-400 font-bold text-lg">{userStats.bux} BUX</span>
+      <div className="flex flex-col gap-2 flex-1">
+        <div className="flex items-center justify-center gap-3">
+          {discordUser?.discord_id && discordUser?.avatar && (
+            <img 
+              src={`https://cdn.discordapp.com/avatars/${discordUser.discord_id}/${discordUser.avatar}.png`}
+              alt={discordUser.discord_username}
+              className="w-14 h-14 rounded-full"
+            />
+          )}
+          <span className="text-gray-200 text-lg">{discordUser?.discord_username || '-'}</span>
+        </div>
+        <span className="text-purple-400 font-bold text-lg mx-auto">{userStats.bux} BUX</span>
+      </div>
     </div>
   );
 } 
