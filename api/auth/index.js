@@ -15,8 +15,8 @@ const DISCORD_CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
 const DISCORD_BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
 const ORIGIN = process.env.NODE_ENV === 'production' ? 'https://buxdao.com' : 'http://localhost:5173';
 const CALLBACK_URL = process.env.NODE_ENV === 'production'
-  ? 'https://buxdao.com/api/auth/discord/callback'
-  : 'http://localhost:3001/api/auth/discord/callback';
+  ? 'https://buxdao.com/verify'
+  : 'http://localhost:5173/verify';
 
 export default async function handler(req, res) {
   // Set CORS headers
@@ -32,9 +32,9 @@ export default async function handler(req, res) {
   }
 
   // Parse URL path
-  const path = req.url.split('?')[0];
-  const parts = path.split('/').filter(Boolean);
-  const endpoint = parts[1]; // 'check', 'process', 'discord', 'wallet', 'logout'
+  const url = new URL(req.url, 'http://localhost');
+  const pathParts = url.pathname.split('/').filter(Boolean);
+  const endpoint = pathParts[pathParts.length - 1]; // Get the last part of the path
 
   try {
     switch(endpoint) {
@@ -43,9 +43,9 @@ export default async function handler(req, res) {
       case 'process':
         return handleProcess(req, res);
       case 'discord':
-        return parts[2] === 'callback' 
-          ? handleDiscordCallback(req, res)
-          : handleDiscordAuth(req, res);
+        return handleDiscordAuth(req, res);
+      case 'callback':
+        return handleDiscordCallback(req, res);
       case 'wallet':
         return handleWallet(req, res);
       case 'logout':
