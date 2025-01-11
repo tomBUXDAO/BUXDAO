@@ -44,3 +44,19 @@
     gap: 2rem;
   }
 }
+
+.close-button {
+  position: absolute !important;
+  top: 1rem !important;
+  right: 1rem !important;
+  z-index: 9999 !important;
+  background: transparent !important;
+  border: none !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease-in-out !important;
+}
+
+.close-button:hover {
+  transform: scale(1.1) !important;
+  opacity: 0.8 !important;
+}

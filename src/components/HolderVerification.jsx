@@ -1,31 +1,21 @@
 import { useState, useEffect } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useWalletModal } from '@solana/wallet-adapter-react-ui';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { DiscordIcon } from './Icons';
-import { ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
-
-// Helper function to generate random string for state parameter
-const generateRandomString = (length) => {
-  const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let text = '';
-  for (let i = 0; i < length; i++) {
-    text += possible.charAt(Math.floor(Math.random() * possible.length));
-  }
-  return text;
-};
+import { ArrowRightOnRectangleIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { useUser } from '../contexts/UserContext';
 
 const HolderVerification = () => {
   const { publicKey, connected, disconnect } = useWallet();
   const { setVisible } = useWalletModal();
-  const [discordUser, setDiscordUser] = useState(null);
+  const { discordUser, setDiscordUser, handleLogout } = useUser();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [discordConnected, setDiscordConnected] = useState(false);
-  const [walletConnected, setWalletConnected] = useState(false);
   const [verificationStatus, setVerificationStatus] = useState('pending'); // pending, verified, failed
   const location = useLocation();
+  const navigate = useNavigate();
 
   const API_BASE = process.env.NODE_ENV === 'production' 
     ? 'https://buxdao.com' 
@@ -63,47 +53,6 @@ const HolderVerification = () => {
     handleCallback();
   }, [location]);
 
-  useEffect(() => {
-    // Only check for error param if we haven't already connected and there's been an auth attempt
-    if (!discordConnected) {
-      const params = new URLSearchParams(window.location.search);
-      const errorParam = params.get('error');
-      const code = params.get('code');
-      // Only show error if we're handling a callback (code present) or explicit error
-      if (errorParam && (code || params.get('state'))) {
-        setError(decodeURIComponent(errorParam));
-        // Clear the error from URL without triggering a refresh
-        window.history.replaceState({}, '', window.location.pathname);
-      }
-    }
-  }, [discordConnected]);
-
-  useEffect(() => {
-    // Only check auth if there's no code in the URL (initial load)
-    if (!location.search.includes('code=')) {
-      const checkAuth = async () => {
-        try {
-          const response = await fetch(`${API_BASE}/api/auth/check`, {
-            credentials: 'include'
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-            if (data.authenticated && data.user) {
-              setDiscordUser(data.user);
-              setError(null);
-            }
-          }
-        } catch (err) {
-          console.error('Auth check failed:', err);
-          // Don't set error here as this is a normal state for new users
-        }
-      };
-
-      checkAuth();
-    }
-  }, [location]);
-
   const handleDiscordLogin = () => {
     setError(null);
     setIsLoading(true);
@@ -117,37 +66,6 @@ const HolderVerification = () => {
       setIsLoading(false);
     }
   };
-
-  const handleDiscordLogout = async () => {
-    try {
-      // Clear cookies
-      document.cookie = 'discord_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-      document.cookie = 'discord_user=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-      
-      // Reset state
-      setDiscordUser(null);
-      setVerificationStatus('pending');
-      
-      // Disconnect wallet if connected
-      if (connected) {
-        disconnect();
-      }
-    } catch (err) {
-      console.error('Logout failed:', err);
-      setError('Failed to logout');
-    }
-  };
-
-  // Add wallet connection status effect
-  useEffect(() => {
-    if (connected && publicKey) {
-      console.log('Wallet connected:', publicKey.toString());
-      setWalletConnected(true);
-    } else {
-      console.log('Wallet disconnected');
-      setWalletConnected(false);
-    }
-  }, [connected, publicKey]);
 
   const handleWalletVerification = async () => {
     if (!connected || !publicKey || !discordUser) return;
@@ -203,9 +121,20 @@ const HolderVerification = () => {
     }
   };
 
+  const handleClose = () => {
+    navigate('/');
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center">
-      <div className="max-w-lg w-full mx-auto p-6 bg-gray-900 rounded-xl shadow-xl">
+      <div className="max-w-lg w-full mx-auto p-6 bg-gray-900 rounded-xl shadow-xl relative">
+        <button
+          onClick={handleClose}
+          className="absolute top-4 right-4 text-gray-400 hover:text-white p-2 rounded-lg hover:bg-gray-800 transition-colors"
+        >
+          <XMarkIcon className="h-6 w-6" />
+        </button>
+        
         <h2 className="text-2xl font-bold text-white mb-6">Holder Verification</h2>
 
         {/* Discord Connection */}
@@ -228,7 +157,7 @@ const HolderVerification = () => {
                 </div>
               </div>
               <button
-                onClick={handleDiscordLogout}
+                onClick={handleLogout}
                 className="text-gray-400 hover:text-white transition-colors p-2 hover:bg-gray-700 rounded-lg"
                 title="Logout"
               >

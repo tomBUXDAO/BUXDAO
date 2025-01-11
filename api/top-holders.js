@@ -3,17 +3,6 @@ const { Pool } = pkg;
 import { PublicKey, Connection, LAMPORTS_PER_SOL } from '@solana/web3.js';
 
 export default async function handler(req, res) {
-  // Handle CORS
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', '*');
-  
-  // Handle preflight request
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
-  }
-
   let client;
   try {
     const type = req.query.type || 'bux';

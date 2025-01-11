@@ -1,12 +1,17 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Bars3Icon, XMarkIcon, ChevronDownIcon, LockClosedIcon } from '@heroicons/react/24/outline';
+import { Bars3Icon, XMarkIcon, ChevronDownIcon, LockClosedIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
 import Logo from './Logo';
+import { useUser } from '../contexts/UserContext';
+import { useWalletModal } from '@solana/wallet-adapter-react-ui';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isHomeDropdownOpen, setIsHomeDropdownOpen] = useState(false);
   const [isBuxDropdownOpen, setIsBuxDropdownOpen] = useState(false);
+  const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
+  const { discordUser, handleLogout, walletConnected, walletAddress } = useUser();
+  const { setVisible } = useWalletModal();
 
   const scrollToSection = (sectionId) => {
     const section = document.querySelector(sectionId);
@@ -166,9 +171,60 @@ const Header = () => {
                 </Link>
               ))}
 
-              <button className="bg-gradient-to-r from-purple-500 to-pink-500 px-6 py-2 rounded-full text-white hover:opacity-90 transition-opacity">
-                Connect Wallet
-              </button>
+              {/* User section */}
+              {discordUser ? (
+                <div 
+                  className="relative"
+                  onMouseEnter={() => setIsUserDropdownOpen(true)}
+                  onMouseLeave={() => setIsUserDropdownOpen(false)}
+                >
+                  <button className="flex items-center space-x-3 text-gray-300 hover:text-white">
+                    <img 
+                      src={`https://cdn.discordapp.com/avatars/${discordUser.discord_id}/${discordUser.avatar}.png`}
+                      alt={discordUser.discord_username}
+                      className="w-8 h-8 rounded-full"
+                    />
+                    <span className="text-sm">{discordUser.discord_username}</span>
+                    <ChevronDownIcon className={`h-4 w-4 transition-transform ${isUserDropdownOpen ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {/* User Dropdown */}
+                  <div 
+                    className={`absolute right-0 w-48 mt-2 rounded-md shadow-lg bg-gray-900 ring-1 ring-black ring-opacity-5 transform transition-all duration-200 origin-top ${
+                      isUserDropdownOpen ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2 pointer-events-none'
+                    }`}
+                  >
+                    <div className="py-1">
+                      {walletConnected ? (
+                        <div className="px-4 py-2 text-sm">
+                          <p className="text-gray-400">Wallet</p>
+                          <p className="text-gray-300 truncate">{walletAddress?.slice(0, 4)}...{walletAddress?.slice(-4)}</p>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setVisible(true)}
+                          className="block w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white"
+                        >
+                          Connect Wallet
+                        </button>
+                      )}
+                      <button
+                        onClick={handleLogout}
+                        className="flex items-center space-x-2 w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white"
+                      >
+                        <ArrowRightOnRectangleIcon className="h-4 w-4" />
+                        <span>Logout</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <Link to="/verify">
+                  <button className="bg-gradient-to-r from-purple-500 to-pink-500 px-6 py-2 rounded-full text-white hover:opacity-90 transition-opacity">
+                    Connect Wallet
+                  </button>
+                </Link>
+              )}
             </div>
           </div>
         </div>
@@ -247,9 +303,54 @@ const Header = () => {
                 </Link>
               ))}
 
-              <button className="bg-gradient-to-r from-purple-500 to-pink-500 px-6 py-2 rounded-full text-white hover:opacity-90 transition-opacity text-sm tracking-wide">
-                Connect Wallet
-              </button>
+              {/* User section in mobile */}
+              {discordUser ? (
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-3">
+                    <img 
+                      src={`https://cdn.discordapp.com/avatars/${discordUser.discord_id}/${discordUser.avatar}.png`}
+                      alt={discordUser.discord_username}
+                      className="w-8 h-8 rounded-full"
+                    />
+                    <span className="text-sm text-gray-300">{discordUser.discord_username}</span>
+                  </div>
+                  {walletConnected ? (
+                    <div className="pl-11">
+                      <p className="text-gray-400 text-xs">Wallet</p>
+                      <p className="text-gray-300 text-sm truncate">{walletAddress?.slice(0, 4)}...{walletAddress?.slice(-4)}</p>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        setVisible(true);
+                        setIsMenuOpen(false);
+                      }}
+                      className="w-full text-left pl-11 text-sm text-gray-300"
+                    >
+                      Connect Wallet
+                    </button>
+                  )}
+                  <button
+                    onClick={() => {
+                      handleLogout();
+                      setIsMenuOpen(false);
+                    }}
+                    className="flex items-center space-x-2 w-full text-left pl-11 text-sm text-gray-300"
+                  >
+                    <ArrowRightOnRectangleIcon className="h-4 w-4" />
+                    <span>Logout</span>
+                  </button>
+                </div>
+              ) : (
+                <Link 
+                  to="/verify"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  <button className="bg-gradient-to-r from-purple-500 to-pink-500 px-6 py-2 rounded-full text-white hover:opacity-90 transition-opacity text-sm tracking-wide">
+                    Connect Wallet
+                  </button>
+                </Link>
+              )}
             </div>
           </div>
         )}

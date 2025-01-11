@@ -19,6 +19,7 @@ import Merch from './pages/Merch';
 import Roadmap from './pages/Roadmap';
 import Bux from './pages/Bux';
 import HolderVerification from './components/HolderVerification';
+import { UserProvider } from './contexts/UserContext';
 
 // Import your styles
 import './index.css';
@@ -39,25 +40,27 @@ const App = () => {
     <ConnectionProvider endpoint={endpoint}>
       <WalletProvider wallets={wallets} autoConnect>
         <WalletModalProvider>
-          <Router>
-            <div className="min-h-screen bg-black text-white">
-              <Header />
-              <Routes>
-                <Route path="/" element={
-                  <>
-                    <Hero />
-                    <Collection />
-                    <CollabCollections />
-                    <CelebUpgrades />
-                  </>
-                } />
-                <Route path="/merch" element={<Merch />} />
-                <Route path="/roadmap" element={<Roadmap />} />
-                <Route path="/bux" element={<Bux />} />
-                <Route path="/verify" element={<HolderVerification />} />
-              </Routes>
-            </div>
-          </Router>
+          <UserProvider>
+            <Router>
+              <div className="min-h-screen bg-black text-white">
+                <Header />
+                <Routes>
+                  <Route path="/" element={
+                    <>
+                      <Hero />
+                      <Collection />
+                      <CollabCollections />
+                      <CelebUpgrades />
+                    </>
+                  } />
+                  <Route path="/merch" element={<Merch />} />
+                  <Route path="/roadmap" element={<Roadmap />} />
+                  <Route path="/bux" element={<Bux />} />
+                  <Route path="/verify" element={<HolderVerification />} />
+                </Routes>
+              </div>
+            </Router>
+          </UserProvider>
         </WalletModalProvider>
       </WalletProvider>
     </ConnectionProvider>

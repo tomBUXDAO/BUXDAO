@@ -15,33 +15,14 @@ import discordCallbackRouter from './api/auth/discord/callback.js';
 import walletAuthRouter from './api/auth/wallet.js';
 import collectionsRouter from './api/collections/index.js';
 import celebcatzRouter from './api/celebcatz/index.js';
+import topHoldersHandler from './api/top-holders.js';
 
 const app = express();
 app.use(cors({
-  origin: function(origin, callback) {
-    const allowedOrigins = [
-      'http://localhost:5173',
-      'http://localhost:3001',
-      'https://buxdao.com',
-      'https://www.buxdao.com'
-    ];
-    
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
-      callback(null, true);
-    } else {
-      console.log('CORS blocked origin:', origin);
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  methods: ['GET', 'POST', 'HEAD', 'OPTIONS'],
+  origin: ['http://localhost:5173'],
   credentials: true,
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Cookie', 'Origin'],
-  exposedHeaders: ['Set-Cookie'],
-  optionsSuccessStatus: 200,
-  preflightContinue: false
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Accept']
 }));
 app.use(express.json());
 app.use(cookieParser(process.env.COOKIE_SECRET));
@@ -82,6 +63,7 @@ app.use('/api/auth/discord/callback', discordCallbackRouter);
 app.use('/api/auth/wallet', walletAuthRouter);
 app.use('/api/collections', collectionsRouter);
 app.use('/api/celebcatz', celebcatzRouter);
+app.use('/api/top-holders', topHoldersHandler);
 
 // Serve static files from the dist directory
 app.use(express.static('dist'));
@@ -573,8 +555,8 @@ app.get('/api/top-holders', async (req, res) => {
 
 // Start the server
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server is running on port ${PORT}`);
+app.listen(PORT, 'localhost', () => {
+  console.log(`Server is running on http://localhost:${PORT}`);
 });
 
 // Export the Express app

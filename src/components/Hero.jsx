@@ -1,8 +1,12 @@
 import { LockClosedIcon, ChartBarIcon, PhotoIcon, CircleStackIcon, WalletIcon, CurrencyDollarIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import { DiscordIcon, PokerChipIcon } from './Icons';
 import { Link } from 'react-router-dom';
+import { useUser } from '../contexts/UserContext';
+import UserStats from './UserStats';
 
 const Hero = () => {
+  const { discordUser } = useUser();
+
   const gifs = [
     '/gifs/bitbot.gif',
     '/gifs/catz.gif',
@@ -63,21 +67,27 @@ const Hero = () => {
                   </span>
                 </h2>
               </div>
-              
+
               {/* Center button and text section */}
-              <div className="flex flex-col items-center w-full lg:items-start">
-                <div className="flex portrait:flex-col landscape:flex-row items-center gap-4 w-full portrait:max-w-sm portrait:mx-auto">
-                  <Link to="/verify" className="w-full">
-                    <button className="flex items-center justify-center space-x-3 bg-[#5865F2] px-8 py-3 rounded-full text-white text-base sm:text-lg hover:opacity-90 transition-opacity border-2 border-white shadow-[0_0_15px_rgba(0,0,0,0.5)] whitespace-nowrap w-full">
-                      <DiscordIcon className="h-5 w-5 sm:h-6 sm:w-6" />
-                      <span>Holder verify</span>
+              <div className="flex flex-col items-center w-full lg:items-start mt-8">
+                {discordUser ? (
+                  <div className="w-full">
+                    <UserStats />
+                  </div>
+                ) : (
+                  <div className="flex portrait:flex-col landscape:flex-row items-center gap-4 w-full portrait:max-w-sm portrait:mx-auto">
+                    <Link to="/verify" className="w-full">
+                      <button className="flex items-center justify-center space-x-3 bg-[#5865F2] px-8 py-3 rounded-full text-white text-base sm:text-lg hover:opacity-90 transition-opacity border-2 border-white shadow-[0_0_15px_rgba(0,0,0,0.5)] whitespace-nowrap w-full">
+                        <DiscordIcon className="h-5 w-5 sm:h-6 sm:w-6" />
+                        <span>Holder verify</span>
+                      </button>
+                    </Link>
+                    <button className="flex items-center justify-center space-x-3 bg-transparent px-8 py-3 rounded-full text-white text-base sm:text-lg hover:bg-white/10 transition-all border-2 border-white whitespace-nowrap w-full">
+                      <span>Learn more</span>
+                      <ChevronRightIcon className="h-5 w-5 sm:h-6 sm:w-6" />
                     </button>
-                  </Link>
-                  <button className="flex items-center justify-center space-x-3 bg-transparent px-8 py-3 rounded-full text-white text-base sm:text-lg hover:bg-white/10 transition-all border-2 border-white whitespace-nowrap w-full">
-                    <span>Learn more</span>
-                    <ChevronRightIcon className="h-5 w-5 sm:h-6 sm:w-6" />
-                  </button>
-                </div>
+                  </div>
+                )}
               </div>
             </div>
 
