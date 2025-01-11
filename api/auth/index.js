@@ -13,10 +13,10 @@ const pool = new Pool({
 const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID;
 const DISCORD_CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
 const DISCORD_BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
-const ORIGIN = process.env.NODE_ENV === 'production' ? 'https://buxdao.com' : 'http://localhost:5173';
+const ORIGIN = process.env.NODE_ENV === 'production' ? 'https://buxdao.com' : 'http://localhost:3001';
 const CALLBACK_URL = process.env.NODE_ENV === 'production'
-  ? 'https://buxdao.com/verify'
-  : 'http://localhost:5173/verify';
+  ? 'https://buxdao.com/api/auth/discord/callback'
+  : 'http://localhost:3001/api/auth/discord/callback';
 
 export default async function handler(req, res) {
   // Set CORS headers
@@ -204,19 +204,15 @@ async function handleDiscordAuth(req, res) {
   }
 
   try {
-    // Generate state parameter for security
     const state = crypto.randomBytes(16).toString('hex');
-    
-    // Set state cookie for verification in callback
     const cookieOptions = {
       path: '/',
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 60 * 5 // 5 minutes
+      maxAge: 60 * 5
     };
 
-    // Build Discord OAuth URL
     const authUrl = new URL('https://discord.com/api/oauth2/authorize');
     authUrl.searchParams.append('client_id', DISCORD_CLIENT_ID);
     authUrl.searchParams.append('redirect_uri', CALLBACK_URL);
@@ -225,17 +221,15 @@ async function handleDiscordAuth(req, res) {
     authUrl.searchParams.append('state', state);
     authUrl.searchParams.append('prompt', 'consent');
 
-    // Log the URL for debugging
     console.log('[Discord Auth] Redirecting to:', authUrl.toString());
 
-    // Set cookie and redirect headers
     res.setHeader('Set-Cookie', serialize('discord_state', state, cookieOptions));
-    res.setHeader('Location', authUrl.toString());
-    res.status(302).end();
+    res.writeHead(302, { Location: authUrl.toString() });
+    res.end();
   } catch (error) {
     console.error('[Discord Auth] Error:', error);
-    res.setHeader('Location', ORIGIN + '/verify?error=' + encodeURIComponent(error.message));
-    res.status(302).end();
+    res.writeHead(302, { Location: ORIGIN + '/verify?error=' + encodeURIComponent(error.message) });
+    res.end();
   }
 }
 
