@@ -24,7 +24,7 @@
     },
     {
       "src": "/api/celebcatz/(.*)",
-      "dest": "/api/celebcatz/index.js"
+      "dest": "/api/celebcatz/index.js?endpoint=$1"
     },
     {
       "src": "/api/token-metrics",

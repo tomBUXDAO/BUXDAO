@@ -74,12 +74,9 @@ async function handleCheck(req, res) {
     console.log('[Auth Check] Request headers:', req.headers);
     const cookies = req.headers.cookie ? parse(req.headers.cookie) : {};
     console.log('[Auth Check] Parsed cookies:', cookies);
-    const discordToken = cookies.discord_token;
-    const discordUser = cookies.discord_user;
-
-    if (!discordToken || !discordUser) {
+    
+    if (!cookies.discord_token || !cookies.discord_user) {
       console.log('[Auth Check] Missing token or user');
-      res.setHeader('Content-Type', 'application/json');
       return res.status(401).json({ 
         authenticated: false,
         error: 'Not authenticated' 
@@ -87,47 +84,64 @@ async function handleCheck(req, res) {
     }
 
     // Verify Discord token is still valid
-    const response = await fetch('https://discord.com/api/users/@me', {
-      headers: {
-        Authorization: `Bearer ${discordToken}`,
-      },
-    });
-
-    if (!response.ok) {
-      console.log('[Auth Check] Invalid token response:', response.status);
-      clearAuthCookies(res);
-      res.setHeader('Content-Type', 'application/json');
-      return res.status(401).json({ 
-        authenticated: false,
-        error: 'Invalid token' 
-      });
-    }
-
-    let user;
     try {
-      user = JSON.parse(discordUser);
-      console.log('[Auth Check] Parsed user data successfully');
-    } catch (e) {
-      console.error('[Auth Check] Failed to parse user data:', e);
-      clearAuthCookies(res);
-      res.setHeader('Content-Type', 'application/json');
-      return res.status(401).json({ 
+      const response = await fetch('https://discord.com/api/users/@me', {
+        headers: {
+          'Authorization': `Bearer ${cookies.discord_token}`,
+          'Accept': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        console.log('[Auth Check] Invalid token response:', response.status);
+        clearAuthCookies(res);
+        return res.status(401).json({ 
+          authenticated: false,
+          error: 'Invalid token' 
+        });
+      }
+
+      const discordData = await response.json();
+      console.log('[Auth Check] Discord API response:', discordData);
+
+      let user;
+      try {
+        user = JSON.parse(cookies.discord_user);
+        console.log('[Auth Check] Parsed user data successfully:', user.id);
+        
+        // Update user data if needed
+        if (user.id !== discordData.id) {
+          console.log('[Auth Check] User ID mismatch, updating cookie');
+          setAuthCookies(res, cookies.discord_token, discordData);
+          user = discordData;
+        }
+      } catch (e) {
+        console.error('[Auth Check] Failed to parse user data:', e);
+        clearAuthCookies(res);
+        return res.status(401).json({ 
+          authenticated: false,
+          error: 'Invalid user data' 
+        });
+      }
+
+      return res.status(200).json({ 
+        authenticated: true,
+        user
+      });
+    } catch (error) {
+      console.error('[Auth Check] Discord API error:', error);
+      return res.status(500).json({ 
         authenticated: false,
-        error: 'Invalid user data' 
+        error: 'Failed to verify with Discord',
+        details: error.message
       });
     }
-
-    res.setHeader('Content-Type', 'application/json');
-    return res.status(200).json({ 
-      authenticated: true,
-      user
-    });
   } catch (error) {
-    console.error('[Auth Check] Error:', error);
-    res.setHeader('Content-Type', 'application/json');
+    console.error('[Auth Check] Unexpected error:', error);
     return res.status(500).json({ 
       authenticated: false,
-      error: 'Failed to check authentication status' 
+      error: 'Internal server error',
+      details: error.message
     });
   }
 }
