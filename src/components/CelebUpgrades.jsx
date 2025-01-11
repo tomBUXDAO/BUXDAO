@@ -29,11 +29,30 @@ const CelebUpgrades = () => {
         return;
       }
 
-      const response = await fetch(`${API_BASE_URL}/celebcatz/images`);
+      const response = await fetch(`${API_BASE_URL}/celebcatz/images`, {
+        headers: {
+          'Accept': 'application/json'
+        },
+        cache: 'no-store'
+      });
+      
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      const data = await response.json();
+
+      const text = await response.text();
+      if (!text) {
+        throw new Error('Empty response');
+      }
+
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (parseError) {
+        console.error('Failed to parse response:', text);
+        throw parseError;
+      }
+
       if (!data || !data.images) {
         throw new Error('Invalid response format');
       }

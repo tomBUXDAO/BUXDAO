@@ -28,17 +28,34 @@ export const UserProvider = ({ children }) => {
         setLoading(true);
         try {
           const response = await fetch(`${API_BASE}/api/auth/check`, {
-            credentials: 'include'
+            credentials: 'include',
+            headers: {
+              'Accept': 'application/json'
+            },
+            cache: 'no-store'
           });
 
-          if (response.ok) {
-            const data = await response.json();
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+
+          const text = await response.text();
+          if (!text) {
+            throw new Error('Empty response');
+          }
+
+          try {
+            const data = JSON.parse(text);
             if (data.authenticated && data.user) {
               setDiscordUser(data.user);
             }
+          } catch (parseError) {
+            console.error('Failed to parse response:', text);
+            throw parseError;
           }
         } catch (err) {
           console.error('Auth check failed:', err);
+          setDiscordUser(null);
         } finally {
           setLoading(false);
           setInitialized(true);
