@@ -36,12 +36,11 @@ export default async function handler(req, res) {
     return;
   }
 
-  // Parse URL path
-  const url = new URL(req.url, 'http://localhost');
-  const pathParts = url.pathname.split('/').filter(Boolean);
-  const endpoint = pathParts[pathParts.length - 1]; // Get the last part of the path
-
   try {
+    // Parse URL path
+    const endpoint = req.url.split('/').pop().split('?')[0]; // Get the last part of the path before any query params
+    console.log('[Auth] Endpoint:', endpoint, 'URL:', req.url);
+
     switch(endpoint) {
       case 'check':
         return handleCheck(req, res);
@@ -56,11 +55,12 @@ export default async function handler(req, res) {
       case 'logout':
         return handleLogout(req, res);
       default:
+        console.log('[Auth] No matching endpoint for:', endpoint);
         return res.status(404).json({ error: 'Not found' });
     }
   } catch (error) {
-    console.error('Auth error:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    console.error('[Auth] Error:', error);
+    return res.status(500).json({ error: 'Internal server error', details: error.message });
   }
 }
 
