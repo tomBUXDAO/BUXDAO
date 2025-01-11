@@ -204,27 +204,35 @@ async function handleDiscordAuth(req, res) {
   }
 
   try {
+    // Generate state parameter for security
     const state = crypto.randomBytes(16).toString('hex');
     
-    res.setHeader('Set-Cookie', `discord_state=${state}; HttpOnly; ${
-      process.env.NODE_ENV === 'production' ? 'Secure; ' : ''
-    }SameSite=Lax; Path=/; Domain=${
-      process.env.NODE_ENV === 'production' ? '.buxdao.com' : ''
-    }; Max-Age=${10 * 60}`);
+    // Set state cookie for verification in callback
+    res.setHeader('Set-Cookie', serialize('discord_state', state, {
+      path: '/',
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 5 // 5 minutes
+    }));
 
-    const authUrl = 'https://discord.com/oauth2/authorize' +
-      '?response_type=code' +
-      '&client_id=' + encodeURIComponent(DISCORD_CLIENT_ID) +
-      '&scope=' + encodeURIComponent('identify guilds.join') +
-      '&state=' + encodeURIComponent(state) +
-      '&redirect_uri=' + encodeURIComponent(CALLBACK_URL) +
-      '&prompt=consent';
+    // Construct Discord OAuth URL
+    const params = new URLSearchParams({
+      client_id: DISCORD_CLIENT_ID,
+      redirect_uri: CALLBACK_URL,
+      response_type: 'code',
+      scope: 'identify',
+      state: state
+    });
 
-    res.setHeader('Location', authUrl);
-    return res.status(302).end();
+    // Redirect to Discord OAuth
+    res.redirect(302, `https://discord.com/api/oauth2/authorize?${params.toString()}`);
   } catch (error) {
-    console.error('Discord auth error:', error);
-    return res.status(500).json({ error: 'Failed to initiate Discord authentication' });
+    console.error('[Discord Auth] Error:', error);
+    return res.status(500).json({ 
+      error: 'Failed to initiate Discord auth',
+      details: error.message 
+    });
   }
 }
 
