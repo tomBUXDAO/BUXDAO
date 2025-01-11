@@ -245,7 +245,8 @@ async function handleDiscordCallback(req, res) {
     
     if (!code) {
       console.error('[Discord Callback] No code provided');
-      return res.status(400).json({ error: 'No code provided' });
+      res.setHeader('Location', ORIGIN + '/verify?error=' + encodeURIComponent('No code provided'));
+      return res.status(302).end();
     }
 
     console.log('[Discord Callback] Exchanging code for token...');
@@ -253,32 +254,43 @@ async function handleDiscordCallback(req, res) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json'
       },
       body: new URLSearchParams({
         client_id: DISCORD_CLIENT_ID,
         client_secret: DISCORD_CLIENT_SECRET,
         grant_type: 'authorization_code',
-        code,
+        code: code,
         redirect_uri: CALLBACK_URL,
-      }),
+      }).toString()
     });
 
+    const responseText = await tokenResponse.text();
+    console.log('[Discord Callback] Token response:', responseText);
+
     if (!tokenResponse.ok) {
-      console.error('[Discord Callback] Token exchange failed:', await tokenResponse.text());
-      throw new Error('Failed to get token from Discord');
+      throw new Error(`Failed to get token from Discord: ${responseText}`);
     }
 
-    const tokenData = await tokenResponse.json();
-    console.log('[Discord Callback] Got token, fetching user data...');
+    let tokenData;
+    try {
+      tokenData = JSON.parse(responseText);
+    } catch (e) {
+      console.error('[Discord Callback] Failed to parse token response:', e);
+      throw new Error('Invalid token response from Discord');
+    }
 
+    console.log('[Discord Callback] Got token, fetching user data...');
     const userResponse = await fetch('https://discord.com/api/users/@me', {
       headers: {
-        Authorization: `Bearer ${tokenData.access_token}`,
-      },
+        'Authorization': `Bearer ${tokenData.access_token}`,
+        'Accept': 'application/json'
+      }
     });
 
     if (!userResponse.ok) {
-      console.error('[Discord Callback] User data fetch failed:', await userResponse.text());
+      const userResponseText = await userResponse.text();
+      console.error('[Discord Callback] User data fetch failed:', userResponseText);
       throw new Error('Failed to get user data from Discord');
     }
 
