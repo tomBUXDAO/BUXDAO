@@ -250,19 +250,24 @@ async function handleDiscordCallback(req, res) {
     }
 
     console.log('[Discord Callback] Exchanging code for token...');
-    const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
+    const params = new URLSearchParams({
+      client_id: DISCORD_CLIENT_ID,
+      client_secret: DISCORD_CLIENT_SECRET,
+      grant_type: 'authorization_code',
+      code: code,
+      redirect_uri: CALLBACK_URL,
+    });
+
+    console.log('[Discord Callback] Token request params:', params.toString());
+    console.log('[Discord Callback] Callback URL:', CALLBACK_URL);
+
+    const tokenResponse = await fetch('https://discord.com/api/v9/oauth2/token', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
         'Accept': 'application/json'
       },
-      body: new URLSearchParams({
-        client_id: DISCORD_CLIENT_ID,
-        client_secret: DISCORD_CLIENT_SECRET,
-        grant_type: 'authorization_code',
-        code: code,
-        redirect_uri: CALLBACK_URL,
-      }).toString()
+      body: params.toString()
     });
 
     const responseText = await tokenResponse.text();
@@ -281,7 +286,7 @@ async function handleDiscordCallback(req, res) {
     }
 
     console.log('[Discord Callback] Got token, fetching user data...');
-    const userResponse = await fetch('https://discord.com/api/users/@me', {
+    const userResponse = await fetch('https://discord.com/api/v9/users/@me', {
       headers: {
         'Authorization': `Bearer ${tokenData.access_token}`,
         'Accept': 'application/json'
