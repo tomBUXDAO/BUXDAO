@@ -15,6 +15,16 @@ const ORIGIN = process.env.NODE_ENV === 'production' ? 'https://buxdao.com' : 'h
 const CALLBACK_URL = process.env.NODE_ENV === 'production'
   ? 'https://buxdao.com/api/auth/discord/callback'
   : 'http://localhost:3001/api/auth/discord/callback';
+const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID;
+const DISCORD_CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
+
+if (!DISCORD_CLIENT_ID || DISCORD_CLIENT_ID === 'undefined') {
+  throw new Error('DISCORD_CLIENT_ID environment variable is not configured');
+}
+
+if (!DISCORD_CLIENT_SECRET || DISCORD_CLIENT_SECRET === 'undefined') {
+  throw new Error('DISCORD_CLIENT_SECRET environment variable is not configured');
+}
 
 // Cookie settings
 const COOKIE_OPTIONS = {
@@ -237,13 +247,6 @@ async function handleProcess(req, res) {
 // Initiate Discord auth
 async function handleDiscordAuth(req, res) {
   try {
-    const clientId = process.env.DISCORD_CLIENT_ID;
-    console.log('[Discord Auth] Using client ID:', clientId);
-    
-    if (!clientId || clientId === 'undefined') {
-      throw new Error('Discord client ID is not configured in environment variables');
-    }
-
     // Generate state for security
     const state = crypto.randomBytes(16).toString('hex');
     
@@ -253,7 +256,7 @@ async function handleDiscordAuth(req, res) {
 
     // Build Discord OAuth URL with required parameters
     const params = new URLSearchParams({
-      client_id: clientId,
+      client_id: DISCORD_CLIENT_ID,
       redirect_uri: CALLBACK_URL,
       response_type: 'code',
       scope: 'identify guilds.join',
