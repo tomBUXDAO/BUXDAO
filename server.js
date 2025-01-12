@@ -46,25 +46,26 @@ app.use(cookieParser(process.env.COOKIE_SECRET));
 // Session middleware
 app.use(session({
   store: sessionStore,
-  secret: process.env.SESSION_SECRET || 'your-secret-key',
+  secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   name: 'buxdao.sid',
+  proxy: process.env.NODE_ENV === 'production',
   cookie: {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-    domain: process.env.NODE_ENV === 'production' ? '.buxdao.com' : undefined,
+    domain: process.env.NODE_ENV === 'production' ? 'buxdao.com' : undefined,
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
   }
 }));
 
 // CORS configuration
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' ? 'https://buxdao.com' : 'http://localhost:5173',
+  origin: process.env.NODE_ENV === 'production' ? ['https://buxdao.com', 'https://www.buxdao.com'] : 'http://localhost:5173',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie']
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'Accept']
 }));
 
 // API middleware - only for /api routes
