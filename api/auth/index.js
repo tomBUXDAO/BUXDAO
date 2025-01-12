@@ -11,7 +11,7 @@ const pool = new Pool({
 });
 
 // Constants
-const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID;
+const DISCORD_CLIENT_ID = process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID || process.env.DISCORD_CLIENT_ID;
 const DISCORD_CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
 const DISCORD_BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
 const ORIGIN = process.env.NODE_ENV === 'production' ? 'https://buxdao.com' : 'http://localhost:3001';
@@ -240,8 +240,14 @@ async function handleProcess(req, res) {
 // Initiate Discord auth
 async function handleDiscordAuth(req, res) {
   try {
+    if (!DISCORD_CLIENT_ID) {
+      console.error('[Discord Auth] Missing DISCORD_CLIENT_ID');
+      throw new Error('Configuration error');
+    }
+
     const state = crypto.randomBytes(16).toString('hex');
     console.log('[Discord Auth] Generated state:', state);
+    console.log('[Discord Auth] Using client ID:', DISCORD_CLIENT_ID);
 
     // Set state cookie with minimal options to ensure compatibility
     const stateCookie = `discord_state=${state}; Path=/; Max-Age=300; Secure`;
