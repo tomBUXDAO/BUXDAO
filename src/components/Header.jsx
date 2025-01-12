@@ -201,12 +201,13 @@ const Header = () => {
                           <p className="text-gray-300 truncate">{walletAddress?.slice(0, 4)}...{walletAddress?.slice(-4)}</p>
                         </div>
                       ) : (
-                        <button
-                          onClick={() => setVisible(true)}
+                        <Link
+                          to="/verify"
+                          onClick={() => setIsUserDropdownOpen(false)}
                           className="block w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white"
                         >
                           Connect Wallet
-                        </button>
+                        </Link>
                       )}
                       <button
                         onClick={handleLogout}
@@ -320,15 +321,13 @@ const Header = () => {
                       <p className="text-gray-300 text-sm truncate">{walletAddress?.slice(0, 4)}...{walletAddress?.slice(-4)}</p>
                     </div>
                   ) : (
-                    <button
-                      onClick={() => {
-                        setVisible(true);
-                        setIsMenuOpen(false);
-                      }}
+                    <Link
+                      to="/verify"
+                      onClick={() => setIsMenuOpen(false)}
                       className="w-full text-left pl-11 text-sm text-gray-300"
                     >
                       Connect Wallet
-                    </button>
+                    </Link>
                   )}
                   <button
                     onClick={() => {
