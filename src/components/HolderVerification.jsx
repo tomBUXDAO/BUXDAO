@@ -79,10 +79,19 @@ const HolderVerification = () => {
       // Store state in localStorage
       localStorage.setItem('discord_state', state);
       
+      // Get client ID from environment variable
+      const clientId = import.meta.env.VITE_DISCORD_CLIENT_ID;
+      
+      if (!clientId) {
+        console.error('Discord client ID not found in environment variables');
+        setError('Configuration error. Please try again later.');
+        return;
+      }
+      
       // Build Discord OAuth URL
       const params = new URLSearchParams({
-        client_id: import.meta.env.VITE_DISCORD_CLIENT_ID,
-        redirect_uri: window.location.origin + '/api/auth/discord/callback',
+        client_id: clientId,
+        redirect_uri: `${window.location.origin}/api/auth/discord/callback`,
         response_type: 'code',
         scope: 'identify guilds.join',
         state: state,
