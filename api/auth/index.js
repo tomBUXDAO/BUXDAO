@@ -243,18 +243,26 @@ async function handleDiscordAuth(req, res) {
     const state = crypto.randomBytes(16).toString('hex');
     console.log('[Discord Auth] Generated state:', state);
 
-    // Clear any existing auth cookies first
-    res.setHeader('Set-Cookie', [
-      'discord_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=Lax',
-      'discord_user=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=Lax',
-      'discord_state=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=Lax'
-    ]);
+    // Clear existing cookies first
+    const clearCookies = [
+      serialize('discord_token', '', { ...COOKIE_OPTIONS, expires: new Date(0) }),
+      serialize('discord_user', '', { ...COOKIE_OPTIONS, expires: new Date(0) }),
+      serialize('discord_state', '', { ...COOKIE_OPTIONS, expires: new Date(0) })
+    ];
+    res.setHeader('Set-Cookie', clearCookies);
 
-    // Set state cookie with correct name
-    res.setHeader('Set-Cookie', `discord_state=${state}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=300`);
+    // Set state cookie with domain
+    const stateCookie = serialize('discord_state', state, {
+      ...COOKIE_OPTIONS,
+      domain: process.env.NODE_ENV === 'production' ? 'buxdao.com' : 'localhost',
+      maxAge: 300 // 5 minutes
+    });
+    
+    console.log('[Discord Auth] Setting cookie:', stateCookie);
+    res.setHeader('Set-Cookie', stateCookie);
     
     // Log cookies after setting
-    console.log('[Discord Auth] Set state cookie, current cookies:', req.headers.cookie);
+    console.log('[Discord Auth] Current cookies:', req.headers.cookie);
 
     // Build Discord OAuth URL
     const params = new URLSearchParams({
