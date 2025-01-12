@@ -439,10 +439,24 @@ const Merch = () => {
         if (!response.ok) {
           const errorData = await response.text();
           console.error('API Error:', errorData);
-          throw new Error(`Failed to fetch products: ${response.statusText}`);
+          try {
+            const jsonError = JSON.parse(errorData);
+            throw new Error(jsonError.message || `Failed to fetch products: ${response.statusText}`);
+          } catch (e) {
+            throw new Error(`Failed to fetch products: ${response.statusText}`);
+          }
         }
 
-        const data = await response.json();
+        let data;
+        try {
+          const text = await response.text();
+          console.log('Raw response:', text);
+          data = JSON.parse(text);
+        } catch (e) {
+          console.error('Failed to parse response:', e);
+          throw new Error('Invalid response format');
+        }
+
         console.log('Products data:', data);
         
         // Fetch variants with rate limiting
@@ -454,14 +468,28 @@ const Merch = () => {
             
             const variantResponse = await fetch(`${API_URL}/printful/products/${product.id}`);
             if (!variantResponse.ok) {
-              console.warn(`Skipping variants for product ${product.id} due to API error`);
+              console.warn(`Skipping variants for product ${product.id} due to API error:`, await variantResponse.text());
               productsWithPrices.push({
                 ...product,
                 sync_variants: []
               });
               continue;
             }
-            const variantData = await variantResponse.json();
+
+            let variantData;
+            try {
+              const text = await variantResponse.text();
+              console.log(`Raw variant response for ${product.id}:`, text);
+              variantData = JSON.parse(text);
+            } catch (e) {
+              console.warn(`Failed to parse variant response for ${product.id}:`, e);
+              productsWithPrices.push({
+                ...product,
+                sync_variants: []
+              });
+              continue;
+            }
+
             productsWithPrices.push({
               ...product,
               sync_variants: variantData.sync_variants || []
