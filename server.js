@@ -67,15 +67,17 @@ app.use('/api/collections', collectionsRouter);
 app.use('/api/celebcatz', celebcatzRouter);
 app.use('/api/top-holders', topHoldersHandler);
 
+// Edge Function routes should be handled before static files
+app.use('/api/printful/*', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.status(404).json({ error: 'Edge Function route' });
+});
+
 // Serve static files from the dist directory
 app.use(express.static('dist'));
 
 // Catch-all route to serve the frontend
-app.get('*', (req, res, next) => {
-  // Exclude API and Edge Function routes from the catch-all
-  if (req.path.startsWith('/api/') || req.path.startsWith('/api/printful/')) {
-    return next();
-  }
+app.get('*', (req, res) => {
   res.sendFile('index.html', { root: 'dist' });
 });
 

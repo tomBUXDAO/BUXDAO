@@ -1,5 +1,6 @@
 export const config = {
-  runtime: 'edge'
+  runtime: 'edge',
+  regions: ['iad1']  // Deploy to US East (N. Virginia)
 };
 
 export default async function handler(req) {
@@ -10,7 +11,7 @@ export default async function handler(req) {
       headers: {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET,OPTIONS',
-        'Access-Control-Allow-Headers': '*',
+        'Access-Control-Allow-Headers': 'Content-Type,Accept,Authorization',
         'Access-Control-Max-Age': '86400'
       }
     });
@@ -37,7 +38,7 @@ export default async function handler(req) {
     const response = await fetch('https://api.printful.com/store/products', {
       headers: {
         'Authorization': `Bearer ${process.env.PRINTFUL_API_KEY}`,
-        'Content-Type': 'application/json'
+        'Accept': 'application/json'
       }
     });
 
@@ -53,7 +54,24 @@ export default async function handler(req) {
         status: response.status,
         headers: {
           'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*'
+          'Access-Control-Allow-Origin': '*',
+          'Cache-Control': 'no-store'
+        }
+      });
+    }
+
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      console.error('Invalid content type from Printful API:', contentType);
+      return new Response(JSON.stringify({ 
+        error: 'Invalid content type from Printful API',
+        received: contentType
+      }), {
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Cache-Control': 'no-store'
         }
       });
     }
@@ -69,7 +87,8 @@ export default async function handler(req) {
         status: 500,
         headers: {
           'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*'
+          'Access-Control-Allow-Origin': '*',
+          'Cache-Control': 'no-store'
         }
       });
     }
@@ -98,14 +117,14 @@ export default async function handler(req) {
   } catch (error) {
     console.error('Error fetching from Printful:', error);
     return new Response(JSON.stringify({ 
-      error: error.message,
-      timestamp: new Date().toISOString(),
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      error: 'Internal server error',
+      message: error.message
     }), {
       status: 500,
       headers: {
         'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
+        'Access-Control-Allow-Origin': '*',
+        'Cache-Control': 'no-store'
       }
     });
   }
