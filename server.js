@@ -34,19 +34,30 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Accept', 'Authorization', 'Origin']
 }));
 
+// Debug middleware
+app.use((req, res, next) => {
+  console.log(`[DEBUG] Incoming request: ${req.method} ${req.path}`);
+  console.log('[DEBUG] Headers:', req.headers);
+  next();
+});
+
 // Create API router
 const apiRouter = express.Router();
 
 // API middleware
 apiRouter.use((req, res, next) => {
+  console.log(`[API] Processing API request: ${req.method} ${req.path}`);
   const startTime = Date.now();
-  console.log(`[API ${new Date().toISOString()}] ${req.method} ${req.path} - Origin: ${req.headers.origin}`);
   
   // Add response logging
   const oldSend = res.send;
   res.send = function(data) {
     const duration = Date.now() - startTime;
-    console.log(`[API ${new Date().toISOString()}] Response ${res.statusCode} sent in ${duration}ms`);
+    console.log(`[API] Response sent in ${duration}ms:`, {
+      statusCode: res.statusCode,
+      contentType: res.get('Content-Type'),
+      dataLength: data?.length
+    });
     return oldSend.apply(res, arguments);
   };
   
@@ -130,19 +141,27 @@ apiRouter.use((err, req, res, next) => {
 app.use('/api', apiRouter);
 
 // Static file handling - after API routes
-app.use(express.static('dist', {
-  index: false, // Disable automatic serving of index.html
-  setHeaders: (res, path) => {
-    if (path.endsWith('.js')) {
-      res.set('Content-Type', 'application/javascript');
-    } else if (path.endsWith('.css')) {
-      res.set('Content-Type', 'text/css');
-    }
+app.use((req, res, next) => {
+  // Skip static file handling for API routes
+  if (req.path.startsWith('/api/')) {
+    return next();
   }
-}));
+  
+  express.static('dist', {
+    index: false,
+    setHeaders: (res, path) => {
+      if (path.endsWith('.js')) {
+        res.set('Content-Type', 'application/javascript');
+      } else if (path.endsWith('.css')) {
+        res.set('Content-Type', 'text/css');
+      }
+    }
+  })(req, res, next);
+});
 
 // SPA fallback - must be last
 app.get('*', (req, res) => {
+  // Only serve index.html for non-API routes
   if (req.path.startsWith('/api/')) {
     return res.status(404).json({ error: 'API endpoint not found' });
   }
