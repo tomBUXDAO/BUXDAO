@@ -34,6 +34,13 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Accept', 'Authorization', 'Origin']
 }));
 
+// API middleware - only for /api routes
+app.use('/api', (req, res, next) => {
+  res.set('Content-Type', 'application/json');
+  res.set('Cache-Control', 'no-store');
+  next();
+});
+
 // Debug logging
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
@@ -117,17 +124,42 @@ app.use('/api/collections', collectionsRouter);
 app.use('/api/celebcatz', celebcatzRouter);
 app.use('/api/top-holders', topHoldersHandler);
 
-// Static file serving
-app.use(express.static('dist', {
-  index: false
-}));
+// API 404 handler - must come after API routes but before static files
+app.use('/api/*', (req, res) => {
+  res.status(404).json({ error: 'API endpoint not found' });
+});
 
-// SPA fallback
-app.get('*', (req, res) => {
-  // Only serve index.html for non-API routes
-  if (!req.path.startsWith('/api/')) {
-    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+// Static file serving - after API routes
+const staticHandler = express.static('dist', {
+  index: false,
+  setHeaders: (res, path) => {
+    if (path.endsWith('.js')) {
+      res.set('Content-Type', 'application/javascript');
+    } else if (path.endsWith('.css')) {
+      res.set('Content-Type', 'text/css');
+    }
   }
+});
+
+app.use((req, res, next) => {
+  if (req.path.startsWith('/api/')) {
+    return next();
+  }
+  staticHandler(req, res, next);
+});
+
+// SPA fallback - only for non-API routes
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api/')) {
+    return next();
+  }
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+});
+
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error('Unhandled error:', err);
+  res.status(500).json({ error: 'Internal Server Error' });
 });
 
 // Start the server
