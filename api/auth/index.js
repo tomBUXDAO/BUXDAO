@@ -12,9 +12,12 @@ const pool = new Pool({
 
 // Constants
 const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID;
-if (!DISCORD_CLIENT_ID) {
-  console.error('[Auth] Missing DISCORD_CLIENT_ID environment variable');
-  throw new Error('DISCORD_CLIENT_ID is required');
+console.log('[Auth] Loading with DISCORD_CLIENT_ID:', DISCORD_CLIENT_ID);
+
+if (!DISCORD_CLIENT_ID || DISCORD_CLIENT_ID === 'undefined') {
+  const error = new Error('DISCORD_CLIENT_ID environment variable is not configured');
+  console.error('[Auth] Critical Error:', error);
+  throw error;
 }
 const DISCORD_CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
 const DISCORD_BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
@@ -244,8 +247,9 @@ async function handleProcess(req, res) {
 // Initiate Discord auth
 async function handleDiscordAuth(req, res) {
   try {
+    // Double check client ID is available
     if (!DISCORD_CLIENT_ID || DISCORD_CLIENT_ID === 'undefined') {
-      throw new Error('Discord client ID is not configured');
+      throw new Error('Discord client ID is not properly configured');
     }
     
     console.log('[Discord Auth] Using client ID:', DISCORD_CLIENT_ID);
