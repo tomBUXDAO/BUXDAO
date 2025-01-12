@@ -247,9 +247,10 @@ async function handleProcess(req, res) {
 // Initiate Discord auth
 async function handleDiscordAuth(req, res) {
   try {
-    // Ensure client ID is available
-    if (!DISCORD_CLIENT_ID) {
-      throw new Error('Discord client ID is missing');
+    // Double check client ID is available
+    if (!DISCORD_CLIENT_ID || DISCORD_CLIENT_ID === 'undefined') {
+      console.error('[Discord Auth] Client ID not available:', process.env.DISCORD_CLIENT_ID);
+      throw new Error('Discord client ID is not properly configured');
     }
 
     // Log the actual value being used
@@ -263,8 +264,16 @@ async function handleDiscordAuth(req, res) {
     res.setHeader('Set-Cookie', stateCookie);
 
     // Build Discord OAuth URL with required parameters
-    const discordUrl = `https://discord.com/oauth2/authorize?client_id=${encodeURIComponent(DISCORD_CLIENT_ID)}&redirect_uri=${encodeURIComponent(CALLBACK_URL)}&response_type=code&scope=identify%20guilds.join&state=${state}&prompt=consent`;
+    const params = new URLSearchParams({
+      client_id: DISCORD_CLIENT_ID,
+      redirect_uri: CALLBACK_URL,
+      response_type: 'code',
+      scope: 'identify guilds.join',
+      state: state,
+      prompt: 'consent'
+    });
     
+    const discordUrl = `https://discord.com/oauth2/authorize?${params.toString()}`;
     console.log('[Discord Auth] Redirecting to:', discordUrl);
 
     res.setHeader('Location', discordUrl);
