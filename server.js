@@ -72,23 +72,43 @@ const PRINTFUL_API_KEY = process.env.PRINTFUL_API_KEY;
 const PRINTFUL_API_URL = 'https://api.printful.com';
 
 apiRouter.get('/printful/products', async (req, res) => {
+  console.log('[Printful] Starting products request...');
+  
+  if (!PRINTFUL_API_KEY) {
+    console.error('[Printful] API key is missing');
+    return res.status(500).json({ error: 'Printful API key is not configured' });
+  }
+
   try {
-    console.log('[Printful] Fetching products...');
+    console.log('[Printful] Making request to Printful API...');
+    const auth = Buffer.from(PRINTFUL_API_KEY + ':').toString('base64');
+    console.log('[Printful] Using auth:', auth.substring(0, 10) + '...');
+    
     const response = await axios({
       method: 'get',
       url: `${PRINTFUL_API_URL}/store/products`,
       headers: {
-        'Authorization': `Basic ${Buffer.from(PRINTFUL_API_KEY + ':').toString('base64')}`,
+        'Authorization': `Basic ${auth}`,
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       },
       validateStatus: (status) => status === 200
     });
 
-    console.log('[Printful] Successfully fetched products');
+    console.log('[Printful] Response received:', {
+      status: response.status,
+      contentType: response.headers['content-type'],
+      dataLength: JSON.stringify(response.data).length
+    });
+
     res.json(response.data.result);
   } catch (error) {
-    console.error('[Printful] API error:', error.response?.data || error.message);
+    console.error('[Printful] API error:', {
+      message: error.message,
+      status: error.response?.status,
+      data: error.response?.data,
+      headers: error.response?.headers
+    });
     res.status(500).json({ error: 'Failed to fetch products' });
   }
 });
@@ -137,35 +157,40 @@ apiRouter.use((err, req, res, next) => {
   });
 });
 
-// Mount API router before static files
+// Mount API router first
 app.use('/api', apiRouter);
 
-// Static file handling - after API routes
+// Static file handling - only for non-API routes
+const staticHandler = express.static('dist', {
+  index: false,
+  setHeaders: (res, path) => {
+    if (path.endsWith('.js')) {
+      res.set('Content-Type', 'application/javascript');
+    } else if (path.endsWith('.css')) {
+      res.set('Content-Type', 'text/css');
+    }
+  }
+});
+
 app.use((req, res, next) => {
-  // Skip static file handling for API routes
   if (req.path.startsWith('/api/')) {
     return next();
   }
-  
-  express.static('dist', {
-    index: false,
-    setHeaders: (res, path) => {
-      if (path.endsWith('.js')) {
-        res.set('Content-Type', 'application/javascript');
-      } else if (path.endsWith('.css')) {
-        res.set('Content-Type', 'text/css');
-      }
-    }
-  })(req, res, next);
+  staticHandler(req, res, next);
 });
 
 // SPA fallback - must be last
-app.get('*', (req, res) => {
-  // Only serve index.html for non-API routes
+app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api/')) {
-    return res.status(404).json({ error: 'API endpoint not found' });
+    return next();
   }
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+});
+
+// Final error handler
+app.use((err, req, res, next) => {
+  console.error('[Error] Unhandled error:', err);
+  res.status(500).json({ error: 'Internal Server Error' });
 });
 
 // Start the server
