@@ -13,11 +13,6 @@ const API_URL = process.env.NODE_ENV === 'production'
   ? 'https://buxdao.com/api'
   : '/api';
 
-// Separate URL for Edge Functions
-const EDGE_API_URL = process.env.NODE_ENV === 'production'
-  ? 'https://buxdao.com/api/printful'
-  : '/api/printful';
-
 const hasBackDesign = (productName) => {
   const name = productName.toLowerCase();
   return (
@@ -105,7 +100,7 @@ const ProductModal = ({ product: initialProduct, onClose, onAddToCart }) => {
   useEffect(() => {
     const fetchVariants = async () => {
       try {
-        const response = await fetch(`${EDGE_API_URL}/products/${product.id}`, {
+        const response = await fetch(`${API_URL}/printful/products/${product.id}`, {
           headers: {
             'Accept': 'application/json'
           }
@@ -439,22 +434,12 @@ const Merch = () => {
     const fetchProducts = async () => {
       try {
         console.log('Fetching products...');
-        const response = await fetch(`${EDGE_API_URL}/products`, {
-          headers: {
-            'Accept': 'application/json'
-          }
-        });
+        const response = await fetch(`${API_URL}/printful/products`);
         
         if (!response.ok) {
           const errorData = await response.text();
           console.error('API Error:', errorData);
           throw new Error(`Failed to fetch products: ${response.statusText}`);
-        }
-
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-          console.error('Invalid content type:', contentType);
-          throw new Error('Invalid response format: expected JSON');
         }
 
         const data = await response.json();
@@ -467,11 +452,7 @@ const Merch = () => {
             // Add a small delay between requests
             await new Promise(resolve => setTimeout(resolve, 100));
             
-            const variantResponse = await fetch(`${EDGE_API_URL}/products/${product.id}`, {
-              headers: {
-                'Accept': 'application/json'
-              }
-            });
+            const variantResponse = await fetch(`${API_URL}/printful/products/${product.id}`);
             if (!variantResponse.ok) {
               console.warn(`Skipping variants for product ${product.id} due to API error`);
               productsWithPrices.push({

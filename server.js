@@ -67,6 +67,80 @@ app.use('/api/collections', collectionsRouter);
 app.use('/api/celebcatz', celebcatzRouter);
 app.use('/api/top-holders', topHoldersHandler);
 
+// Printful API routes
+app.get('/api/printful/products', async (req, res) => {
+  try {
+    console.log('Fetching Printful products list');
+    
+    if (!process.env.PRINTFUL_API_KEY) {
+      throw new Error('PRINTFUL_API_KEY is not set');
+    }
+
+    const response = await axios({
+      method: 'GET',
+      url: 'https://api.printful.com/store/products',
+      headers: {
+        'Authorization': `Bearer ${process.env.PRINTFUL_API_KEY}`,
+        'Accept': 'application/json'
+      }
+    });
+
+    if (!response.data.result) {
+      throw new Error('Invalid response format from Printful API');
+    }
+
+    // Transform the data to match our frontend needs
+    const products = response.data.result.map(item => ({
+      id: item.id,
+      name: item.name,
+      thumbnail_url: item.thumbnail_url,
+      variants: item.variants || 0,
+      sync_product: item.sync_product,
+      sync_variants: item.sync_variants || []
+    }));
+
+    res.json(products);
+  } catch (error) {
+    console.error('Error fetching from Printful:', error);
+    res.status(500).json({
+      error: 'Internal server error',
+      message: error.message
+    });
+  }
+});
+
+app.get('/api/printful/products/:id', async (req, res) => {
+  try {
+    const productId = req.params.id;
+    console.log('Fetching Printful product details:', productId);
+    
+    if (!process.env.PRINTFUL_API_KEY) {
+      throw new Error('PRINTFUL_API_KEY is not set');
+    }
+
+    const response = await axios({
+      method: 'GET',
+      url: `https://api.printful.com/store/products/${productId}`,
+      headers: {
+        'Authorization': `Bearer ${process.env.PRINTFUL_API_KEY}`,
+        'Accept': 'application/json'
+      }
+    });
+
+    if (!response.data.result) {
+      throw new Error('Invalid response format from Printful API');
+    }
+
+    res.json(response.data.result);
+  } catch (error) {
+    console.error('Error fetching from Printful:', error);
+    res.status(500).json({
+      error: 'Internal server error',
+      message: error.message
+    });
+  }
+});
+
 // Serve static files from the dist directory
 app.use(express.static('dist'));
 
