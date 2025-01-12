@@ -44,7 +44,10 @@ router.post('/', async (req, res) => {
     try {
       const client = await pool.connect();
       try {
-        const result = await client.query(
+        await client.query('BEGIN');
+
+        // First update user_roles
+        const userRolesResult = await client.query(
           `UPDATE user_roles 
            SET wallet_address = $1,
                last_updated = CURRENT_TIMESTAMP
@@ -53,15 +56,52 @@ router.post('/', async (req, res) => {
           [wallet_address, req.session.user.discord_id]
         );
         
-        if (result.rowCount === 0) {
+        if (userRolesResult.rowCount === 0) {
           console.error('No user_roles entry found for discord_id:', req.session.user.discord_id);
+          await client.query('ROLLBACK');
           return res.status(404).json({
             success: false,
             message: 'User not found'
           });
         }
+
+        // Insert or update bux_holders with 0 balance if no entry exists
+        await client.query(
+          `INSERT INTO bux_holders (
+             wallet_address, 
+             owner_discord_id, 
+             owner_name, 
+             balance, 
+             is_exempt
+           )
+           VALUES ($1, $2, $3, 0, false)
+           ON CONFLICT (wallet_address) 
+           DO UPDATE SET 
+             owner_discord_id = $2,
+             owner_name = $3,
+             last_updated = CURRENT_TIMESTAMP`,
+          [wallet_address, req.session.user.discord_id, req.session.user.discord_username]
+        );
+
+        // Update nft_metadata
+        await client.query(
+          `UPDATE nft_metadata 
+           SET owner_discord_id = $1,
+               owner_name = $2
+           WHERE owner_wallet = $3`,
+          [req.session.user.discord_id, req.session.user.discord_username, wallet_address]
+        );
+
+        await client.query('COMMIT');
+        console.log('Updated user_roles and ownership entries:', userRolesResult.rows[0]);
         
-        console.log('Updated user_roles entry:', result.rows[0]);
+        return res.status(200).json({
+          success: true,
+          message: 'Wallet verified and ownership updated'
+        });
+      } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
       } finally {
         client.release();
       }
@@ -72,16 +112,11 @@ router.post('/', async (req, res) => {
         message: 'Failed to update user roles'
       });
     }
-    
-    res.json({
-      success: true,
-      message: 'Wallet connected successfully'
-    });
   } catch (error) {
-    console.error('Wallet auth error:', error);
-    res.status(500).json({
+    console.error('Wallet verification error:', error);
+    return res.status(500).json({ 
       success: false,
-      message: 'Internal server error'
+      message: 'Failed to verify wallet'
     });
   }
 });
