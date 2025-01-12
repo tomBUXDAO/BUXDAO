@@ -68,12 +68,9 @@ app.use('/api/celebcatz', celebcatzRouter);
 app.use('/api/top-holders', topHoldersHandler);
 
 // Edge Function routes - must be before static files
-app.use('/api/printful/*', (req, res) => {
-  // Return 404 to indicate this should be handled by Edge Function
-  res.status(404).json({
-    error: 'Not Found',
-    message: 'This route should be handled by Edge Function'
-  });
+app.use('/api/printful/*', (req, res, next) => {
+  // Forward request to Edge Function
+  next();
 });
 
 // Serve static files only for non-API routes
