@@ -105,8 +105,23 @@ const ProductModal = ({ product: initialProduct, onClose, onAddToCart }) => {
   useEffect(() => {
     const fetchVariants = async () => {
       try {
-        const response = await fetch(`${API_URL}/printful/products/${product.id}`);
-        if (!response.ok) throw new Error('Failed to fetch variants');
+        const response = await fetch(`${EDGE_API_URL}/products/${product.id}`, {
+          headers: {
+            'Accept': 'application/json'
+          }
+        });
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('API Error:', errorText);
+          throw new Error('Failed to fetch variants');
+        }
+
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          console.error('Invalid content type:', contentType);
+          throw new Error('Invalid response format: expected JSON');
+        }
+
         const data = await response.json();
         console.log('Product data from Printful:', data);
         setVariants(data.sync_variants || []);
@@ -123,6 +138,7 @@ const ProductModal = ({ product: initialProduct, onClose, onAddToCart }) => {
         }
         setLoading(false);
       } catch (err) {
+        console.error('Error fetching variants:', err);
         setError(err.message);
         setLoading(false);
       }
