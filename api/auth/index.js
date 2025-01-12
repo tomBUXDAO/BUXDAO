@@ -288,7 +288,7 @@ async function handleDiscordCallback(req, res) {
 
   try {
     const { code } = req.query;
-    console.log('[Discord Callback] Processing code:', code);
+    console.log('[Discord Callback] Processing code');
     
     if (!code) {
       console.error('[Discord Callback] No code provided');
@@ -297,31 +297,32 @@ async function handleDiscordCallback(req, res) {
     }
 
     // Exchange code for token
-    const params = new URLSearchParams({
-      client_id: DISCORD_CLIENT_ID,
-      client_secret: DISCORD_CLIENT_SECRET,
-      grant_type: 'authorization_code',
-      code: code,
-      redirect_uri: CALLBACK_URL
-    });
-
     const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
         'Accept': 'application/json'
       },
-      body: params
+      body: new URLSearchParams({
+        client_id: DISCORD_CLIENT_ID,
+        client_secret: DISCORD_CLIENT_SECRET,
+        grant_type: 'authorization_code',
+        code: code,
+        redirect_uri: CALLBACK_URL
+      }).toString()
     });
 
+    const tokenText = await tokenResponse.text();
+    console.log('[Discord Callback] Token response:', tokenText);
+
     if (!tokenResponse.ok) {
-      const error = await tokenResponse.text();
-      console.error('[Discord Callback] Token exchange failed:', error);
-      throw new Error('Failed to exchange code for token');
+      throw new Error(`Token exchange failed: ${tokenText}`);
     }
 
-    const tokenData = await tokenResponse.json();
-    console.log('[Discord Callback] Token exchange successful');
+    const tokenData = JSON.parse(tokenText);
+    if (!tokenData.access_token) {
+      throw new Error('No access token in response');
+    }
 
     // Get user data
     const userResponse = await fetch('https://discord.com/api/users/@me', {
@@ -332,7 +333,8 @@ async function handleDiscordCallback(req, res) {
     });
 
     if (!userResponse.ok) {
-      throw new Error('Failed to get user data');
+      const userError = await userResponse.text();
+      throw new Error(`Failed to get user data: ${userError}`);
     }
 
     const userData = await userResponse.json();
@@ -425,18 +427,15 @@ async function handleLogout(req, res) {
 }
 
 // Helper functions
-function setAuthCookies(res, token, userData) {
-  const cookies = [
-    'discord_token=' + token + '; Path=/; Secure',
-    'discord_user=' + JSON.stringify({
-      discord_id: userData.id,
-      discord_username: userData.username,
-      avatar: userData.avatar,
-    }) + '; Path=/; Secure'
-  ];
+function setAuthCookies(res, token, user) {
+  const oneWeek = 7 * 24 * 60 * 60;
+  const cookieOptions = 'Path=/; Max-Age=' + oneWeek + '; Secure; SameSite=Lax';
 
-  console.log('[Auth] Setting auth cookies:', cookies);
-  res.setHeader('Set-Cookie', cookies);
+  const tokenCookie = `discord_token=${token}; ${cookieOptions}`;
+  const userCookie = `discord_user=${JSON.stringify(user)}; ${cookieOptions}`;
+
+  console.log('[Auth] Setting cookies with options:', cookieOptions);
+  res.setHeader('Set-Cookie', [tokenCookie, userCookie]);
 }
 
 function clearAuthCookies(res) {
