@@ -243,8 +243,8 @@ async function handleDiscordAuth(req, res) {
     const state = crypto.randomBytes(16).toString('hex');
     console.log('[Discord Auth] Generated state:', state);
 
-    // Set state cookie with minimal options
-    res.setHeader('Set-Cookie', 'discord_state=' + state + '; Path=/; Secure');
+    // Set state cookie first, before any other headers
+    res.setHeader('Set-Cookie', `discord_state=${state}; Path=/; Secure; SameSite=Lax`);
     
     // Log cookies after setting
     console.log('[Discord Auth] Set state cookie:', state);
@@ -256,13 +256,14 @@ async function handleDiscordAuth(req, res) {
       redirect_uri: CALLBACK_URL,
       response_type: 'code',
       scope: 'identify guilds.join',
-      state: state
+      state: state,
+      prompt: 'consent'
     });
 
     const discordUrl = `https://discord.com/oauth2/authorize?${params.toString()}`;
     console.log('[Discord Auth] Redirecting to:', discordUrl);
 
-    // Redirect after cookie is set
+    // Set redirect header last
     res.setHeader('Location', discordUrl);
     res.status(302).end();
   } catch (error) {
