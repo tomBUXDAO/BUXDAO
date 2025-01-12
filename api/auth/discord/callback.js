@@ -20,7 +20,7 @@ router.get('/', async (req, res) => {
   console.log('Discord callback received:', { 
     state: req.query.state,
     hasCode: !!req.query.code,
-    sessionState: req.session?.oauth2state,
+    sessionState: req.session?.discord_state,
     cookies: req.headers.cookie
   });
   
@@ -36,10 +36,10 @@ router.get('/', async (req, res) => {
     }
 
     // Verify state matches
-    if (!req.session?.oauth2state || state !== req.session.oauth2state) {
+    if (!req.session?.discord_state || state !== req.session.discord_state) {
       console.error('State mismatch or missing session:', {
         sessionExists: !!req.session,
-        sessionState: req.session?.oauth2state,
+        sessionState: req.session?.discord_state,
         receivedState: state
       });
       return res.status(400).json({
@@ -47,6 +47,9 @@ router.get('/', async (req, res) => {
         message: 'Invalid state parameter or session expired'
       });
     }
+
+    // Clear the state after verification
+    delete req.session.discord_state;
 
     console.log('Exchanging code for token...', {
       clientId: process.env.DISCORD_CLIENT_ID,
