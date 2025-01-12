@@ -25,7 +25,7 @@ const COOKIE_OPTIONS = {
   httpOnly: true,
   secure: process.env.NODE_ENV === 'production',
   sameSite: 'lax',
-  domain: process.env.NODE_ENV === 'production' ? 'buxdao.com' : 'localhost'
+  domain: process.env.NODE_ENV === 'production' ? '.buxdao.com' : undefined
 };
 
 export default async function handler(req, res) {
@@ -226,9 +226,9 @@ async function handleDiscordAuth(req, res) {
     const cookieOptions = {
       ...COOKIE_OPTIONS,
       maxAge: 300, // 5 minutes in seconds
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax'
+      sameSite: 'lax',
+      path: '/',
+      domain: process.env.NODE_ENV === 'production' ? '.buxdao.com' : undefined
     };
 
     // Use the exact Discord OAuth URL
@@ -259,6 +259,7 @@ async function handleDiscordCallback(req, res) {
     const { code, state } = req.query;
     const cookies = parse(req.headers.cookie || '');
     
+    console.log('[Discord Callback] Headers:', req.headers);
     console.log('[Discord Callback] Request cookies:', req.headers.cookie);
     console.log('[Discord Callback] Parsed cookies:', cookies);
     console.log('[Discord Callback] State from query:', state);
@@ -267,7 +268,10 @@ async function handleDiscordCallback(req, res) {
     // Verify state parameter
     if (!state || !cookies.discord_state) {
       const error = !state ? 'Missing state parameter' : 'Missing state cookie';
-      console.error(`[Discord Callback] ${error}`);
+      console.error(`[Discord Callback] ${error}`, {
+        headers: req.headers,
+        cookies: cookies
+      });
       res.setHeader('Location', ORIGIN + '/verify?error=' + encodeURIComponent(error));
       return res.status(302).end();
     }
