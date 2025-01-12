@@ -4,8 +4,13 @@ export const config = {
 };
 
 export default async function handler(req) {
-  console.log('Edge Function handler:', req.url);
-  
+  // Log request details
+  console.log('Edge Function request:', {
+    url: req.url,
+    method: req.method,
+    headers: Object.fromEntries(req.headers)
+  });
+
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, {
@@ -21,7 +26,6 @@ export default async function handler(req) {
 
   // Only allow GET requests
   if (req.method !== 'GET') {
-    console.error('Invalid method:', req.method);
     return new Response(
       JSON.stringify({ error: 'Method not allowed' }),
       {
@@ -35,10 +39,7 @@ export default async function handler(req) {
   }
 
   try {
-    console.log('Fetching from Printful API...');
-    
     if (!process.env.PRINTFUL_API_KEY) {
-      console.error('PRINTFUL_API_KEY not configured');
       throw new Error('API key not configured');
     }
 
@@ -52,8 +53,10 @@ export default async function handler(req) {
       }
     });
 
-    console.log('Printful API response status:', response.status);
-    console.log('Printful API response headers:', Object.fromEntries(response.headers.entries()));
+    console.log('Printful API response:', {
+      status: response.status,
+      headers: Object.fromEntries(response.headers)
+    });
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -68,7 +71,7 @@ export default async function handler(req) {
     }
 
     const data = await response.json();
-    console.log('Printful API data received');
+    console.log('Printful API data:', JSON.stringify(data).slice(0, 200));
 
     if (!data.result) {
       console.error('Invalid response structure:', data);
@@ -85,12 +88,14 @@ export default async function handler(req) {
       sync_variants: item.sync_variants || []
     }));
 
+    // Return the response with proper headers
     return new Response(JSON.stringify(products), {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*',
         'Cache-Control': 'no-store',
+        'X-Content-Type-Options': 'nosniff'
       },
     });
   } catch (error) {
@@ -106,6 +111,7 @@ export default async function handler(req) {
           'Content-Type': 'application/json',
           'Access-Control-Allow-Origin': '*',
           'Cache-Control': 'no-store',
+          'X-Content-Type-Options': 'nosniff'
         },
       }
     );
