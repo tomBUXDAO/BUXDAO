@@ -23,9 +23,8 @@ const CALLBACK_URL = process.env.NODE_ENV === 'production'
 const COOKIE_OPTIONS = {
   path: '/',
   httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'lax',
-  domain: process.env.NODE_ENV === 'production' ? 'buxdao.com' : undefined
+  secure: true,
+  sameSite: 'lax'
 };
 
 export default async function handler(req, res) {
@@ -252,9 +251,8 @@ async function handleDiscordAuth(req, res) {
     const cookieOptions = {
       path: '/',
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: true,
       sameSite: 'lax',
-      domain: process.env.NODE_ENV === 'production' ? 'buxdao.com' : undefined,
       maxAge: 300 // 5 minutes in seconds
     };
 
@@ -266,9 +264,9 @@ async function handleDiscordAuth(req, res) {
     console.log('[Discord Auth] Redirecting to:', discordUrl);
 
     // Set state cookie and redirect
-    const cookie = serialize('discord_state', state, cookieOptions);
-    console.log('[Discord Auth] Setting cookie:', cookie);
-    res.setHeader('Set-Cookie', cookie);
+    const stateCookie = serialize('discord_state', state, cookieOptions);
+    console.log('[Discord Auth] Setting cookie header:', stateCookie);
+    res.setHeader('Set-Cookie', stateCookie);
     res.setHeader('Location', discordUrl);
     return res.status(302).end();
   } catch (error) {
@@ -478,9 +476,8 @@ function setAuthCookies(res, token, userData) {
   const cookieOptions = {
     path: '/',
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: true,
     sameSite: 'lax',
-    domain: process.env.NODE_ENV === 'production' ? 'buxdao.com' : undefined,
     maxAge: 60 * 60 * 24 * 7 // 7 days
   };
 
@@ -490,7 +487,7 @@ function setAuthCookies(res, token, userData) {
       discord_id: userData.id,
       discord_username: userData.username,
       avatar: userData.avatar,
-    }), cookieOptions),
+    }), cookieOptions)
   ];
 
   console.log('[Auth] Setting auth cookies:', cookies);
@@ -501,16 +498,15 @@ function clearAuthCookies(res) {
   const cookieOptions = {
     path: '/',
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: true,
     sameSite: 'lax',
-    domain: process.env.NODE_ENV === 'production' ? 'buxdao.com' : undefined,
     expires: new Date(0)
   };
 
   const cookies = [
     serialize('discord_token', '', cookieOptions),
     serialize('discord_user', '', cookieOptions),
-    serialize('discord_state', '', cookieOptions),
+    serialize('discord_state', '', cookieOptions)
   ];
 
   console.log('[Auth] Clearing cookies:', cookies);
