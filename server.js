@@ -53,7 +53,14 @@ app.use((req, res, next) => {
   next();
 });
 
-// Printful API handling - must be first
+// API middleware - ensure proper handling of all API routes
+app.use('/api', (req, res, next) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Cache-Control', 'no-store');
+  next();
+});
+
+// Printful API handling
 const PRINTFUL_API_KEY = process.env.PRINTFUL_API_KEY;
 const PRINTFUL_API_URL = 'https://api.printful.com';
 
@@ -70,7 +77,8 @@ app.get('/api/printful/products', async (req, res) => {
       url: `${PRINTFUL_API_URL}/store/products`,
       headers: {
         'Authorization': `Basic ${Buffer.from(PRINTFUL_API_KEY + ':').toString('base64')}`,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
       }
     });
 
@@ -80,8 +88,7 @@ app.get('/api/printful/products', async (req, res) => {
     }
 
     console.log('[Printful] Successfully fetched products');
-    res.setHeader('Content-Type', 'application/json');
-    return res.status(200).json(response.data.result);
+    return res.json(response.data.result);
   } catch (error) {
     console.error('[Printful] API error:', error.response?.data || error.message);
     return res.status(error.response?.status || 500).json({
@@ -109,7 +116,8 @@ app.get('/api/printful/products/:id', async (req, res) => {
       url: `${PRINTFUL_API_URL}/store/products/${productId}`,
       headers: {
         'Authorization': `Basic ${Buffer.from(PRINTFUL_API_KEY + ':').toString('base64')}`,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
       }
     });
 
@@ -119,8 +127,7 @@ app.get('/api/printful/products/:id', async (req, res) => {
     }
 
     console.log('[Printful] Successfully fetched product details');
-    res.setHeader('Content-Type', 'application/json');
-    return res.status(200).json(response.data.result);
+    return res.json(response.data.result);
   } catch (error) {
     console.error('[Printful] API error:', error.response?.data || error.message);
     return res.status(error.response?.status || 500).json({
@@ -158,8 +165,9 @@ apiRouter.use((err, req, res, next) => {
 // Mount API router at /api
 app.use('/api', apiRouter);
 
-// Static file serving - after API routes
+// Static file serving - must be after all API routes
 app.use(express.static('dist', {
+  index: false, // Disable automatic serving of index.html
   setHeaders: (res, path) => {
     if (path.endsWith('.js')) {
       res.set('Content-Type', 'application/javascript');
@@ -169,12 +177,12 @@ app.use(express.static('dist', {
   }
 }));
 
-// SPA fallback - only for non-API routes
-app.get('*', (req, res) => {
+// SPA fallback - must be last
+app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api/')) {
-    return res.status(404).json({ error: 'API endpoint not found' });
+    return next(); // Let API routes handle 404s
   }
-  res.sendFile('index.html', { root: 'dist' });
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
 // Start the server
