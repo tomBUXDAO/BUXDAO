@@ -247,39 +247,31 @@ async function handleProcess(req, res) {
 // Initiate Discord auth
 async function handleDiscordAuth(req, res) {
   try {
-    // Double check client ID is available
-    if (!DISCORD_CLIENT_ID || DISCORD_CLIENT_ID === 'undefined') {
-      throw new Error('Discord client ID is not properly configured');
+    // Ensure client ID is available
+    if (!DISCORD_CLIENT_ID) {
+      throw new Error('Discord client ID is missing');
     }
-    
-    console.log('[Discord Auth] Using client ID:', DISCORD_CLIENT_ID);
-    const state = crypto.randomBytes(16).toString('hex');
-    console.log('[Discord Auth] Generated state:', state);
 
-    // Set state cookie first, before any other headers
+    // Log the actual value being used
+    console.log('[Discord Auth] Using client ID:', DISCORD_CLIENT_ID);
+    
+    // Generate state for security
+    const state = crypto.randomBytes(16).toString('hex');
+    
+    // Set state cookie first
     const stateCookie = `discord_state=${state}; Path=/; Max-Age=300; Secure; HttpOnly`;
     res.setHeader('Set-Cookie', stateCookie);
-    console.log('[Discord Auth] Set cookie:', stateCookie);
 
-    // Build Discord OAuth URL
-    const params = new URLSearchParams({
-      client_id: DISCORD_CLIENT_ID,
-      redirect_uri: CALLBACK_URL,
-      response_type: 'code',
-      scope: 'identify guilds.join',
-      state: state,
-      prompt: 'consent'
-    });
-
-    const discordUrl = `https://discord.com/oauth2/authorize?${params.toString()}`;
+    // Build Discord OAuth URL with required parameters
+    const discordUrl = `https://discord.com/oauth2/authorize?client_id=${encodeURIComponent(DISCORD_CLIENT_ID)}&redirect_uri=${encodeURIComponent(CALLBACK_URL)}&response_type=code&scope=identify%20guilds.join&state=${state}&prompt=consent`;
+    
     console.log('[Discord Auth] Redirecting to:', discordUrl);
 
-    // Set redirect header and end response
     res.setHeader('Location', discordUrl);
     return res.status(302).end();
   } catch (error) {
     console.error('[Discord Auth] Error:', error);
-    res.setHeader('Location', ORIGIN + '/verify?error=' + encodeURIComponent(error.message));
+    res.setHeader('Location', `${ORIGIN}/verify?error=${encodeURIComponent(error.message)}`);
     return res.status(302).end();
   }
 }
