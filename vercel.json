@@ -13,30 +13,14 @@
       }
     },
     {
-      "src": "api/**/*.js",
+      "src": "server.js",
       "use": "@vercel/node"
     }
   ],
   "routes": [
     {
-      "src": "/api/auth/(.*)",
-      "dest": "/api/auth/index.js"
-    },
-    {
-      "src": "/api/celebcatz/(.*)",
-      "dest": "/api/celebcatz/index.js?endpoint=$1"
-    },
-    {
-      "src": "/api/token-metrics",
-      "dest": "/api/token-metrics.js"
-    },
-    {
-      "src": "/api/top-holders",
-      "dest": "/api/top-holders.js"
-    },
-    {
-      "src": "/api/collections/([^/]+)/(.*)",
-      "dest": "/api/collections/index.js?collection=$1&endpoint=$2"
+      "src": "/api/(.*)",
+      "dest": "/server.js"
     },
     {
       "src": "/(.*)",
@@ -54,7 +38,7 @@
     },
     {
       "src": "/(.*)",
-      "dest": "/index.html"
+      "dest": "/server.js"
     }
   ]
 } 
