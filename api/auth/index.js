@@ -243,15 +243,22 @@ async function handleDiscordAuth(req, res) {
     const state = crypto.randomBytes(16).toString('hex');
     console.log('[Discord Auth] Generated state:', state);
 
-    // Set state cookie first
-    res.setHeader('Set-Cookie', `state=${state}; Path=/; Secure; SameSite=Lax; Max-Age=300`);
+    // Clear any existing auth cookies first
+    res.setHeader('Set-Cookie', [
+      'discord_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=Lax',
+      'discord_user=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=Lax',
+      'discord_state=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=Lax'
+    ]);
+
+    // Set state cookie with correct name
+    res.setHeader('Set-Cookie', `discord_state=${state}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=300`);
     
     // Log cookies after setting
     console.log('[Discord Auth] Set state cookie, current cookies:', req.headers.cookie);
 
     // Build Discord OAuth URL
     const params = new URLSearchParams({
-      client_id: process.env.DISCORD_CLIENT_ID,
+      client_id: DISCORD_CLIENT_ID,
       redirect_uri: CALLBACK_URL,
       response_type: 'code',
       scope: 'identify guilds.join',
