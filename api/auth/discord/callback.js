@@ -1,7 +1,12 @@
 import express from 'express';
 import fetch from 'node-fetch';
+import pg from 'pg';
 
 const router = express.Router();
+const pool = new pg.Pool({
+  connectionString: process.env.POSTGRES_URL,
+  ssl: { rejectUnauthorized: false }
+});
 
 const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID;
 const DISCORD_CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
@@ -77,6 +82,25 @@ router.get('/', async (req, res) => {
     }
 
     const userData = await userResponse.json();
+
+    // Create or update user_roles entry
+    try {
+      const client = await pool.connect();
+      try {
+        await client.query(
+          `INSERT INTO user_roles (discord_id, discord_username, wallet_address, is_holder, is_bux_holder, is_nft_holder, is_og_holder, is_whale_holder)
+           VALUES ($1, $2, NULL, false, false, false, false, false)
+           ON CONFLICT (discord_id) 
+           DO UPDATE SET discord_username = $2`,
+          [userData.id, userData.username]
+        );
+      } finally {
+        client.release();
+      }
+    } catch (dbError) {
+      console.error('Database error:', dbError);
+      // Continue with auth flow even if DB fails
+    }
 
     // Store user data in session and cookies
     req.session.user = {
