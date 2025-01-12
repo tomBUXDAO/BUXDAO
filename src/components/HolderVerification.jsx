@@ -79,8 +79,10 @@ const HolderVerification = () => {
       // Store state in localStorage
       localStorage.setItem('discord_state', state);
       
-      // Get client ID from environment variable
-      const clientId = import.meta.env.VITE_DISCORD_CLIENT_ID;
+      // Get client ID from environment variables
+      const clientId = process.env.NODE_ENV === 'production' 
+        ? '1326719755779969044'  // Production Discord client ID
+        : import.meta.env.VITE_DISCORD_CLIENT_ID;
       
       if (!clientId) {
         console.error('Discord client ID not found in environment variables');
@@ -88,10 +90,14 @@ const HolderVerification = () => {
         return;
       }
       
-      // Build Discord OAuth URL
+      // Build Discord OAuth URL with environment-specific redirect URI
+      const redirectUri = process.env.NODE_ENV === 'production'
+        ? 'https://buxdao.com/api/auth/discord/callback'
+        : `${window.location.origin}/api/auth/discord/callback`;
+
       const params = new URLSearchParams({
         client_id: clientId,
-        redirect_uri: `${window.location.origin}/api/auth/discord/callback`,
+        redirect_uri: redirectUri,
         response_type: 'code',
         scope: 'identify guilds.join',
         state: state,
