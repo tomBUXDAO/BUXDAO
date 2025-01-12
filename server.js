@@ -8,6 +8,11 @@ import axios from 'axios';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import cookieParser from 'cookie-parser';
+import session from 'express-session';
+import pgSession from 'connect-pg-simple';
+import pg from 'pg';
+
+// Import routers after environment setup
 import authCheckRouter from './api/auth/check.js';
 import discordAuthRouter from './api/auth/discord.js';
 import discordCallbackRouter from './api/auth/discord/callback.js';
@@ -17,14 +22,24 @@ import collectionsRouter from './api/collections/index.js';
 import celebcatzRouter from './api/celebcatz/index.js';
 import topHoldersHandler from './api/top-holders.js';
 import tokenMetricsRouter from './api/token-metrics.js';
-import session from 'express-session';
-import pgSession from 'connect-pg-simple';
-import pg from 'pg';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+
+// Trust proxy in production
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+}
+
+// CORS configuration - must be first
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production' ? ['https://buxdao.com', 'https://www.buxdao.com'] : 'http://localhost:5173',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'Accept']
+}));
 
 // PostgreSQL client setup
 const pool = new pg.Pool({
@@ -36,21 +51,17 @@ const pool = new pg.Pool({
 const PostgresqlStore = pgSession(session);
 const sessionStore = new PostgresqlStore({
   pool,
-  tableName: 'session'
+  tableName: 'session',
+  createTableIfMissing: true
 });
 
-// Basic middleware
-app.use(express.json());
-app.use(cookieParser(process.env.COOKIE_SECRET));
-
-// Session middleware
+// Session middleware - before routes, after CORS
 app.use(session({
   store: sessionStore,
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   name: 'buxdao.sid',
-  proxy: process.env.NODE_ENV === 'production',
   cookie: {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
@@ -60,24 +71,20 @@ app.use(session({
   }
 }));
 
-// CORS configuration
-app.use(cors({
-  origin: process.env.NODE_ENV === 'production' ? ['https://buxdao.com', 'https://www.buxdao.com'] : 'http://localhost:5173',
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'Accept']
-}));
+// Basic middleware
+app.use(express.json());
+app.use(cookieParser(process.env.SESSION_SECRET)); // Use same secret as session
+
+// Debug logging
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path} - Session ID: ${req.sessionID}`);
+  next();
+});
 
 // API middleware - only for /api routes
 app.use('/api', (req, res, next) => {
   res.set('Content-Type', 'application/json');
   res.set('Cache-Control', 'no-store');
-  next();
-});
-
-// Debug logging
-app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
   next();
 });
 
