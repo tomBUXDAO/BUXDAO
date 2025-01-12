@@ -37,8 +37,10 @@ app.use(session({
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
     sameSite: 'lax',
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
-  }
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    domain: process.env.NODE_ENV === 'production' ? '.buxdao.com' : undefined
+  },
+  name: 'buxdao.sid' // Custom session cookie name
 }));
 
 // CORS configuration
@@ -46,7 +48,7 @@ app.use(cors({
   origin: ['http://localhost:5173', 'https://buxdao.com', 'https://www.buxdao.com'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Accept', 'Authorization', 'Origin']
+  allowedHeaders: ['Content-Type', 'Accept', 'Authorization', 'Origin', 'Cookie']
 }));
 
 // API middleware - only for /api routes
