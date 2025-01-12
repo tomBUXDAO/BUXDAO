@@ -57,16 +57,6 @@ app.use((err, req, res, next) => {
   });
 });
 
-// API routes should be defined before any static file handling
-app.use('/api/auth/check', authCheckRouter);
-app.use('/api/auth/discord', discordAuthRouter);
-app.use('/api/auth/discord/callback', discordCallbackRouter);
-app.use('/api/auth/wallet', walletAuthRouter);
-app.use('/api/auth/logout', logoutRouter);
-app.use('/api/collections', collectionsRouter);
-app.use('/api/celebcatz', celebcatzRouter);
-app.use('/api/top-holders', topHoldersHandler);
-
 // Create static file middleware with API route exclusion
 const staticMiddleware = express.static('dist', {
   setHeaders: (res, path) => {
@@ -78,13 +68,20 @@ const staticMiddleware = express.static('dist', {
   }
 });
 
+// API routes should be defined before any static file handling
+app.use('/api/auth/check', authCheckRouter);
+app.use('/api/auth/discord', discordAuthRouter);
+app.use('/api/auth/discord/callback', discordCallbackRouter);
+app.use('/api/auth/wallet', walletAuthRouter);
+app.use('/api/auth/logout', logoutRouter);
+app.use('/api/collections', collectionsRouter);
+app.use('/api/celebcatz', celebcatzRouter);
+app.use('/api/top-holders', topHoldersHandler);
+
 // Edge Function routes - must be before static files
-app.use('/api/printful/*', (req, res) => {
-  // Return 404 for Edge Function routes
-  res.status(404).json({
-    error: 'Edge Function route',
-    message: 'This route should be handled by Edge Functions'
-  });
+app.use('/api/printful/*', (req, res, next) => {
+  // Let Edge Function handle these routes
+  next();
 });
 
 // Static file serving with API route check
