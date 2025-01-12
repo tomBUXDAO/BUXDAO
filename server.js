@@ -69,14 +69,6 @@ app.use('/api/collections', collectionsRouter);
 app.use('/api/celebcatz', celebcatzRouter);
 app.use('/api/top-holders', topHoldersHandler);
 
-// Edge Function routes - must be before static files
-app.use('/api/printful/*', (req, res) => {
-  res.status(404).json({
-    error: 'Edge Function route',
-    message: 'This route should be handled by an Edge Function'
-  });
-});
-
 // Printful API routes - must be before static files
 app.use('/api/printful/products/:id', printfulProductDetailsRouter);
 app.use('/api/printful/products', printfulProductsRouter);
