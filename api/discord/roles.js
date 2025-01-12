@@ -6,20 +6,31 @@ const pool = new pg.Pool({
   ssl: { rejectUnauthorized: false }
 });
 
-// Initialize Discord client
-const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMembers
-  ]
-});
-
-client.login(process.env.DISCORD_BOT_TOKEN);
-
 // Cache roles data
 let rolesCache = null;
 let rolesCacheTimestamp = null;
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+let discordClient = null;
+
+// Function to get or initialize Discord client
+async function getDiscordClient() {
+  if (!discordClient) {
+    try {
+      discordClient = new Client({
+        intents: [
+          GatewayIntentBits.Guilds,
+          GatewayIntentBits.GuildMembers
+        ]
+      });
+      await discordClient.login(process.env.DISCORD_BOT_TOKEN);
+    } catch (error) {
+      console.error('Failed to initialize Discord client:', error);
+      return null;
+    }
+  }
+  return discordClient;
+}
 
 // Function to get roles from database
 async function getRoles() {
@@ -60,43 +71,55 @@ export async function syncUserRoles(discordId, guildId) {
     const userRoles = userResult.rows[0];
     const roles = await getRoles();
     
-    // Get Discord guild and member
-    const guild = await client.guilds.fetch(guildId);
-    const member = await guild.members.fetch(discordId);
-    
-    if (!member) {
-      console.log(`Member ${discordId} not found in guild ${guildId}`);
+    // Get Discord client
+    const discord = await getDiscordClient();
+    if (!discord) {
+      console.log('Discord client unavailable - skipping role sync');
       return false;
     }
-
-    // Track role changes
-    const rolesToAdd = [];
-    const rolesToRemove = [];
-
-    // Check each role
-    for (const role of roles) {
-      const shouldHaveRole = checkRoleEligibility(userRoles, role);
-      const hasRole = member.roles.cache.has(role.discord_role_id);
-
-      if (shouldHaveRole && !hasRole) {
-        rolesToAdd.push(role.discord_role_id);
-      } else if (!shouldHaveRole && hasRole) {
-        rolesToRemove.push(role.discord_role_id);
+    
+    // Get Discord guild and member
+    try {
+      const guild = await discord.guilds.fetch(guildId);
+      const member = await guild.members.fetch(discordId);
+      
+      if (!member) {
+        console.log(`Member ${discordId} not found in guild ${guildId}`);
+        return false;
       }
-    }
 
-    // Apply role changes
-    if (rolesToAdd.length > 0) {
-      await member.roles.add(rolesToAdd);
-      console.log(`Added roles for ${discordId}:`, rolesToAdd);
-    }
+      // Track role changes
+      const rolesToAdd = [];
+      const rolesToRemove = [];
 
-    if (rolesToRemove.length > 0) {
-      await member.roles.remove(rolesToRemove);
-      console.log(`Removed roles for ${discordId}:`, rolesToRemove);
-    }
+      // Check each role
+      for (const role of roles) {
+        const shouldHaveRole = checkRoleEligibility(userRoles, role);
+        const hasRole = member.roles.cache.has(role.discord_role_id);
 
-    return true;
+        if (shouldHaveRole && !hasRole) {
+          rolesToAdd.push(role.discord_role_id);
+        } else if (!shouldHaveRole && hasRole) {
+          rolesToRemove.push(role.discord_role_id);
+        }
+      }
+
+      // Apply role changes
+      if (rolesToAdd.length > 0) {
+        await member.roles.add(rolesToAdd);
+        console.log(`Added roles for ${discordId}:`, rolesToAdd);
+      }
+
+      if (rolesToRemove.length > 0) {
+        await member.roles.remove(rolesToRemove);
+        console.log(`Removed roles for ${discordId}:`, rolesToRemove);
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Discord API error:', error);
+      return false;
+    }
   } catch (error) {
     console.error('Error syncing user roles:', error);
     return false;
