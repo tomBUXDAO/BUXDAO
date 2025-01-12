@@ -278,8 +278,8 @@ async function handleDiscordCallback(req, res) {
   }
 
   try {
-    const { code, state } = req.query;
-    console.log('[Discord Callback] Query:', { code, state });
+    const { code } = req.query;
+    console.log('[Discord Callback] Processing code:', code);
     
     if (!code) {
       console.error('[Discord Callback] No code provided');
@@ -287,7 +287,7 @@ async function handleDiscordCallback(req, res) {
       return res.status(302).end();
     }
 
-    console.log('[Discord Callback] Exchanging code for token...');
+    // Exchange code for token
     const params = new URLSearchParams({
       client_id: DISCORD_CLIENT_ID,
       client_secret: DISCORD_CLIENT_SECRET,
@@ -296,7 +296,6 @@ async function handleDiscordCallback(req, res) {
       redirect_uri: CALLBACK_URL
     });
 
-    console.log('[Discord Callback] Token request params:', params.toString());
     const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
       method: 'POST',
       headers: {
@@ -306,26 +305,16 @@ async function handleDiscordCallback(req, res) {
       body: params
     });
 
-    const responseText = await tokenResponse.text();
-    console.log('[Discord Callback] Token response:', responseText);
-
     if (!tokenResponse.ok) {
-      throw new Error(`Token exchange failed: ${tokenResponse.status} ${responseText}`);
+      const error = await tokenResponse.text();
+      console.error('[Discord Callback] Token exchange failed:', error);
+      throw new Error('Failed to exchange code for token');
     }
 
-    let tokenData;
-    try {
-      tokenData = JSON.parse(responseText);
-    } catch (e) {
-      console.error('[Discord Callback] Failed to parse token response:', e);
-      throw new Error('Invalid token response from Discord');
-    }
+    const tokenData = await tokenResponse.json();
+    console.log('[Discord Callback] Token exchange successful');
 
-    if (!tokenData.access_token) {
-      throw new Error('No access token in response');
-    }
-
-    console.log('[Discord Callback] Got token, fetching user data...');
+    // Get user data
     const userResponse = await fetch('https://discord.com/api/users/@me', {
       headers: {
         'Authorization': `Bearer ${tokenData.access_token}`,
@@ -334,19 +323,17 @@ async function handleDiscordCallback(req, res) {
     });
 
     if (!userResponse.ok) {
-      const userResponseText = await userResponse.text();
-      throw new Error(`Failed to get user data: ${userResponse.status} ${userResponseText}`);
+      throw new Error('Failed to get user data');
     }
 
     const userData = await userResponse.json();
-    console.log('[Discord Callback] Got user data:', userData.id);
+    console.log('[Discord Callback] Got user data for:', userData.username);
 
-    // Set auth cookies
+    // Set auth cookies and redirect
     setAuthCookies(res, tokenData.access_token, userData);
-
-    // Redirect back to verify page
     res.setHeader('Location', ORIGIN + '/verify');
     return res.status(302).end();
+
   } catch (error) {
     console.error('[Discord Callback] Error:', error);
     res.setHeader('Location', ORIGIN + '/verify?error=' + encodeURIComponent(error.message));
