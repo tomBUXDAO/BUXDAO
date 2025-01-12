@@ -153,7 +153,7 @@ app.get('/api/printful/products/:id', async (req, res) => {
   }
 });
 
-// Other API routes
+// API routes
 app.use('/api/auth/check', authCheckRouter);
 app.use('/api/auth/discord', discordAuthRouter);
 app.use('/api/auth/discord/callback', discordCallbackRouter);
@@ -164,28 +164,16 @@ app.use('/api/celebcatz', celebcatzRouter);
 app.use('/api/top-holders', topHoldersHandler);
 app.use('/api/token-metrics', tokenMetricsRouter);
 
-// API 404 handler - must come after API routes but before static files
+// API 404 handler
 app.use('/api/*', (req, res) => {
   res.status(404).json({ error: 'API endpoint not found' });
 });
 
-// Static file serving - after API routes
-app.use(express.static('dist', {
-  setHeaders: (res, path) => {
-    if (path.endsWith('.js')) {
-      res.set('Content-Type', 'application/javascript');
-    } else if (path.endsWith('.css')) {
-      res.set('Content-Type', 'text/css');
-    }
-  }
-}));
+// Static file serving
+app.use(express.static(path.join(__dirname, 'dist')));
 
-// SPA fallback - serve index.html for all non-API routes
+// SPA fallback for all non-API routes
 app.get('*', (req, res) => {
-  if (req.path.startsWith('/api/')) {
-    res.status(404).json({ error: 'API endpoint not found' });
-    return;
-  }
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
