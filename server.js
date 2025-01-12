@@ -68,21 +68,18 @@ app.use('/api/celebcatz', celebcatzRouter);
 app.use('/api/top-holders', topHoldersHandler);
 
 // Add Edge Function proxy middleware before static files
-app.use('/api/printful/*', (req, res) => {
+app.use('/api/printful/*', (req, res, next) => {
   console.log('Edge Function proxy middleware:', req.path);
-  // Return 404 to let the Edge Function handle it
-  res.status(404).json({
-    error: 'Edge Function route',
-    message: 'This route should be handled by an Edge Function'
-  });
+  // Pass through to next middleware instead of returning 404
+  next();
 });
 
 // Serve static files from the dist directory
 app.use(express.static('dist', {
   // Exclude API routes from static file serving
-  setHeaders: (res, path) => {
+  setHeaders: (res, path, stat) => {
     if (path.includes('/api/')) {
-      res.status(404);
+      res.set('Content-Type', 'application/json');
     }
   }
 }));
