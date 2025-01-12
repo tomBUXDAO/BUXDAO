@@ -26,8 +26,7 @@ router.get('/products', async (req, res) => {
       url: `${PRINTFUL_API_URL}/store/products`,
       headers: {
         'Authorization': `Basic ${Buffer.from(PRINTFUL_API_KEY + ':').toString('base64')}`,
-        'Content-Type': 'application/json',
-        'X-PF-Store-Id': process.env.PRINTFUL_STORE_ID
+        'Content-Type': 'application/json'
       },
       validateStatus: function (status) {
         return status >= 200 && status < 300;
@@ -78,8 +77,7 @@ router.get('/products/:id', async (req, res) => {
       url: `${PRINTFUL_API_URL}/store/products/${productId}`,
       headers: {
         'Authorization': `Basic ${Buffer.from(PRINTFUL_API_KEY + ':').toString('base64')}`,
-        'Content-Type': 'application/json',
-        'X-PF-Store-Id': process.env.PRINTFUL_STORE_ID
+        'Content-Type': 'application/json'
       },
       validateStatus: function (status) {
         return status >= 200 && status < 300;
