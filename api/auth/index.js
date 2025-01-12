@@ -243,12 +243,10 @@ async function handleDiscordAuth(req, res) {
     const state = crypto.randomBytes(16).toString('hex');
     console.log('[Discord Auth] Generated state:', state);
 
-    // Set state cookie first, before any other headers
-    res.setHeader('Set-Cookie', `discord_state=${state}; Path=/; Secure; SameSite=Lax`);
-    
-    // Log cookies after setting
-    console.log('[Discord Auth] Set state cookie:', state);
-    console.log('[Discord Auth] Current cookies:', req.headers.cookie);
+    // Set state cookie with minimal options to ensure compatibility
+    const stateCookie = `discord_state=${state}; Path=/; Max-Age=300; Secure`;
+    res.setHeader('Set-Cookie', stateCookie);
+    console.log('[Discord Auth] Set cookie:', stateCookie);
 
     // Build Discord OAuth URL
     const params = new URLSearchParams({
@@ -263,12 +261,13 @@ async function handleDiscordAuth(req, res) {
     const discordUrl = `https://discord.com/oauth2/authorize?${params.toString()}`;
     console.log('[Discord Auth] Redirecting to:', discordUrl);
 
-    // Set redirect header last
+    // Set redirect header and end response
     res.setHeader('Location', discordUrl);
-    res.status(302).end();
+    return res.status(302).end();
   } catch (error) {
     console.error('[Discord Auth] Error:', error);
-    res.redirect('/verify?error=' + encodeURIComponent(error.message));
+    res.setHeader('Location', ORIGIN + '/verify?error=' + encodeURIComponent(error.message));
+    return res.status(302).end();
   }
 }
 
