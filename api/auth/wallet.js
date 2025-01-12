@@ -44,17 +44,29 @@ router.post('/', async (req, res) => {
     try {
       const client = await pool.connect();
       try {
-        await client.query(
+        const result = await client.query(
           `UPDATE user_roles 
-           SET wallet_address = $1
-           WHERE discord_id = $2`,
+           SET wallet_address = $1,
+               last_updated = CURRENT_TIMESTAMP
+           WHERE discord_id = $2
+           RETURNING *`,
           [wallet_address, req.session.user.discord_id]
         );
+        
+        if (result.rowCount === 0) {
+          console.error('No user_roles entry found for discord_id:', req.session.user.discord_id);
+          return res.status(404).json({
+            success: false,
+            message: 'User not found'
+          });
+        }
+        
+        console.log('Updated user_roles entry:', result.rows[0]);
       } finally {
         client.release();
       }
     } catch (dbError) {
-      console.error('Database error:', dbError);
+      console.error('Database error updating wallet address:', dbError);
       return res.status(500).json({
         success: false,
         message: 'Failed to update user roles'

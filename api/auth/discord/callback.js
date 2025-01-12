@@ -87,18 +87,38 @@ router.get('/', async (req, res) => {
     try {
       const client = await pool.connect();
       try {
-        await client.query(
-          `INSERT INTO user_roles (discord_id, discord_username, wallet_address, is_holder, is_bux_holder, is_nft_holder, is_og_holder, is_whale_holder)
-           VALUES ($1, $2, NULL, false, false, false, false, false)
-           ON CONFLICT (discord_id) 
-           DO UPDATE SET discord_username = $2`,
+        const result = await client.query(
+          `INSERT INTO user_roles (
+            discord_id, 
+            discord_name,
+            wallet_address,
+            fcked_catz_holder,
+            money_monsters_holder,
+            moneymonsters3d_holder,
+            ai_bitbots_holder,
+            celebcatz_holder,
+            fcked_catz_whale,
+            money_monsters_whale,
+            moneymonsters3d_whale,
+            ai_bitbots_whale,
+            bux_beginner,
+            bux_builder,
+            bux_saver,
+            bux_banker,
+            buxdao_5
+          )
+          VALUES ($1, $2, NULL, false, false, false, false, false, false, false, false, false, false, false, false, false, false)
+          ON CONFLICT (discord_id) 
+          DO UPDATE SET discord_name = $2
+          RETURNING *`,
           [userData.id, userData.username]
         );
+        console.log('Created/updated user_roles entry:', result.rows[0]);
       } finally {
         client.release();
       }
     } catch (dbError) {
-      console.error('Database error:', dbError);
+      console.error('Database error creating user_roles entry:', dbError);
       // Continue with auth flow even if DB fails
     }
 
