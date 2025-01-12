@@ -4,6 +4,7 @@ dotenv.config();
 
 import express from 'express';
 import cors from 'cors';
+import axios from 'axios';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import cookieParser from 'cookie-parser';
@@ -52,7 +53,53 @@ app.use('/api', (req, res, next) => {
   next();
 });
 
-// Mount API routes
+// Direct Printful API handlers
+const PRINTFUL_API_KEY = process.env.PRINTFUL_API_KEY;
+const PRINTFUL_API_URL = 'https://api.printful.com';
+
+app.get('/api/printful/products', async (req, res) => {
+  try {
+    console.log('[Printful] Fetching products...');
+    const response = await axios({
+      method: 'get',
+      url: `${PRINTFUL_API_URL}/store/products`,
+      headers: {
+        'Authorization': `Basic ${Buffer.from(PRINTFUL_API_KEY + ':').toString('base64')}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
+    });
+
+    console.log('[Printful] Successfully fetched products');
+    res.json(response.data.result);
+  } catch (error) {
+    console.error('[Printful] API error:', error.response?.data || error.message);
+    res.status(500).json({ error: 'Failed to fetch products' });
+  }
+});
+
+app.get('/api/printful/products/:id', async (req, res) => {
+  try {
+    console.log(`[Printful] Fetching product details for ID: ${req.params.id}`);
+    const response = await axios({
+      method: 'get',
+      url: `${PRINTFUL_API_URL}/store/products/${req.params.id}`,
+      headers: {
+        'Authorization': `Basic ${Buffer.from(PRINTFUL_API_KEY + ':').toString('base64')}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
+    });
+
+    console.log('[Printful] Successfully fetched product details');
+    res.json(response.data.result);
+  } catch (error) {
+    console.error('[Printful] API error:', error.response?.data || error.message);
+    res.status(500).json({ error: 'Failed to fetch product details' });
+  }
+});
+
+// Mount other API routes
 app.use('/api/auth/check', authCheckRouter);
 app.use('/api/auth/discord', discordAuthRouter);
 app.use('/api/auth/discord/callback', discordCallbackRouter);
@@ -72,11 +119,6 @@ app.use('/api', (err, req, res, next) => {
     code: err.code,
     path: req.path
   });
-});
-
-// API 404 handler
-app.use('/api', (req, res) => {
-  res.status(404).json({ error: 'API endpoint not found' });
 });
 
 // Static file handling - after API routes
