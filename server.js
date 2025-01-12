@@ -15,7 +15,6 @@ import logoutRouter from './api/auth/logout.js';
 import collectionsRouter from './api/collections/index.js';
 import celebcatzRouter from './api/celebcatz/index.js';
 import topHoldersHandler from './api/top-holders.js';
-import printfulRouter from './api/printful/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -54,7 +53,6 @@ app.use('/api', (req, res, next) => {
 });
 
 // Mount API routes
-app.use('/api/printful', printfulRouter);
 app.use('/api/auth/check', authCheckRouter);
 app.use('/api/auth/discord', discordAuthRouter);
 app.use('/api/auth/discord/callback', discordCallbackRouter);
