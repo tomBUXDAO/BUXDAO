@@ -5,10 +5,9 @@ const router = express.Router();
 const PRINTFUL_API_KEY = process.env.PRINTFUL_API_KEY;
 const PRINTFUL_API_URL = 'https://api.printful.com';
 
-// Middleware to ensure proper response handling
+// Middleware to ensure JSON responses
 router.use((req, res, next) => {
-  // Ensure response is treated as JSON
-  res.type('json');
+  res.type('application/json');
   next();
 });
 
@@ -26,11 +25,10 @@ router.get('/products', async (req, res) => {
       url: `${PRINTFUL_API_URL}/store/products`,
       headers: {
         'Authorization': `Basic ${Buffer.from(PRINTFUL_API_KEY + ':').toString('base64')}`,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
       },
-      validateStatus: function (status) {
-        return status >= 200 && status < 300;
-      }
+      validateStatus: (status) => status >= 200 && status < 300
     });
 
     if (!response.data || !response.data.result) {
@@ -39,18 +37,9 @@ router.get('/products', async (req, res) => {
     }
 
     console.log('[Printful] Successfully fetched products');
-    return res.status(200).json(response.data.result);
+    return res.json(response.data.result);
   } catch (error) {
     console.error('[Printful] API error:', error.response?.data || error.message);
-    
-    if (error.response?.status === 401) {
-      return res.status(401).json({ error: 'Unauthorized - Invalid Printful API key' });
-    }
-    
-    if (error.response?.status === 429) {
-      return res.status(429).json({ error: 'Too many requests to Printful API' });
-    }
-
     return res.status(error.response?.status || 500).json({
       error: 'Failed to fetch products',
       details: error.response?.data || error.message
@@ -77,11 +66,10 @@ router.get('/products/:id', async (req, res) => {
       url: `${PRINTFUL_API_URL}/store/products/${productId}`,
       headers: {
         'Authorization': `Basic ${Buffer.from(PRINTFUL_API_KEY + ':').toString('base64')}`,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
       },
-      validateStatus: function (status) {
-        return status >= 200 && status < 300;
-      }
+      validateStatus: (status) => status >= 200 && status < 300
     });
 
     if (!response.data || !response.data.result) {
@@ -90,22 +78,9 @@ router.get('/products/:id', async (req, res) => {
     }
 
     console.log('[Printful] Successfully fetched product details');
-    return res.status(200).json(response.data.result);
+    return res.json(response.data.result);
   } catch (error) {
     console.error('[Printful] API error:', error.response?.data || error.message);
-    
-    if (error.response?.status === 401) {
-      return res.status(401).json({ error: 'Unauthorized - Invalid Printful API key' });
-    }
-    
-    if (error.response?.status === 404) {
-      return res.status(404).json({ error: 'Product not found' });
-    }
-    
-    if (error.response?.status === 429) {
-      return res.status(429).json({ error: 'Too many requests to Printful API' });
-    }
-
     return res.status(error.response?.status || 500).json({
       error: 'Failed to fetch product details',
       details: error.response?.data || error.message
