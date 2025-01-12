@@ -1,6 +1,7 @@
 import { parse, serialize } from 'cookie';
 import crypto from 'crypto';
-import { Pool } from 'pg';
+import pkg from 'pg';
+const { Pool } = pkg;
 
 const pool = new Pool({
   connectionString: process.env.POSTGRES_URL,
