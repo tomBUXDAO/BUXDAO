@@ -34,8 +34,11 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Accept', 'Authorization', 'Origin']
 }));
 
-// Debug middleware for API requests
-app.use('/api', (req, res, next) => {
+// Create API router
+const apiRouter = express.Router();
+
+// API middleware
+apiRouter.use((req, res, next) => {
   const startTime = Date.now();
   console.log(`[API ${new Date().toISOString()}] ${req.method} ${req.path} - Origin: ${req.headers.origin}`);
   
@@ -53,11 +56,11 @@ app.use('/api', (req, res, next) => {
   next();
 });
 
-// Direct Printful API handlers
+// Printful API handlers
 const PRINTFUL_API_KEY = process.env.PRINTFUL_API_KEY;
 const PRINTFUL_API_URL = 'https://api.printful.com';
 
-app.get('/api/printful/products', async (req, res) => {
+apiRouter.get('/printful/products', async (req, res) => {
   try {
     console.log('[Printful] Fetching products...');
     const response = await axios({
@@ -67,7 +70,8 @@ app.get('/api/printful/products', async (req, res) => {
         'Authorization': `Basic ${Buffer.from(PRINTFUL_API_KEY + ':').toString('base64')}`,
         'Content-Type': 'application/json',
         'Accept': 'application/json'
-      }
+      },
+      validateStatus: (status) => status === 200
     });
 
     console.log('[Printful] Successfully fetched products');
@@ -78,7 +82,7 @@ app.get('/api/printful/products', async (req, res) => {
   }
 });
 
-app.get('/api/printful/products/:id', async (req, res) => {
+apiRouter.get('/printful/products/:id', async (req, res) => {
   try {
     console.log(`[Printful] Fetching product details for ID: ${req.params.id}`);
     const response = await axios({
@@ -88,7 +92,8 @@ app.get('/api/printful/products/:id', async (req, res) => {
         'Authorization': `Basic ${Buffer.from(PRINTFUL_API_KEY + ':').toString('base64')}`,
         'Content-Type': 'application/json',
         'Accept': 'application/json'
-      }
+      },
+      validateStatus: (status) => status === 200
     });
 
     console.log('[Printful] Successfully fetched product details');
@@ -100,17 +105,17 @@ app.get('/api/printful/products/:id', async (req, res) => {
 });
 
 // Mount other API routes
-app.use('/api/auth/check', authCheckRouter);
-app.use('/api/auth/discord', discordAuthRouter);
-app.use('/api/auth/discord/callback', discordCallbackRouter);
-app.use('/api/auth/wallet', walletAuthRouter);
-app.use('/api/auth/logout', logoutRouter);
-app.use('/api/collections', collectionsRouter);
-app.use('/api/celebcatz', celebcatzRouter);
-app.use('/api/top-holders', topHoldersHandler);
+apiRouter.use('/auth/check', authCheckRouter);
+apiRouter.use('/auth/discord', discordAuthRouter);
+apiRouter.use('/auth/discord/callback', discordCallbackRouter);
+apiRouter.use('/auth/wallet', walletAuthRouter);
+apiRouter.use('/auth/logout', logoutRouter);
+apiRouter.use('/collections', collectionsRouter);
+apiRouter.use('/celebcatz', celebcatzRouter);
+apiRouter.use('/top-holders', topHoldersHandler);
 
 // API error handling
-app.use('/api', (err, req, res, next) => {
+apiRouter.use((err, req, res, next) => {
   console.error('[API] Error handler caught:', err);
   console.error('Stack trace:', err.stack);
   
@@ -120,6 +125,9 @@ app.use('/api', (err, req, res, next) => {
     path: req.path
   });
 });
+
+// Mount API router before static files
+app.use('/api', apiRouter);
 
 // Static file handling - after API routes
 app.use(express.static('dist', {
@@ -133,7 +141,7 @@ app.use(express.static('dist', {
   }
 }));
 
-// SPA fallback - must be last and only for non-API routes
+// SPA fallback - must be last
 app.get('*', (req, res) => {
   if (req.path.startsWith('/api/')) {
     return res.status(404).json({ error: 'API endpoint not found' });
