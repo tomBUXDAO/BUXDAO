@@ -69,7 +69,7 @@ app.use('/api/top-holders', topHoldersHandler);
 
 // Edge Function routes - must be before static files
 app.use('/api/printful', (req, res, next) => {
-  // Don't serve static files or handle these routes in Express
+  // Return 404 for Edge Function routes
   res.status(404).json({
     error: 'Edge Function route',
     message: 'This route should be handled by Edge Functions'
@@ -79,7 +79,8 @@ app.use('/api/printful', (req, res, next) => {
 // Static file serving - explicitly exclude API routes
 app.use((req, res, next) => {
   if (req.path.startsWith('/api/')) {
-    return next();
+    next();
+    return;
   }
   express.static('dist')(req, res, next);
 });
@@ -87,7 +88,8 @@ app.use((req, res, next) => {
 // Catch-all route for the frontend SPA - explicitly exclude API routes
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api/')) {
-    return next();
+    next();
+    return;
   }
   res.sendFile('index.html', { root: 'dist' });
 });
