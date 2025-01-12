@@ -248,8 +248,8 @@ async function handleDiscordAuth(req, res) {
     const state = crypto.randomBytes(16).toString('hex');
     console.log('[Discord Auth] Generated state:', state);
 
-    // Set state cookie with minimal options to ensure compatibility
-    const stateCookie = `discord_state=${state}; Path=/; Max-Age=300; Secure`;
+    // Set state cookie first, before any other headers
+    const stateCookie = `discord_state=${state}; Path=/; Max-Age=300; Secure; HttpOnly`;
     res.setHeader('Set-Cookie', stateCookie);
     console.log('[Discord Auth] Set cookie:', stateCookie);
 
