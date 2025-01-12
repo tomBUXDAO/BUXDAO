@@ -71,11 +71,12 @@ app.use('/api/top-holders', topHoldersHandler);
 app.use(express.static('dist'));
 
 // Catch-all route to serve the frontend
-app.get('*', (req, res) => {
-  // Exclude API routes from the catch-all
-  if (!req.path.startsWith('/api/')) {
-    res.sendFile('index.html', { root: 'dist' });
+app.get('*', (req, res, next) => {
+  // Exclude API and Edge Function routes from the catch-all
+  if (req.path.startsWith('/api/') || req.path.startsWith('/api/printful/')) {
+    return next();
   }
+  res.sendFile('index.html', { root: 'dist' });
 });
 
 const cache = new NodeCache({ stdTTL: 60 }); // Cache for 60 seconds

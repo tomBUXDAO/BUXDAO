@@ -418,23 +418,25 @@ const Merch = () => {
     const fetchProducts = async () => {
       try {
         console.log('Fetching products...');
-        const response = await fetch(`${API_URL}/printful/products`);
+        const response = await fetch(`${API_URL}/printful/products`, {
+          headers: {
+            'Accept': 'application/json'
+          }
+        });
         
         if (!response.ok) {
-          const errorData = await response.json().catch(() => null);
-          console.error('API Error:', errorData || response.statusText);
+          const errorData = await response.text();
+          console.error('API Error:', errorData);
           throw new Error(`Failed to fetch products: ${response.statusText}`);
         }
 
-        const text = await response.text();
-        let data;
-        try {
-          data = JSON.parse(text);
-        } catch (e) {
-          console.error('Failed to parse response:', text);
-          throw new Error('Invalid response format');
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          console.error('Invalid content type:', contentType);
+          throw new Error('Invalid response format: expected JSON');
         }
-        
+
+        const data = await response.json();
         console.log('Products data:', data);
         
         // Fetch variants with rate limiting
