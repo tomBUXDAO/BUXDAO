@@ -53,106 +53,71 @@ app.use((req, res, next) => {
   next();
 });
 
-// Create separate routers for API and static files
-const apiRouter = express.Router();
-const staticRouter = express.Router();
-
-// API middleware - ensure proper handling of all API routes
-apiRouter.use((req, res, next) => {
+// API middleware - handle all API routes first
+app.use('/api', (req, res, next) => {
+  // Set API-specific headers
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Cache-Control', 'no-store');
+  
+  // Handle Printful API routes
+  if (req.path.startsWith('/printful/')) {
+    const PRINTFUL_API_KEY = process.env.PRINTFUL_API_KEY;
+    const PRINTFUL_API_URL = 'https://api.printful.com';
+
+    if (!PRINTFUL_API_KEY) {
+      console.error('[Printful] API key not configured');
+      return res.status(500).json({ error: 'Printful API key not configured' });
+    }
+
+    // Extract the product ID if present
+    const productId = req.path.match(/\/products\/(\d+)/)?.[1];
+    const endpoint = productId ? `/store/products/${productId}` : '/store/products';
+
+    console.log(`[Printful] Fetching ${productId ? 'product details' : 'products'}...`);
+    
+    axios({
+      method: 'get',
+      url: `${PRINTFUL_API_URL}${endpoint}`,
+      headers: {
+        'Authorization': `Basic ${Buffer.from(PRINTFUL_API_KEY + ':').toString('base64')}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
+    })
+    .then(response => {
+      if (!response.data || !response.data.result) {
+        console.error('[Printful] Invalid response format:', response.data);
+        return res.status(500).json({ error: 'Invalid response from Printful API' });
+      }
+      console.log('[Printful] Successfully fetched data');
+      res.json(response.data.result);
+    })
+    .catch(error => {
+      console.error('[Printful] API error:', error.response?.data || error.message);
+      res.status(error.response?.status || 500).json({
+        error: 'Failed to fetch data from Printful',
+        details: error.response?.data || error.message
+      });
+    });
+    return;
+  }
+
+  // Continue to other API routes
   next();
 });
 
-// Printful API handling
-const PRINTFUL_API_KEY = process.env.PRINTFUL_API_KEY;
-const PRINTFUL_API_URL = 'https://api.printful.com';
-
-apiRouter.get('/printful/products', async (req, res) => {
-  if (!PRINTFUL_API_KEY) {
-    console.error('[Printful] API key not configured');
-    return res.status(500).json({ error: 'Printful API key not configured' });
-  }
-
-  try {
-    console.log('[Printful] Fetching products...');
-    const response = await axios({
-      method: 'get',
-      url: `${PRINTFUL_API_URL}/store/products`,
-      headers: {
-        'Authorization': `Basic ${Buffer.from(PRINTFUL_API_KEY + ':').toString('base64')}`,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      }
-    });
-
-    if (!response.data || !response.data.result) {
-      console.error('[Printful] Invalid response format:', response.data);
-      return res.status(500).json({ error: 'Invalid response from Printful API' });
-    }
-
-    console.log('[Printful] Successfully fetched products');
-    return res.json(response.data.result);
-  } catch (error) {
-    console.error('[Printful] API error:', error.response?.data || error.message);
-    return res.status(error.response?.status || 500).json({
-      error: 'Failed to fetch products',
-      details: error.response?.data || error.message
-    });
-  }
-});
-
-apiRouter.get('/printful/products/:id', async (req, res) => {
-  if (!PRINTFUL_API_KEY) {
-    console.error('[Printful] API key not configured');
-    return res.status(500).json({ error: 'Printful API key not configured' });
-  }
-
-  const productId = req.params.id;
-  if (!productId) {
-    return res.status(400).json({ error: 'Product ID is required' });
-  }
-
-  try {
-    console.log(`[Printful] Fetching product details for ID: ${productId}`);
-    const response = await axios({
-      method: 'get',
-      url: `${PRINTFUL_API_URL}/store/products/${productId}`,
-      headers: {
-        'Authorization': `Basic ${Buffer.from(PRINTFUL_API_KEY + ':').toString('base64')}`,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      }
-    });
-
-    if (!response.data || !response.data.result) {
-      console.error('[Printful] Invalid response format:', response.data);
-      return res.status(500).json({ error: 'Invalid response from Printful API' });
-    }
-
-    console.log('[Printful] Successfully fetched product details');
-    return res.json(response.data.result);
-  } catch (error) {
-    console.error('[Printful] API error:', error.response?.data || error.message);
-    return res.status(error.response?.status || 500).json({
-      error: 'Failed to fetch product details',
-      details: error.response?.data || error.message
-    });
-  }
-});
-
-// Mount all API routes
-apiRouter.use('/auth/check', authCheckRouter);
-apiRouter.use('/auth/discord', discordAuthRouter);
-apiRouter.use('/auth/discord/callback', discordCallbackRouter);
-apiRouter.use('/auth/wallet', walletAuthRouter);
-apiRouter.use('/auth/logout', logoutRouter);
-apiRouter.use('/collections', collectionsRouter);
-apiRouter.use('/celebcatz', celebcatzRouter);
-apiRouter.use('/top-holders', topHoldersHandler);
+// Mount other API routes
+app.use('/api/auth/check', authCheckRouter);
+app.use('/api/auth/discord', discordAuthRouter);
+app.use('/api/auth/discord/callback', discordCallbackRouter);
+app.use('/api/auth/wallet', walletAuthRouter);
+app.use('/api/auth/logout', logoutRouter);
+app.use('/api/collections', collectionsRouter);
+app.use('/api/celebcatz', celebcatzRouter);
+app.use('/api/top-holders', topHoldersHandler);
 
 // API error handling
-apiRouter.use((err, req, res, next) => {
+app.use('/api', (err, req, res, next) => {
   console.error('[API] Error handler caught:', err);
   console.error('Stack trace:', err.stack);
   
@@ -163,8 +128,8 @@ apiRouter.use((err, req, res, next) => {
   });
 });
 
-// Static file handling
-staticRouter.use(express.static('dist', {
+// Static file handling - after API routes
+app.use(express.static('dist', {
   index: false, // Disable automatic serving of index.html
   setHeaders: (res, path) => {
     if (path.endsWith('.js')) {
@@ -175,18 +140,12 @@ staticRouter.use(express.static('dist', {
   }
 }));
 
-// SPA fallback for static routes
-staticRouter.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
-});
-
-// Mount routers with path-based routing
-app.use('/api', apiRouter);
-app.use('/', (req, res, next) => {
+// SPA fallback - must be last
+app.get('*', (req, res) => {
   if (req.path.startsWith('/api/')) {
-    return next('route');
+    return res.status(404).json({ error: 'API endpoint not found' });
   }
-  staticRouter(req, res, next);
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
 // Start the server
