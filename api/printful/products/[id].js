@@ -1,131 +1,39 @@
-export const config = {
-  runtime: 'edge',
-  regions: ['iad1']  // Deploy to US East (N. Virginia)
-};
+import axios from 'axios';
 
-export default async function handler(req) {
-  console.log('Edge Function: Handling product details request', {
-    method: req.method,
-    url: req.url,
-    headers: Object.fromEntries(req.headers)
-  });
+const PRINTFUL_API_KEY = process.env.PRINTFUL_API_KEY;
+const PRINTFUL_API_URL = 'https://api.printful.com';
 
-  // Handle CORS preflight
-  if (req.method === 'OPTIONS') {
-    console.log('Edge Function: Handling CORS preflight');
-    return new Response(null, {
-      status: 204,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET,OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type,Accept,Authorization',
-        'Access-Control-Max-Age': '86400'
-      }
-    });
+export default async function handler(req, res) {
+  if (req.method !== 'GET') {
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // Only allow GET requests
-  if (req.method !== 'GET') {
-    console.log('Edge Function: Method not allowed:', req.method);
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      }
-    });
+  // Get product ID from the URL
+  const productId = req.query.id;
+  if (!productId) {
+    return res.status(400).json({ error: 'Product ID is required' });
   }
 
   try {
-    // Extract product ID from URL
-    const url = new URL(req.url);
-    const productId = url.pathname.split('/').pop();
-    console.log('Edge Function: Fetching details for product:', productId);
-    
-    if (!process.env.PRINTFUL_API_KEY) {
-      console.error('Edge Function: PRINTFUL_API_KEY is not set');
-      throw new Error('PRINTFUL_API_KEY is not set');
-    }
-
-    // Add a delay to ensure we're not hitting rate limits
-    await new Promise(resolve => setTimeout(resolve, 100));
-
-    const response = await fetch(`https://api.printful.com/store/products/${productId}`, {
+    // Fetch product details from Printful
+    const response = await axios.get(`${PRINTFUL_API_URL}/store/products/${productId}`, {
       headers: {
-        'Authorization': `Bearer ${process.env.PRINTFUL_API_KEY}`,
-        'Accept': 'application/json'
+        'Authorization': `Bearer ${PRINTFUL_API_KEY}`
       }
     });
 
-    console.log('Edge Function: Printful API response', {
-      status: response.status,
-      statusText: response.statusText,
-      headers: Object.fromEntries(response.headers)
-    });
+    // Set CORS headers
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Edge Function: Printful API error:', {
-        status: response.status,
-        statusText: response.statusText,
-        error: errorText
-      });
-      return new Response(JSON.stringify({ 
-        error: 'Printful API error',
-        status: response.status,
-        message: response.statusText,
-        details: errorText
-      }), {
-        status: response.status,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-          'Cache-Control': 'no-store'
-        }
-      });
-    }
-
-    const data = await response.json();
-    console.log('Edge Function: Printful API data:', JSON.stringify(data).slice(0, 200) + '...');
-    
-    if (!data.result) {
-      console.error('Edge Function: Invalid response format from Printful API:', data);
-      return new Response(JSON.stringify({ 
-        error: 'Invalid response format from Printful API',
-        details: data
-      }), {
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-          'Cache-Control': 'no-store'
-        }
-      });
-    }
-
-    const responseBody = JSON.stringify(data.result);
-    console.log('Edge Function: Sending response:', responseBody.slice(0, 200) + '...');
-
-    return new Response(responseBody, {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300'
-      }
-    });
+    // Return the product details
+    res.status(200).json(response.data.result);
   } catch (error) {
-    console.error('Edge Function: Error fetching from Printful:', error);
-    return new Response(JSON.stringify({ 
-      error: 'Internal server error',
-      message: error.message
-    }), {
-      status: 500,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Cache-Control': 'no-store'
-      }
+    console.error('Printful API error:', error.response?.data || error.message);
+    res.status(error.response?.status || 500).json({
+      error: 'Failed to fetch product details',
+      details: error.response?.data || error.message
     });
   }
 } 

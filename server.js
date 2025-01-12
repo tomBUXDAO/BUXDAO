@@ -17,6 +17,8 @@ import logoutRouter from './api/auth/logout.js';
 import collectionsRouter from './api/collections/index.js';
 import celebcatzRouter from './api/celebcatz/index.js';
 import topHoldersHandler from './api/top-holders.js';
+import printfulProductsRouter from './api/printful/products.js';
+import printfulProductDetailsRouter from './api/printful/products/[id].js';
 
 const app = express();
 app.use(cors({
@@ -68,10 +70,16 @@ app.use('/api/celebcatz', celebcatzRouter);
 app.use('/api/top-holders', topHoldersHandler);
 
 // Edge Function routes - must be before static files
-app.use('/api/printful/*', (req, res, next) => {
-  // Forward request to Edge Function
-  next();
+app.use('/api/printful/*', (req, res) => {
+  res.status(404).json({
+    error: 'Edge Function route',
+    message: 'This route should be handled by an Edge Function'
+  });
 });
+
+// Printful API routes - must be before static files
+app.use('/api/printful/products/:id', printfulProductDetailsRouter);
+app.use('/api/printful/products', printfulProductsRouter);
 
 // Serve static files only for non-API routes
 app.use((req, res, next) => {

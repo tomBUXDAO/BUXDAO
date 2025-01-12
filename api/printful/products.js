@@ -1,119 +1,33 @@
-export const config = {
-  runtime: 'edge',
-  regions: ['iad1']
-};
+import axios from 'axios';
 
-export default async function handler(req) {
-  // Log request details
-  console.log('Edge Function request:', {
-    url: req.url,
-    method: req.method,
-    headers: Object.fromEntries(req.headers)
-  });
+const PRINTFUL_API_KEY = process.env.PRINTFUL_API_KEY;
+const PRINTFUL_API_URL = 'https://api.printful.com';
 
-  // Handle CORS preflight
-  if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      status: 204,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type,Accept,Authorization',
-        'Access-Control-Max-Age': '86400',
-      },
-    });
-  }
-
-  // Only allow GET requests
+export default async function handler(req, res) {
   if (req.method !== 'GET') {
-    return new Response(
-      JSON.stringify({ error: 'Method not allowed' }),
-      {
-        status: 405,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-        },
-      }
-    );
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    if (!process.env.PRINTFUL_API_KEY) {
-      throw new Error('API key not configured');
-    }
-
-    // Add a small delay to avoid rate limits
-    await new Promise(resolve => setTimeout(resolve, 100));
-
-    const response = await fetch('https://api.printful.com/store/products', {
+    // Fetch products from Printful
+    const response = await axios.get(`${PRINTFUL_API_URL}/store/products`, {
       headers: {
-        'Authorization': `Bearer ${process.env.PRINTFUL_API_KEY}`,
-        'Accept': 'application/json'
+        'Authorization': `Bearer ${PRINTFUL_API_KEY}`
       }
     });
 
-    console.log('Printful API response:', {
-      status: response.status,
-      headers: Object.fromEntries(response.headers)
-    });
+    // Set CORS headers
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Printful API error:', errorText);
-      throw new Error(`Printful API error: ${response.statusText}`);
-    }
-
-    const contentType = response.headers.get('content-type');
-    if (!contentType || !contentType.includes('application/json')) {
-      console.error('Invalid content type:', contentType);
-      throw new Error('Invalid response format from Printful API');
-    }
-
-    const data = await response.json();
-    console.log('Printful API data:', JSON.stringify(data).slice(0, 200));
-
-    if (!data.result) {
-      console.error('Invalid response structure:', data);
-      throw new Error('Invalid response structure from Printful API');
-    }
-
-    // Transform the data
-    const products = data.result.map(item => ({
-      id: item.id,
-      name: item.name,
-      thumbnail_url: item.thumbnail_url,
-      variants: item.variants || 0,
-      sync_product: item.sync_product,
-      sync_variants: item.sync_variants || []
-    }));
-
-    // Return the response with proper headers
-    return new Response(JSON.stringify(products), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Cache-Control': 'no-store',
-        'X-Content-Type-Options': 'nosniff'
-      },
-    });
+    // Return the products
+    res.status(200).json(response.data.result);
   } catch (error) {
-    console.error('Edge Function error:', error);
-    return new Response(
-      JSON.stringify({
-        error: 'Internal server error',
-        message: error.message
-      }),
-      {
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-          'Cache-Control': 'no-store',
-          'X-Content-Type-Options': 'nosniff'
-        },
-      }
-    );
+    console.error('Printful API error:', error.response?.data || error.message);
+    res.status(error.response?.status || 500).json({
+      error: 'Failed to fetch products',
+      details: error.response?.data || error.message
+    });
   }
 } 
