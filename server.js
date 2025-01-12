@@ -49,7 +49,20 @@ app.use((req, res, next) => {
   next();
 });
 
-// API Routes - must be before static file handling
+// API middleware to ensure proper handling of API routes
+app.use('/api', (req, res, next) => {
+  // Set API-specific headers
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Cache-Control', 'no-store');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  
+  // Flag this as an API request
+  req.isApiRequest = true;
+  
+  next();
+});
+
+// API Routes
 const apiRouter = express.Router();
 
 // Mount all API routes
@@ -78,23 +91,33 @@ apiRouter.use((err, req, res, next) => {
 // Mount API router at /api
 app.use('/api', apiRouter);
 
-// Static file serving - after API routes
-app.use(express.static('dist', {
-  setHeaders: (res, path) => {
-    if (path.endsWith('.js')) {
-      res.set('Content-Type', 'application/javascript');
-    } else if (path.endsWith('.css')) {
-      res.set('Content-Type', 'text/css');
+// Static file middleware - skip if it's an API request
+app.use((req, res, next) => {
+  if (req.isApiRequest) {
+    return next();
+  }
+  
+  express.static('dist', {
+    setHeaders: (res, path) => {
+      if (path.endsWith('.js')) {
+        res.set('Content-Type', 'application/javascript');
+      } else if (path.endsWith('.css')) {
+        res.set('Content-Type', 'text/css');
+      }
     }
-  }
-}));
+  })(req, res, next);
+});
 
-// SPA fallback - only for non-API routes
-app.get('*', (req, res) => {
-  if (req.path.startsWith('/api/')) {
-    res.status(404).json({ error: 'API endpoint not found' });
-    return;
+// SPA fallback - skip if it's an API request
+app.use((req, res, next) => {
+  if (req.isApiRequest) {
+    return next();
   }
+  
+  if (req.path.startsWith('/api/')) {
+    return res.status(404).json({ error: 'API endpoint not found' });
+  }
+  
   res.sendFile('index.html', { root: 'dist' });
 });
 

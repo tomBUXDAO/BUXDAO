@@ -5,6 +5,13 @@ const router = express.Router();
 const PRINTFUL_API_KEY = process.env.PRINTFUL_API_KEY;
 const PRINTFUL_API_URL = 'https://api.printful.com';
 
+// Middleware to ensure proper response handling
+router.use((req, res, next) => {
+  // Ensure response is treated as JSON
+  res.type('json');
+  next();
+});
+
 // Get all products
 router.get('/products', async (req, res) => {
   if (!PRINTFUL_API_KEY) {
@@ -33,7 +40,7 @@ router.get('/products', async (req, res) => {
     }
 
     console.log('[Printful] Successfully fetched products');
-    res.json(response.data.result);
+    return res.status(200).json(response.data.result);
   } catch (error) {
     console.error('[Printful] API error:', error.response?.data || error.message);
     
@@ -45,7 +52,7 @@ router.get('/products', async (req, res) => {
       return res.status(429).json({ error: 'Too many requests to Printful API' });
     }
 
-    res.status(error.response?.status || 500).json({
+    return res.status(error.response?.status || 500).json({
       error: 'Failed to fetch products',
       details: error.response?.data || error.message
     });
@@ -85,7 +92,7 @@ router.get('/products/:id', async (req, res) => {
     }
 
     console.log('[Printful] Successfully fetched product details');
-    res.json(response.data.result);
+    return res.status(200).json(response.data.result);
   } catch (error) {
     console.error('[Printful] API error:', error.response?.data || error.message);
     
@@ -101,7 +108,7 @@ router.get('/products/:id', async (req, res) => {
       return res.status(429).json({ error: 'Too many requests to Printful API' });
     }
 
-    res.status(error.response?.status || 500).json({
+    return res.status(error.response?.status || 500).json({
       error: 'Failed to fetch product details',
       details: error.response?.data || error.message
     });
