@@ -17,8 +17,6 @@ import logoutRouter from './api/auth/logout.js';
 import collectionsRouter from './api/collections/index.js';
 import celebcatzRouter from './api/celebcatz/index.js';
 import topHoldersHandler from './api/top-holders.js';
-import printfulProductsRouter from './api/printful/products.js';
-import printfulProductDetailsRouter from './api/printful/products/[id].js';
 
 const app = express();
 
@@ -66,8 +64,60 @@ apiRouter.use('/celebcatz', celebcatzRouter);
 apiRouter.use('/top-holders', topHoldersHandler);
 
 // Printful routes
-apiRouter.use('/printful/products/:id', printfulProductDetailsRouter);
-apiRouter.use('/printful/products', printfulProductsRouter);
+const PRINTFUL_API_KEY = process.env.PRINTFUL_API_KEY;
+const PRINTFUL_API_URL = 'https://api.printful.com';
+
+// Get all products
+apiRouter.get('/printful/products', async (req, res) => {
+  try {
+    console.log('Fetching Printful products...');
+    const response = await axios.get(`${PRINTFUL_API_URL}/store/products`, {
+      headers: {
+        'Authorization': `Bearer ${PRINTFUL_API_KEY}`
+      }
+    });
+
+    console.log('Printful API response:', {
+      status: response.status,
+      data: response.data ? 'exists' : 'null'
+    });
+
+    res.json(response.data.result);
+  } catch (error) {
+    console.error('Printful API error:', error.response?.data || error.message);
+    res.status(error.response?.status || 500).json({
+      error: 'Failed to fetch products',
+      details: error.response?.data || error.message
+    });
+  }
+});
+
+// Get product details
+apiRouter.get('/printful/products/:id', async (req, res) => {
+  const productId = req.params.id;
+  
+  try {
+    console.log(`Fetching Printful product details for ID: ${productId}`);
+    const response = await axios.get(`${PRINTFUL_API_URL}/store/products/${productId}`, {
+      headers: {
+        'Authorization': `Bearer ${PRINTFUL_API_KEY}`
+      }
+    });
+
+    console.log('Printful API response:', {
+      status: response.status,
+      data: response.data ? 'exists' : 'null'
+    });
+
+    res.json(response.data.result);
+  } catch (error) {
+    console.error('Printful API error:', error.response?.data || error.message);
+    res.status(error.response?.status || 500).json({
+      error: 'Failed to fetch product details',
+      details: error.response?.data || error.message
+    });
+  }
+});
 
 // Mount all API routes under /api
 app.use('/api', apiRouter);
