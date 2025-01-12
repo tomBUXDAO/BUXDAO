@@ -49,17 +49,46 @@ export default async function handler(req) {
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`Printful API error: ${response.status} ${response.statusText}`, errorText);
-      throw new Error(`Printful API error: ${response.statusText}`);
+      return new Response(JSON.stringify({ 
+        error: 'Printful API error',
+        status: response.status,
+        message: response.statusText,
+        details: errorText
+      }), {
+        status: response.status,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        }
+      });
     }
 
     const data = await response.json();
     
     if (!data.result) {
       console.error('Invalid response format from Printful API:', data);
-      throw new Error('Invalid response format from Printful API');
+      return new Response(JSON.stringify({ 
+        error: 'Invalid response format from Printful API',
+        details: data
+      }), {
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        }
+      });
     }
 
-    return new Response(JSON.stringify(data.result), {
+    // Ensure sync_variants is always an array
+    const result = {
+      ...data.result,
+      sync_variants: data.result.sync_variants || []
+    };
+
+    const responseBody = JSON.stringify(result);
+    console.log(`Sending response for product ${id}:`, responseBody.slice(0, 200) + '...');
+
+    return new Response(responseBody, {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
@@ -72,7 +101,8 @@ export default async function handler(req) {
     return new Response(JSON.stringify({ 
       error: error.message,
       id: id,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     }), {
       status: 500,
       headers: {

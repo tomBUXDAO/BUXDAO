@@ -9,7 +9,9 @@ const CATEGORIES = {
 };
 
 // Get the API URL from environment variables, fallback to localhost if not set
-const API_URL = '/api';  // Use Vite proxy path
+const API_URL = process.env.NODE_ENV === 'production'
+  ? 'https://buxdao.com/api'
+  : '/api';
 
 const hasBackDesign = (productName) => {
   const name = productName.toLowerCase();
@@ -417,12 +419,22 @@ const Merch = () => {
       try {
         console.log('Fetching products...');
         const response = await fetch(`${API_URL}/printful/products`);
+        
         if (!response.ok) {
-          const errorData = await response.json();
-          console.log('API Error:', JSON.stringify(errorData));
+          const errorData = await response.json().catch(() => null);
+          console.error('API Error:', errorData || response.statusText);
           throw new Error(`Failed to fetch products: ${response.statusText}`);
         }
-        const data = await response.json();
+
+        const text = await response.text();
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch (e) {
+          console.error('Failed to parse response:', text);
+          throw new Error('Invalid response format');
+        }
+        
         console.log('Products data:', data);
         
         // Fetch variants with rate limiting

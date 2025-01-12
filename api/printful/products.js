@@ -81,10 +81,13 @@ export default async function handler(req) {
       thumbnail_url: item.thumbnail_url,
       variants: item.variants || 0,
       sync_product: item.sync_product,
-      sync_variants: item.sync_variants
+      sync_variants: item.sync_variants || []
     }));
 
-    return new Response(JSON.stringify(products), {
+    const responseBody = JSON.stringify(products);
+    console.log('Sending response:', responseBody.slice(0, 200) + '...');
+
+    return new Response(responseBody, {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
