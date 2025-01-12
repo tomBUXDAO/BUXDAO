@@ -263,10 +263,16 @@ async function handleDiscordAuth(req, res) {
     console.log('[Discord Auth] Setting state cookie:', state);
     console.log('[Discord Auth] Redirecting to:', discordUrl);
 
-    // Set state cookie and redirect
-    const stateCookie = serialize('discord_state', state, cookieOptions);
-    console.log('[Discord Auth] Setting cookie header:', stateCookie);
-    res.setHeader('Set-Cookie', stateCookie);
+    // Set cookies and redirect
+    res.setHeader('Set-Cookie', [
+      // Set state cookie
+      serialize('discord_state', state, cookieOptions),
+      // Clear any existing auth cookies to prevent conflicts
+      serialize('discord_token', '', { ...cookieOptions, expires: new Date(0) }),
+      serialize('discord_user', '', { ...cookieOptions, expires: new Date(0) })
+    ]);
+
+    // Set redirect header after cookies
     res.setHeader('Location', discordUrl);
     return res.status(302).end();
   } catch (error) {
@@ -286,18 +292,21 @@ async function handleDiscordCallback(req, res) {
     const { code, state } = req.query;
     const cookies = parse(req.headers.cookie || '');
     
-    console.log('[Discord Callback] Headers:', req.headers);
-    console.log('[Discord Callback] Request cookies:', req.headers.cookie);
-    console.log('[Discord Callback] Parsed cookies:', cookies);
-    console.log('[Discord Callback] State from query:', state);
-    console.log('[Discord Callback] State from cookie:', cookies.discord_state);
+    console.log('[Discord Callback] Headers:', {
+      cookie: req.headers.cookie,
+      host: req.headers.host,
+      referer: req.headers.referer
+    });
+    console.log('[Discord Callback] Query:', { code, state });
+    console.log('[Discord Callback] Cookies:', cookies);
     
     // Verify state parameter
     if (!state || !cookies.discord_state) {
       const error = !state ? 'Missing state parameter' : 'Missing state cookie';
       console.error(`[Discord Callback] ${error}`, {
-        headers: req.headers,
-        cookies: cookies
+        state,
+        cookieState: cookies.discord_state,
+        allCookies: cookies
       });
       res.setHeader('Location', ORIGIN + '/verify?error=' + encodeURIComponent(error));
       return res.status(302).end();
