@@ -56,17 +56,23 @@ const sessionStore = new PostgresqlStore({
 });
 
 // Session middleware - before routes, after CORS
+if (!process.env.SESSION_SECRET) {
+  console.error('SESSION_SECRET environment variable is required');
+  process.exit(1);
+}
+
 app.use(session({
   store: sessionStore,
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   name: 'buxdao.sid',
+  proxy: process.env.NODE_ENV === 'production',
   cookie: {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-    domain: process.env.NODE_ENV === 'production' ? 'buxdao.com' : undefined,
+    domain: process.env.NODE_ENV === 'production' ? '.buxdao.com' : undefined,
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
   }
 }));
