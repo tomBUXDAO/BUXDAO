@@ -13,6 +13,11 @@ const API_URL = process.env.NODE_ENV === 'production'
   ? 'https://buxdao.com/api'
   : '/api';
 
+// Separate URL for Edge Functions
+const EDGE_API_URL = process.env.NODE_ENV === 'production'
+  ? 'https://buxdao.com/api/printful'
+  : '/api/printful';
+
 const hasBackDesign = (productName) => {
   const name = productName.toLowerCase();
   return (
@@ -418,7 +423,7 @@ const Merch = () => {
     const fetchProducts = async () => {
       try {
         console.log('Fetching products...');
-        const response = await fetch(`${API_URL}/printful/products`, {
+        const response = await fetch(`${EDGE_API_URL}/products`, {
           headers: {
             'Accept': 'application/json'
           }
@@ -446,7 +451,11 @@ const Merch = () => {
             // Add a small delay between requests
             await new Promise(resolve => setTimeout(resolve, 100));
             
-            const variantResponse = await fetch(`${API_URL}/printful/products/${product.id}`);
+            const variantResponse = await fetch(`${EDGE_API_URL}/products/${product.id}`, {
+              headers: {
+                'Accept': 'application/json'
+              }
+            });
             if (!variantResponse.ok) {
               console.warn(`Skipping variants for product ${product.id} due to API error`);
               productsWithPrices.push({

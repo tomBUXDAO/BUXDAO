@@ -67,31 +67,6 @@ app.use('/api/collections', collectionsRouter);
 app.use('/api/celebcatz', celebcatzRouter);
 app.use('/api/top-holders', topHoldersHandler);
 
-// Proxy Printful requests to Edge Function
-app.use('/api/printful', async (req, res) => {
-  try {
-    const edgeFunctionUrl = `https://buxdao.com/api/printful${req.path}`;
-    console.log('Proxying request to Edge Function:', edgeFunctionUrl);
-    
-    const response = await axios({
-      method: req.method,
-      url: edgeFunctionUrl,
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-      }
-    });
-
-    res.status(response.status).json(response.data);
-  } catch (error) {
-    console.error('Error proxying to Edge Function:', error);
-    res.status(500).json({
-      error: 'Failed to proxy request',
-      details: error.message
-    });
-  }
-});
-
 // Serve static files from the dist directory
 app.use(express.static('dist'));
 
