@@ -57,17 +57,6 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Create static file middleware with API route exclusion
-const staticMiddleware = express.static('dist', {
-  setHeaders: (res, path) => {
-    if (path.endsWith('.js')) {
-      res.set('Content-Type', 'application/javascript');
-    } else if (path.endsWith('.css')) {
-      res.set('Content-Type', 'text/css');
-    }
-  }
-});
-
 // API routes should be defined before any static file handling
 app.use('/api/auth/check', authCheckRouter);
 app.use('/api/auth/discord', discordAuthRouter);
@@ -79,26 +68,37 @@ app.use('/api/celebcatz', celebcatzRouter);
 app.use('/api/top-holders', topHoldersHandler);
 
 // Edge Function routes - must be before static files
-app.use('/api/printful/*', (req, res, next) => {
-  // Let Edge Function handle these routes
-  next();
+app.use('/api/printful/*', (req, res) => {
+  // Return 404 to indicate this should be handled by Edge Function
+  res.status(404).json({
+    error: 'Not Found',
+    message: 'This route should be handled by Edge Function'
+  });
 });
 
-// Static file serving with API route check
+// Serve static files only for non-API routes
 app.use((req, res, next) => {
-  if (req.path.startsWith('/api/')) {
-    next();
+  if (!req.path.startsWith('/api/')) {
+    express.static('dist', {
+      setHeaders: (res, path) => {
+        if (path.endsWith('.js')) {
+          res.set('Content-Type', 'application/javascript');
+        } else if (path.endsWith('.css')) {
+          res.set('Content-Type', 'text/css');
+        }
+      }
+    })(req, res, next);
   } else {
-    staticMiddleware(req, res, next);
+    next();
   }
 });
 
-// Catch-all route for the frontend SPA
+// Catch-all route for the frontend SPA - only for non-API routes
 app.get('*', (req, res, next) => {
-  if (req.path.startsWith('/api/')) {
-    next();
-  } else {
+  if (!req.path.startsWith('/api/')) {
     res.sendFile('index.html', { root: 'dist' });
+  } else {
+    next();
   }
 });
 
