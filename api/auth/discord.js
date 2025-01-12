@@ -1,5 +1,6 @@
 import express from 'express';
 import dotenv from 'dotenv';
+import crypto from 'crypto';
 
 // Load environment variables
 dotenv.config();
@@ -25,14 +26,32 @@ console.log('Discord auth configuration:', {
   NODE_ENV: process.env.NODE_ENV
 });
 
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   const scopes = ['identify', 'guilds.join'];
   
-  // Use provided state or generate one
-  const state = req.query.state || Math.random().toString(36).substring(2);
+  // Generate a cryptographically secure state
+  const state = crypto.randomBytes(16).toString('hex');
   
-  // Store state in session
+  // Store state in session and save immediately
   req.session.discord_state = state;
+  
+  console.log('Setting Discord state:', {
+    sessionID: req.sessionID,
+    state: state,
+    hasSession: !!req.session
+  });
+
+  // Force session save
+  await new Promise((resolve, reject) => {
+    req.session.save((err) => {
+      if (err) {
+        console.error('Failed to save session:', err);
+        reject(err);
+      } else {
+        resolve();
+      }
+    });
+  });
   
   const params = new URLSearchParams({
     client_id: DISCORD_CLIENT_ID,
@@ -46,7 +65,8 @@ router.get('/', (req, res) => {
   console.log('Redirecting to Discord with params:', {
     client_id: DISCORD_CLIENT_ID,
     redirect_uri: REDIRECT_URI,
-    state: state
+    state: state,
+    sessionID: req.sessionID
   });
 
   res.redirect(`https://discord.com/oauth2/authorize?${params.toString()}`);

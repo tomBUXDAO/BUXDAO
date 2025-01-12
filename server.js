@@ -75,16 +75,18 @@ if (!process.env.SESSION_SECRET) {
 app.use(session({
   store: sessionStore,
   secret: process.env.SESSION_SECRET,
-  resave: false,
+  resave: true,
   saveUninitialized: true,
   name: 'buxdao.sid',
   proxy: process.env.NODE_ENV === 'production',
+  rolling: true,
   cookie: {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
-    sameSite: process.env.NODE_ENV === 'production' ? 'lax' : 'lax',
+    sameSite: 'lax',
     domain: process.env.NODE_ENV === 'production' ? '.buxdao.com' : undefined,
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    maxAge: 24 * 60 * 60 * 1000,
+    path: '/'
   }
 }));
 
@@ -94,10 +96,11 @@ app.use(cookieParser(process.env.SESSION_SECRET)); // Use same secret as session
 
 // Debug logging
 app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path} - Session ID: ${req.sessionID}`, {
-    hasSession: !!req.session,
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path} - Session Info:`, {
     sessionID: req.sessionID,
-    discordState: req.session?.discord_state
+    hasSession: !!req.session,
+    discordState: req.session?.discord_state,
+    cookies: req.headers.cookie
   });
   next();
 });
