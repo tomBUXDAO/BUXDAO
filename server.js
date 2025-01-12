@@ -74,15 +74,13 @@ app.use('/api/printful/*', (req, res, next) => {
   next();
 });
 
-// Serve static files from the dist directory
-app.use(express.static('dist', {
-  // Exclude API routes from static file serving
-  setHeaders: (res, path, stat) => {
-    if (path.includes('/api/')) {
-      res.set('Content-Type', 'application/json');
-    }
+// Serve static files from the dist directory EXCEPT for API routes
+app.use((req, res, next) => {
+  if (req.path.startsWith('/api/')) {
+    return next();
   }
-}));
+  express.static('dist')(req, res, next);
+});
 
 // Catch-all route to serve the frontend - exclude API routes
 app.get('*', (req, res, next) => {
