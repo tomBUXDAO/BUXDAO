@@ -44,6 +44,9 @@ export default async function handler(req) {
       throw new Error('PRINTFUL_API_KEY is not set');
     }
 
+    // Add a delay to ensure we're not hitting rate limits
+    await new Promise(resolve => setTimeout(resolve, 100));
+
     const response = await fetch('https://api.printful.com/store/products', {
       headers: {
         'Authorization': `Bearer ${process.env.PRINTFUL_API_KEY}`,
@@ -79,45 +82,8 @@ export default async function handler(req) {
       });
     }
 
-    const contentType = response.headers.get('content-type');
-    console.log('Edge Function: Response content type:', contentType);
-
-    if (!contentType || !contentType.includes('application/json')) {
-      console.error('Edge Function: Invalid content type from Printful API:', contentType);
-      return new Response(JSON.stringify({ 
-        error: 'Invalid content type from Printful API',
-        received: contentType
-      }), {
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-          'Cache-Control': 'no-store'
-        }
-      });
-    }
-
-    const responseText = await response.text();
-    console.log('Edge Function: Raw response:', responseText.slice(0, 200) + '...');
-
-    let data;
-    try {
-      data = JSON.parse(responseText);
-    } catch (e) {
-      console.error('Edge Function: Failed to parse JSON response:', e);
-      return new Response(JSON.stringify({
-        error: 'Failed to parse JSON response',
-        details: e.message,
-        received: responseText.slice(0, 200) + '...'
-      }), {
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-          'Cache-Control': 'no-store'
-        }
-      });
-    }
+    const data = await response.json();
+    console.log('Edge Function: Printful API data:', JSON.stringify(data).slice(0, 200) + '...');
     
     if (!data.result) {
       console.error('Edge Function: Invalid response format from Printful API:', data);
