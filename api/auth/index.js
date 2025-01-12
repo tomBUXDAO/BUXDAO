@@ -25,7 +25,7 @@ const COOKIE_OPTIONS = {
   httpOnly: true,
   secure: process.env.NODE_ENV === 'production',
   sameSite: 'lax',
-  domain: process.env.NODE_ENV === 'production' ? '.buxdao.com' : undefined
+  domain: process.env.NODE_ENV === 'production' ? 'buxdao.com' : undefined
 };
 
 export default async function handler(req, res) {
@@ -250,11 +250,12 @@ async function handleDiscordAuth(req, res) {
 
     // Set state cookie with strict options
     const cookieOptions = {
-      ...COOKIE_OPTIONS,
-      maxAge: 300, // 5 minutes in seconds
-      sameSite: 'lax',
       path: '/',
-      domain: process.env.NODE_ENV === 'production' ? '.buxdao.com' : undefined
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      domain: process.env.NODE_ENV === 'production' ? 'buxdao.com' : undefined,
+      maxAge: 300 // 5 minutes in seconds
     };
 
     // Use the exact Discord OAuth URL
@@ -265,7 +266,9 @@ async function handleDiscordAuth(req, res) {
     console.log('[Discord Auth] Redirecting to:', discordUrl);
 
     // Set state cookie and redirect
-    res.setHeader('Set-Cookie', serialize('discord_state', state, cookieOptions));
+    const cookie = serialize('discord_state', state, cookieOptions);
+    console.log('[Discord Auth] Setting cookie:', cookie);
+    res.setHeader('Set-Cookie', cookie);
     res.setHeader('Location', discordUrl);
     return res.status(302).end();
   } catch (error) {
@@ -473,29 +476,43 @@ async function handleLogout(req, res) {
 // Helper functions
 function setAuthCookies(res, token, userData) {
   const cookieOptions = {
-    ...COOKIE_OPTIONS,
+    path: '/',
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    domain: process.env.NODE_ENV === 'production' ? 'buxdao.com' : undefined,
     maxAge: 60 * 60 * 24 * 7 // 7 days
   };
 
-  res.setHeader('Set-Cookie', [
+  const cookies = [
     serialize('discord_token', token, cookieOptions),
     serialize('discord_user', JSON.stringify({
       discord_id: userData.id,
       discord_username: userData.username,
       avatar: userData.avatar,
     }), cookieOptions),
-  ]);
+  ];
+
+  console.log('[Auth] Setting auth cookies:', cookies);
+  res.setHeader('Set-Cookie', cookies);
 }
 
 function clearAuthCookies(res) {
   const cookieOptions = {
-    ...COOKIE_OPTIONS,
+    path: '/',
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    domain: process.env.NODE_ENV === 'production' ? 'buxdao.com' : undefined,
     expires: new Date(0)
   };
 
-  res.setHeader('Set-Cookie', [
+  const cookies = [
     serialize('discord_token', '', cookieOptions),
     serialize('discord_user', '', cookieOptions),
     serialize('discord_state', '', cookieOptions),
-  ]);
+  ];
+
+  console.log('[Auth] Clearing cookies:', cookies);
+  res.setHeader('Set-Cookie', cookies);
 } 
