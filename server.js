@@ -34,36 +34,9 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Accept', 'Authorization', 'Origin']
 }));
 
-// Debug middleware
+// Debug logging
 app.use((req, res, next) => {
-  console.log(`[DEBUG] Incoming request: ${req.method} ${req.path}`);
-  console.log('[DEBUG] Headers:', req.headers);
-  next();
-});
-
-// Create API router
-const apiRouter = express.Router();
-
-// API middleware
-apiRouter.use((req, res, next) => {
-  console.log(`[API] Processing API request: ${req.method} ${req.path}`);
-  const startTime = Date.now();
-  
-  // Add response logging
-  const oldSend = res.send;
-  res.send = function(data) {
-    const duration = Date.now() - startTime;
-    console.log(`[API] Response sent in ${duration}ms:`, {
-      statusCode: res.statusCode,
-      contentType: res.get('Content-Type'),
-      dataLength: data?.length
-    });
-    return oldSend.apply(res, arguments);
-  };
-  
-  // Set API-specific headers
-  res.setHeader('Content-Type', 'application/json');
-  res.setHeader('Cache-Control', 'no-store');
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
   next();
 });
 
@@ -71,7 +44,8 @@ apiRouter.use((req, res, next) => {
 const PRINTFUL_API_KEY = process.env.PRINTFUL_API_KEY;
 const PRINTFUL_API_URL = 'https://api.printful.com';
 
-apiRouter.get('/printful/products', async (req, res) => {
+// Explicit route handlers for Printful API
+app.get('/api/printful/products', async (req, res) => {
   console.log('[Printful] Starting products request...');
   
   if (!PRINTFUL_API_KEY) {
@@ -82,7 +56,6 @@ apiRouter.get('/printful/products', async (req, res) => {
   try {
     console.log('[Printful] Making request to Printful API...');
     const auth = Buffer.from(PRINTFUL_API_KEY + ':').toString('base64');
-    console.log('[Printful] Using auth:', auth.substring(0, 10) + '...');
     
     const response = await axios({
       method: 'get',
@@ -91,113 +64,76 @@ apiRouter.get('/printful/products', async (req, res) => {
         'Authorization': `Basic ${auth}`,
         'Content-Type': 'application/json',
         'Accept': 'application/json'
-      },
-      validateStatus: (status) => status === 200
+      }
     });
 
     console.log('[Printful] Response received:', {
       status: response.status,
-      contentType: response.headers['content-type'],
-      dataLength: JSON.stringify(response.data).length
+      contentType: response.headers['content-type']
     });
 
-    res.json(response.data.result);
+    return res.json(response.data.result);
   } catch (error) {
     console.error('[Printful] API error:', {
       message: error.message,
       status: error.response?.status,
-      data: error.response?.data,
-      headers: error.response?.headers
+      data: error.response?.data
     });
-    res.status(500).json({ error: 'Failed to fetch products' });
+    return res.status(500).json({ error: 'Failed to fetch products' });
   }
 });
 
-apiRouter.get('/printful/products/:id', async (req, res) => {
+app.get('/api/printful/products/:id', async (req, res) => {
+  if (!PRINTFUL_API_KEY) {
+    return res.status(500).json({ error: 'Printful API key is not configured' });
+  }
+
   try {
-    console.log(`[Printful] Fetching product details for ID: ${req.params.id}`);
+    const auth = Buffer.from(PRINTFUL_API_KEY + ':').toString('base64');
     const response = await axios({
       method: 'get',
       url: `${PRINTFUL_API_URL}/store/products/${req.params.id}`,
       headers: {
-        'Authorization': `Basic ${Buffer.from(PRINTFUL_API_KEY + ':').toString('base64')}`,
+        'Authorization': `Basic ${auth}`,
         'Content-Type': 'application/json',
         'Accept': 'application/json'
-      },
-      validateStatus: (status) => status === 200
+      }
     });
 
-    console.log('[Printful] Successfully fetched product details');
-    res.json(response.data.result);
+    return res.json(response.data.result);
   } catch (error) {
-    console.error('[Printful] API error:', error.response?.data || error.message);
-    res.status(500).json({ error: 'Failed to fetch product details' });
+    console.error('[Printful] API error:', error.message);
+    return res.status(500).json({ error: 'Failed to fetch product details' });
   }
 });
 
-// Mount other API routes
-apiRouter.use('/auth/check', authCheckRouter);
-apiRouter.use('/auth/discord', discordAuthRouter);
-apiRouter.use('/auth/discord/callback', discordCallbackRouter);
-apiRouter.use('/auth/wallet', walletAuthRouter);
-apiRouter.use('/auth/logout', logoutRouter);
-apiRouter.use('/collections', collectionsRouter);
-apiRouter.use('/celebcatz', celebcatzRouter);
-apiRouter.use('/top-holders', topHoldersHandler);
+// Other API routes
+app.use('/api/auth/check', authCheckRouter);
+app.use('/api/auth/discord', discordAuthRouter);
+app.use('/api/auth/discord/callback', discordCallbackRouter);
+app.use('/api/auth/wallet', walletAuthRouter);
+app.use('/api/auth/logout', logoutRouter);
+app.use('/api/collections', collectionsRouter);
+app.use('/api/celebcatz', celebcatzRouter);
+app.use('/api/top-holders', topHoldersHandler);
 
-// API error handling
-apiRouter.use((err, req, res, next) => {
-  console.error('[API] Error handler caught:', err);
-  console.error('Stack trace:', err.stack);
-  
-  res.status(err.status || 500).json({
-    error: err.message || 'Internal Server Error',
-    code: err.code,
-    path: req.path
-  });
-});
+// Static file serving
+app.use(express.static('dist', {
+  index: false
+}));
 
-// Mount API router first
-app.use('/api', apiRouter);
-
-// Static file handling - only for non-API routes
-const staticHandler = express.static('dist', {
-  index: false,
-  setHeaders: (res, path) => {
-    if (path.endsWith('.js')) {
-      res.set('Content-Type', 'application/javascript');
-    } else if (path.endsWith('.css')) {
-      res.set('Content-Type', 'text/css');
-    }
+// SPA fallback
+app.get('*', (req, res) => {
+  // Only serve index.html for non-API routes
+  if (!req.path.startsWith('/api/')) {
+    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
   }
-});
-
-app.use((req, res, next) => {
-  if (req.path.startsWith('/api/')) {
-    return next();
-  }
-  staticHandler(req, res, next);
-});
-
-// SPA fallback - must be last
-app.get('*', (req, res, next) => {
-  if (req.path.startsWith('/api/')) {
-    return next();
-  }
-  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
-});
-
-// Final error handler
-app.use((err, req, res, next) => {
-  console.error('[Error] Unhandled error:', err);
-  res.status(500).json({ error: 'Internal Server Error' });
 });
 
 // Start the server
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, 'localhost', () => {
+app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });
 
-// Export the Express app
 export default app;
