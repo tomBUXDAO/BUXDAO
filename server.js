@@ -57,7 +57,7 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Use auth routers
+// API routes should be defined before any static file handling
 app.use('/api/auth/check', authCheckRouter);
 app.use('/api/auth/discord', discordAuthRouter);
 app.use('/api/auth/discord/callback', discordCallbackRouter);
@@ -67,22 +67,21 @@ app.use('/api/collections', collectionsRouter);
 app.use('/api/celebcatz', celebcatzRouter);
 app.use('/api/top-holders', topHoldersHandler);
 
-// Add Edge Function proxy middleware before static files
-app.use('/api/printful/*', (req, res, next) => {
-  console.log('Edge Function proxy middleware:', req.path);
-  // Pass through to next middleware instead of returning 404
-  next();
+// API routes that should be handled by Edge Functions
+app.use('/api/printful/*', (req, res) => {
+  // Let the request fall through to be handled by Edge Function
+  res.status(404).end();
 });
 
-// Serve static files from the dist directory EXCEPT for API routes
+// Static file serving - only if not an API route
 app.use((req, res, next) => {
   if (req.path.startsWith('/api/')) {
     return next();
   }
-  express.static('dist')(req, res, next);
+  return express.static('dist')(req, res, next);
 });
 
-// Catch-all route to serve the frontend - exclude API routes
+// Catch-all route for the frontend SPA - only if not an API route
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api/')) {
     return next();
