@@ -16,6 +16,8 @@ import logoutRouter from './api/auth/logout.js';
 import collectionsRouter from './api/collections/index.js';
 import celebcatzRouter from './api/celebcatz/index.js';
 import topHoldersHandler from './api/top-holders.js';
+import tokenMetricsRouter from './api/token-metrics.js';
+import session from 'express-session';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -25,6 +27,19 @@ const app = express();
 // Basic middleware
 app.use(express.json());
 app.use(cookieParser(process.env.COOKIE_SECRET));
+
+// Session middleware
+app.use(session({
+  secret: process.env.COOKIE_SECRET || 'your-secret-key',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    sameSite: 'lax',
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
+}));
 
 // CORS configuration
 app.use(cors({
@@ -121,6 +136,7 @@ app.use('/api/auth/logout', logoutRouter);
 app.use('/api/collections', collectionsRouter);
 app.use('/api/celebcatz', celebcatzRouter);
 app.use('/api/top-holders', topHoldersHandler);
+app.use('/api/token-metrics', tokenMetricsRouter);
 
 // API 404 handler - must come after API routes but before static files
 app.use('/api/*', (req, res) => {

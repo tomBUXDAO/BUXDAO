@@ -1,19 +1,11 @@
+import express from 'express';
 import pkg from 'pg';
 const { Pool } = pkg;
 import { Connection, PublicKey, LAMPORTS_PER_SOL } from '@solana/web3.js';
 
-export default async function handler(req, res) {
-  // Handle CORS
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', '*');
-  
-  // Handle preflight request
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
-  }
+const router = express.Router();
 
+router.get('/', async (req, res) => {
   let client;
   try {
     console.log('Fetching token metrics...');
@@ -130,4 +122,6 @@ export default async function handler(req, res) {
       client.release();
     }
   }
-} 
+});
+
+export default router; 

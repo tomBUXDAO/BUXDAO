@@ -35,7 +35,7 @@ const Bux = () => {
   ];
 
   // Get the base URL for API calls
-  const baseUrl = 'https://buxdao.com';    // Use production API
+  const baseUrl = import.meta.env.DEV ? '' : 'https://buxdao.com';    // Use local API in development
 
   useEffect(() => {
     const fetchData = async () => {

@@ -79,33 +79,8 @@ const HolderVerification = () => {
       // Store state in localStorage
       localStorage.setItem('discord_state', state);
       
-      // Get client ID from environment variables
-      const clientId = process.env.NODE_ENV === 'production' 
-        ? '1326719755779969044'  // Production Discord client ID
-        : import.meta.env.VITE_DISCORD_CLIENT_ID;
-      
-      if (!clientId) {
-        console.error('Discord client ID not found in environment variables');
-        setError('Configuration error. Please try again later.');
-        return;
-      }
-      
-      // Build Discord OAuth URL with environment-specific redirect URI
-      const redirectUri = process.env.NODE_ENV === 'production'
-        ? 'https://buxdao.com/api/auth/discord/callback'
-        : `${window.location.origin}/api/auth/discord/callback`;
-
-      const params = new URLSearchParams({
-        client_id: clientId,
-        redirect_uri: redirectUri,
-        response_type: 'code',
-        scope: 'identify guilds.join',
-        state: state,
-        prompt: 'consent'
-      });
-
-      // Redirect to Discord OAuth
-      window.location.href = `https://discord.com/oauth2/authorize?${params.toString()}`;
+      // Redirect to our backend auth endpoint
+      window.location.href = `/api/auth/discord?state=${state}`;
     } catch (error) {
       console.error('Failed to initiate Discord login:', error);
       setError('Failed to start Discord authentication');
@@ -126,7 +101,7 @@ const HolderVerification = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          walletAddress: publicKey.toString(),
+          wallet_address: publicKey.toString(),
           discord_id: discordUser.discord_id,
           discord_username: discordUser.discord_username
         }),
@@ -135,15 +110,15 @@ const HolderVerification = () => {
 
       const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Verification failed');
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || 'Verification failed');
       }
 
       // Update local state with roles
       setVerificationStatus('verified');
       
       // Show success message
-      setError('Successfully verified.');
+      setError(data.message);
 
     } catch (err) {
       console.error('Wallet verification failed:', err);
