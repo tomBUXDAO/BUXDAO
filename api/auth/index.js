@@ -220,25 +220,32 @@ async function handleDiscordAuth(req, res) {
 
   try {
     const state = crypto.randomBytes(16).toString('hex');
+    console.log('[Discord Auth] Generated state:', state);
+
+    // Set state cookie with strict options
     const cookieOptions = {
       ...COOKIE_OPTIONS,
-      maxAge: 60 * 5 // 5 minutes
+      maxAge: 300, // 5 minutes in seconds
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax'
     };
 
     // Use the exact Discord OAuth URL
     const discordUrl = `https://discord.com/oauth2/authorize?response_type=code&client_id=${DISCORD_CLIENT_ID}&scope=identify%20guilds.join&state=${state}&redirect_uri=${encodeURIComponent(CALLBACK_URL)}&prompt=consent`;
     
+    console.log('[Discord Auth] Cookie options:', cookieOptions);
+    console.log('[Discord Auth] Setting state cookie:', state);
     console.log('[Discord Auth] Redirecting to:', discordUrl);
-    console.log('[Discord Auth] Setting state cookie with options:', cookieOptions);
 
     // Set state cookie and redirect
     res.setHeader('Set-Cookie', serialize('discord_state', state, cookieOptions));
     res.setHeader('Location', discordUrl);
-    res.status(302).end();
+    return res.status(302).end();
   } catch (error) {
     console.error('[Discord Auth] Error:', error);
     res.setHeader('Location', ORIGIN + '/verify?error=' + encodeURIComponent(error.message));
-    res.status(302).end();
+    return res.status(302).end();
   }
 }
 
@@ -252,13 +259,24 @@ async function handleDiscordCallback(req, res) {
     const { code, state } = req.query;
     const cookies = parse(req.headers.cookie || '');
     
-    console.log('[Discord Callback] Cookies:', cookies);
+    console.log('[Discord Callback] Request cookies:', req.headers.cookie);
+    console.log('[Discord Callback] Parsed cookies:', cookies);
     console.log('[Discord Callback] State from query:', state);
     console.log('[Discord Callback] State from cookie:', cookies.discord_state);
     
     // Verify state parameter
-    if (!state || !cookies.discord_state || state !== cookies.discord_state) {
-      console.error('[Discord Callback] Invalid state parameter');
+    if (!state || !cookies.discord_state) {
+      const error = !state ? 'Missing state parameter' : 'Missing state cookie';
+      console.error(`[Discord Callback] ${error}`);
+      res.setHeader('Location', ORIGIN + '/verify?error=' + encodeURIComponent(error));
+      return res.status(302).end();
+    }
+
+    if (state !== cookies.discord_state) {
+      console.error('[Discord Callback] State mismatch', {
+        queryState: state,
+        cookieState: cookies.discord_state
+      });
       res.setHeader('Location', ORIGIN + '/verify?error=' + encodeURIComponent('Invalid state parameter'));
       return res.status(302).end();
     }
