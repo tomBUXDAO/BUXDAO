@@ -67,8 +67,19 @@ app.use('/api/collections', collectionsRouter);
 app.use('/api/celebcatz', celebcatzRouter);
 app.use('/api/top-holders', topHoldersHandler);
 
+// Create static file middleware with API route exclusion
+const staticMiddleware = express.static('dist', {
+  setHeaders: (res, path) => {
+    if (path.endsWith('.js')) {
+      res.set('Content-Type', 'application/javascript');
+    } else if (path.endsWith('.css')) {
+      res.set('Content-Type', 'text/css');
+    }
+  }
+});
+
 // Edge Function routes - must be before static files
-app.use('/api/printful', (req, res, next) => {
+app.use('/api/printful/*', (req, res) => {
   // Return 404 for Edge Function routes
   res.status(404).json({
     error: 'Edge Function route',
@@ -76,22 +87,22 @@ app.use('/api/printful', (req, res, next) => {
   });
 });
 
-// Static file serving - explicitly exclude API routes
+// Static file serving with API route check
 app.use((req, res, next) => {
   if (req.path.startsWith('/api/')) {
     next();
-    return;
+  } else {
+    staticMiddleware(req, res, next);
   }
-  express.static('dist')(req, res, next);
 });
 
-// Catch-all route for the frontend SPA - explicitly exclude API routes
+// Catch-all route for the frontend SPA
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api/')) {
     next();
-    return;
+  } else {
+    res.sendFile('index.html', { root: 'dist' });
   }
-  res.sendFile('index.html', { root: 'dist' });
 });
 
 const cache = new NodeCache({ stdTTL: 60 }); // Cache for 60 seconds
