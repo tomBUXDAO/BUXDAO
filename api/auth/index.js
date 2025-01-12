@@ -239,49 +239,34 @@ async function handleProcess(req, res) {
 
 // Initiate Discord auth
 async function handleDiscordAuth(req, res) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
   try {
     const state = crypto.randomBytes(16).toString('hex');
     console.log('[Discord Auth] Generated state:', state);
 
-    // Set state cookie with strict options
-    const cookieOptions = {
-      path: '/',
-      httpOnly: true,
-      secure: true,
-      sameSite: 'lax',
-      maxAge: 300 // 5 minutes in seconds
-    };
-
-    // Use the exact Discord OAuth URL
-    const discordUrl = `https://discord.com/oauth2/authorize?response_type=code&client_id=${DISCORD_CLIENT_ID}&scope=identify%20guilds.join&state=${state}&redirect_uri=${encodeURIComponent(CALLBACK_URL)}&prompt=consent`;
+    // Set state cookie first
+    res.setHeader('Set-Cookie', `state=${state}; Path=/; Secure; SameSite=Lax; Max-Age=300`);
     
-    console.log('[Discord Auth] Cookie options:', cookieOptions);
-    console.log('[Discord Auth] Setting state cookie:', state);
+    // Log cookies after setting
+    console.log('[Discord Auth] Set state cookie, current cookies:', req.headers.cookie);
+
+    // Build Discord OAuth URL
+    const params = new URLSearchParams({
+      client_id: process.env.DISCORD_CLIENT_ID,
+      redirect_uri: CALLBACK_URL,
+      response_type: 'code',
+      scope: 'identify guilds.join',
+      state: state
+    });
+
+    const discordUrl = `https://discord.com/oauth2/authorize?${params.toString()}`;
     console.log('[Discord Auth] Redirecting to:', discordUrl);
 
-    // First clear any existing cookies
-    res.setHeader('Set-Cookie', [
-      'discord_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=Lax',
-      'discord_user=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=Lax',
-      'discord_state=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=Lax'
-    ]);
-
-    // Then set the new state cookie
-    const stateCookie = `discord_state=${state}; Path=/; Max-Age=300; HttpOnly; Secure; SameSite=Lax`;
-    res.setHeader('Set-Cookie', stateCookie);
-    console.log('[Discord Auth] Setting cookie:', stateCookie);
-
-    // Set redirect header after cookies
+    // Redirect after cookie is set
     res.setHeader('Location', discordUrl);
-    return res.status(302).end();
+    res.status(302).end();
   } catch (error) {
     console.error('[Discord Auth] Error:', error);
-    res.setHeader('Location', ORIGIN + '/verify?error=' + encodeURIComponent(error.message));
-    return res.status(302).end();
+    res.redirect('/verify?error=' + encodeURIComponent(error.message));
   }
 }
 
