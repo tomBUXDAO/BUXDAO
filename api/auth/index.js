@@ -86,56 +86,82 @@ async function handleCheck(req, res) {
   }
 
   try {
-    console.log('[Auth Check] Request headers:', req.headers);
-    const cookies = req.headers.cookie ? parse(req.headers.cookie) : {};
+    console.log('[Auth Check] Request headers:', {
+      cookie: req.headers.cookie,
+      origin: req.headers.origin,
+      host: req.headers.host
+    });
+    
+    const cookies = parse(req.headers.cookie || '');
     console.log('[Auth Check] Parsed cookies:', cookies);
     
     if (!cookies.discord_token || !cookies.discord_user) {
-      console.log('[Auth Check] Missing token or user');
+      console.log('[Auth Check] Missing required cookies:', {
+        hasToken: !!cookies.discord_token,
+        hasUser: !!cookies.discord_user
+      });
       return res.status(401).json({ 
         authenticated: false,
-        error: 'Not authenticated' 
+        error: 'Not authenticated',
+        details: 'Missing required cookies'
       });
     }
 
     // Verify Discord token is still valid
     try {
-      const response = await fetch('https://discord.com/api/users/@me', {
+      const response = await fetch('https://discord.com/api/v9/users/@me', {
         headers: {
           'Authorization': `Bearer ${cookies.discord_token}`,
-          'Accept': 'application/json'
+          'Accept': 'application/json',
+          'User-Agent': 'BUXDAO Discord OAuth'
         }
       });
 
       if (!response.ok) {
-        console.log('[Auth Check] Invalid token response:', response.status);
+        const responseText = await response.text();
+        console.log('[Auth Check] Invalid token response:', {
+          status: response.status,
+          response: responseText
+        });
         clearAuthCookies(res);
         return res.status(401).json({ 
           authenticated: false,
-          error: 'Invalid token' 
+          error: 'Invalid token',
+          details: `Discord API returned ${response.status}`
         });
       }
 
       const discordData = await response.json();
-      console.log('[Auth Check] Discord API response:', discordData);
+      console.log('[Auth Check] Discord API response:', {
+        id: discordData.id,
+        username: discordData.username
+      });
 
       let user;
       try {
         user = JSON.parse(cookies.discord_user);
-        console.log('[Auth Check] Parsed user data successfully:', user.id);
+        console.log('[Auth Check] Parsed user data:', {
+          id: user.id,
+          username: user.discord_username
+        });
         
         // Update user data if needed
-        if (user.id !== discordData.id) {
+        if (user.discord_id !== discordData.id) {
           console.log('[Auth Check] User ID mismatch, updating cookie');
           setAuthCookies(res, cookies.discord_token, discordData);
-          user = discordData;
+          user = {
+            discord_id: discordData.id,
+            discord_username: discordData.username,
+            avatar: discordData.avatar
+          };
         }
       } catch (e) {
         console.error('[Auth Check] Failed to parse user data:', e);
         clearAuthCookies(res);
         return res.status(401).json({ 
           authenticated: false,
-          error: 'Invalid user data' 
+          error: 'Invalid user data',
+          details: 'Failed to parse user cookie'
         });
       }
 
