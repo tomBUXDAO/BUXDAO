@@ -18,11 +18,26 @@ import celebcatzRouter from './api/celebcatz/index.js';
 import topHoldersHandler from './api/top-holders.js';
 import tokenMetricsRouter from './api/token-metrics.js';
 import session from 'express-session';
+import pgSession from 'connect-pg-simple';
+import pg from 'pg';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+
+// PostgreSQL client setup
+const pool = new pg.Pool({
+  connectionString: process.env.POSTGRES_URL,
+  ssl: { rejectUnauthorized: false }
+});
+
+// Session configuration with PostgreSQL store
+const PostgresqlStore = pgSession(session);
+const sessionStore = new PostgresqlStore({
+  pool,
+  tableName: 'session'
+});
 
 // Basic middleware
 app.use(express.json());
@@ -30,25 +45,26 @@ app.use(cookieParser(process.env.COOKIE_SECRET));
 
 // Session middleware
 app.use(session({
-  secret: process.env.COOKIE_SECRET || 'your-secret-key',
+  store: sessionStore,
+  secret: process.env.SESSION_SECRET || 'your-secret-key',
   resave: false,
   saveUninitialized: false,
+  name: 'buxdao.sid',
   cookie: {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
-    sameSite: 'lax',
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    domain: process.env.NODE_ENV === 'production' ? '.buxdao.com' : undefined
-  },
-  name: 'buxdao.sid' // Custom session cookie name
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    domain: process.env.NODE_ENV === 'production' ? '.buxdao.com' : undefined,
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
 }));
 
 // CORS configuration
 app.use(cors({
-  origin: ['http://localhost:5173', 'https://buxdao.com', 'https://www.buxdao.com'],
+  origin: process.env.NODE_ENV === 'production' ? 'https://buxdao.com' : 'http://localhost:5173',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Accept', 'Authorization', 'Origin', 'Cookie']
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie']
 }));
 
 // API middleware - only for /api routes
