@@ -5,6 +5,8 @@ dotenv.config();
 import express from 'express';
 import cors from 'cors';
 import axios from 'axios';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { Connection, PublicKey, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import NodeCache from 'node-cache';
 import cookieParser from 'cookie-parser';
@@ -18,6 +20,9 @@ import collectionsRouter from './api/collections/index.js';
 import celebcatzRouter from './api/celebcatz/index.js';
 import topHoldersHandler from './api/top-holders.js';
 import printfulRouter from './api/printful/index.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 
@@ -49,23 +54,11 @@ app.use((req, res, next) => {
   next();
 });
 
-// API middleware to ensure proper handling of API routes
-app.use('/api', (req, res, next) => {
-  // Set API-specific headers
-  res.setHeader('Content-Type', 'application/json');
-  res.setHeader('Cache-Control', 'no-store');
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  
-  // Flag this as an API request
-  req.isApiRequest = true;
-  
-  next();
-});
+// Create separate routers for API and static files
+const apiRouter = express.Router();
+const staticRouter = express.Router();
 
 // API Routes
-const apiRouter = express.Router();
-
-// Mount all API routes
 apiRouter.use('/auth/check', authCheckRouter);
 apiRouter.use('/auth/discord', discordAuthRouter);
 apiRouter.use('/auth/discord/callback', discordCallbackRouter);
@@ -88,38 +81,38 @@ apiRouter.use((err, req, res, next) => {
   });
 });
 
-// Mount API router at /api
-app.use('/api', apiRouter);
-
-// Static file middleware - skip if it's an API request
-app.use((req, res, next) => {
-  if (req.isApiRequest) {
-    return next();
+// Static file handling
+staticRouter.get('*', (req, res, next) => {
+  const filePath = path.join(__dirname, 'dist', req.path);
+  
+  // Handle specific file types
+  if (req.path.endsWith('.js')) {
+    res.set('Content-Type', 'application/javascript');
+  } else if (req.path.endsWith('.css')) {
+    res.set('Content-Type', 'text/css');
   }
   
-  express.static('dist', {
-    setHeaders: (res, path) => {
-      if (path.endsWith('.js')) {
-        res.set('Content-Type', 'application/javascript');
-      } else if (path.endsWith('.css')) {
-        res.set('Content-Type', 'text/css');
+  // Try to send the file
+  res.sendFile(filePath, (err) => {
+    if (err) {
+      // If file not found, send index.html for SPA routing
+      if (err.code === 'ENOENT') {
+        res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+      } else {
+        next(err);
       }
     }
-  })(req, res, next);
+  });
 });
 
-// SPA fallback - skip if it's an API request
-app.use((req, res, next) => {
-  if (req.isApiRequest) {
-    return next();
-  }
-  
-  if (req.path.startsWith('/api/')) {
-    return res.status(404).json({ error: 'API endpoint not found' });
-  }
-  
-  res.sendFile('index.html', { root: 'dist' });
-});
+// Mount routers
+app.use('/api', (req, res, next) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Cache-Control', 'no-store');
+  next();
+}, apiRouter);
+
+app.use('/', staticRouter);
 
 const cache = new NodeCache({ stdTTL: 60 }); // Cache for 60 seconds
 
