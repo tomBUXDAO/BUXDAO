@@ -53,8 +53,12 @@ app.use((req, res, next) => {
   next();
 });
 
+// Create separate routers for API and static files
+const apiRouter = express.Router();
+const staticRouter = express.Router();
+
 // API middleware - ensure proper handling of all API routes
-app.use('/api', (req, res, next) => {
+apiRouter.use((req, res, next) => {
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Cache-Control', 'no-store');
   next();
@@ -64,7 +68,7 @@ app.use('/api', (req, res, next) => {
 const PRINTFUL_API_KEY = process.env.PRINTFUL_API_KEY;
 const PRINTFUL_API_URL = 'https://api.printful.com';
 
-app.get('/api/printful/products', async (req, res) => {
+apiRouter.get('/printful/products', async (req, res) => {
   if (!PRINTFUL_API_KEY) {
     console.error('[Printful] API key not configured');
     return res.status(500).json({ error: 'Printful API key not configured' });
@@ -98,7 +102,7 @@ app.get('/api/printful/products', async (req, res) => {
   }
 });
 
-app.get('/api/printful/products/:id', async (req, res) => {
+apiRouter.get('/printful/products/:id', async (req, res) => {
   if (!PRINTFUL_API_KEY) {
     console.error('[Printful] API key not configured');
     return res.status(500).json({ error: 'Printful API key not configured' });
@@ -137,9 +141,6 @@ app.get('/api/printful/products/:id', async (req, res) => {
   }
 });
 
-// Other API Routes
-const apiRouter = express.Router();
-
 // Mount all API routes
 apiRouter.use('/auth/check', authCheckRouter);
 apiRouter.use('/auth/discord', discordAuthRouter);
@@ -162,11 +163,8 @@ apiRouter.use((err, req, res, next) => {
   });
 });
 
-// Mount API router at /api
-app.use('/api', apiRouter);
-
-// Static file serving - must be after all API routes
-app.use(express.static('dist', {
+// Static file handling
+staticRouter.use(express.static('dist', {
   index: false, // Disable automatic serving of index.html
   setHeaders: (res, path) => {
     if (path.endsWith('.js')) {
@@ -177,12 +175,18 @@ app.use(express.static('dist', {
   }
 }));
 
-// SPA fallback - must be last
-app.get('*', (req, res, next) => {
-  if (req.path.startsWith('/api/')) {
-    return next(); // Let API routes handle 404s
-  }
+// SPA fallback for static routes
+staticRouter.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+});
+
+// Mount routers with path-based routing
+app.use('/api', apiRouter);
+app.use('/', (req, res, next) => {
+  if (req.path.startsWith('/api/')) {
+    return next('route');
+  }
+  staticRouter(req, res, next);
 });
 
 // Start the server
