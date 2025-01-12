@@ -10,7 +10,7 @@ const CATEGORIES = {
 
 // Get the API URL from environment variables, fallback to localhost if not set
 const API_URL = process.env.NODE_ENV === 'production'
-  ? 'https://api.buxdao.com'
+  ? 'https://buxdao.com/api'
   : '/api';
 
 const hasBackDesign = (productName) => {

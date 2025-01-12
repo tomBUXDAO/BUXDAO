@@ -22,8 +22,8 @@ const app = express();
 app.use(cors({
   origin: ['http://localhost:5173', 'https://buxdao.com', 'https://www.buxdao.com'],
   credentials: true,
-  methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Accept', 'Authorization']
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Accept', 'Authorization', 'Origin']
 }));
 app.use(express.json());
 app.use(cookieParser(process.env.COOKIE_SECRET));
@@ -151,71 +151,6 @@ app.get('/api/celebcatz/images', async (req, res) => {
       details: error.message,
       code: error.code 
     });
-  }
-});
-
-// Add Printful products endpoint
-app.get('/api/printful/products', async (req, res) => {
-  try {
-    const response = await fetch('https://api.printful.com/store/products', {
-      headers: {
-        'Authorization': `Bearer ${process.env.PRINTFUL_API_KEY}`,
-        'Content-Type': 'application/json'
-      }
-    });
-
-    if (!response.ok) {
-      throw new Error(`Printful API error: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    
-    if (!data.result) {
-      throw new Error('Invalid response format from Printful API');
-    }
-
-    const products = data.result.map(item => ({
-      id: item.id,
-      name: item.name,
-      thumbnail_url: item.thumbnail_url,
-      variants: item.variants || 0,
-      sync_product: item.sync_product,
-      sync_variants: item.sync_variants
-    }));
-
-    res.json(products);
-  } catch (error) {
-    console.error('Error fetching from Printful:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Add Printful product details endpoint
-app.get('/api/printful/products/:id', async (req, res) => {
-  const { id } = req.params;
-
-  try {
-    const response = await fetch(`https://api.printful.com/store/products/${id}`, {
-      headers: {
-        'Authorization': `Bearer ${process.env.PRINTFUL_API_KEY}`,
-        'Content-Type': 'application/json'
-      }
-    });
-
-    if (!response.ok) {
-      throw new Error(`Printful API error: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    
-    if (!data.result) {
-      throw new Error('Invalid response format from Printful API');
-    }
-
-    res.json(data.result);
-  } catch (error) {
-    console.error('Error fetching product from Printful:', error);
-    res.status(500).json({ error: error.message });
   }
 });
 
