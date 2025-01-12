@@ -1,12 +1,15 @@
 import express from 'express';
 import { PublicKey } from '@solana/web3.js';
 import pg from 'pg';
+import { syncUserRoles } from '../discord/roles.js';
 
 const router = express.Router();
 const pool = new pg.Pool({
   connectionString: process.env.POSTGRES_URL,
   ssl: { rejectUnauthorized: false }
 });
+
+const DISCORD_GUILD_ID = process.env.DISCORD_GUILD_ID;
 
 router.post('/', async (req, res) => {
   try {
@@ -91,6 +94,9 @@ router.post('/', async (req, res) => {
            WHERE owner_wallet = $3`,
           [req.session.user.discord_id, req.session.user.discord_username, wallet_address]
         );
+
+        // Sync Discord roles
+        await syncUserRoles(req.session.user.discord_id, DISCORD_GUILD_ID);
 
         await client.query('COMMIT');
         console.log('Updated user_roles and ownership entries:', userRolesResult.rows[0]);
