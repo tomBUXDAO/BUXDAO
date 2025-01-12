@@ -21,14 +21,18 @@ import printfulProductsRouter from './api/printful/products.js';
 import printfulProductDetailsRouter from './api/printful/products/[id].js';
 
 const app = express();
+
+// Basic middleware
+app.use(express.json());
+app.use(cookieParser(process.env.COOKIE_SECRET));
+
+// CORS configuration
 app.use(cors({
   origin: ['http://localhost:5173', 'https://buxdao.com', 'https://www.buxdao.com'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Accept', 'Authorization', 'Origin']
 }));
-app.use(express.json());
-app.use(cookieParser(process.env.COOKIE_SECRET));
 
 // Debug middleware for all requests
 app.use((req, res, next) => {
@@ -46,12 +50,33 @@ app.use((req, res, next) => {
   next();
 });
 
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error('Global error handler caught:', err);
+// API Routes
+const apiRouter = express.Router();
+
+// Auth routes
+apiRouter.use('/auth/check', authCheckRouter);
+apiRouter.use('/auth/discord', discordAuthRouter);
+apiRouter.use('/auth/discord/callback', discordCallbackRouter);
+apiRouter.use('/auth/wallet', walletAuthRouter);
+apiRouter.use('/auth/logout', logoutRouter);
+
+// Collection routes
+apiRouter.use('/collections', collectionsRouter);
+apiRouter.use('/celebcatz', celebcatzRouter);
+apiRouter.use('/top-holders', topHoldersHandler);
+
+// Printful routes
+apiRouter.use('/printful/products/:id', printfulProductDetailsRouter);
+apiRouter.use('/printful/products', printfulProductsRouter);
+
+// Mount all API routes under /api
+app.use('/api', apiRouter);
+
+// Error handling middleware for API routes
+apiRouter.use((err, req, res, next) => {
+  console.error('API error handler caught:', err);
   console.error('Stack trace:', err.stack);
   
-  // Send appropriate error response
   res.status(err.status || 500).json({
     error: err.message || 'Internal Server Error',
     code: err.code,
@@ -59,44 +84,27 @@ app.use((err, req, res, next) => {
   });
 });
 
-// API routes should be defined before any static file handling
-app.use('/api/auth/check', authCheckRouter);
-app.use('/api/auth/discord', discordAuthRouter);
-app.use('/api/auth/discord/callback', discordCallbackRouter);
-app.use('/api/auth/wallet', walletAuthRouter);
-app.use('/api/auth/logout', logoutRouter);
-app.use('/api/collections', collectionsRouter);
-app.use('/api/celebcatz', celebcatzRouter);
-app.use('/api/top-holders', topHoldersHandler);
-
-// Printful API routes - must be before static files
-app.use('/api/printful/products/:id', printfulProductDetailsRouter);
-app.use('/api/printful/products', printfulProductsRouter);
-
-// Serve static files only for non-API routes
-app.use((req, res, next) => {
-  if (!req.path.startsWith('/api/')) {
-    express.static('dist', {
-      setHeaders: (res, path) => {
-        if (path.endsWith('.js')) {
-          res.set('Content-Type', 'application/javascript');
-        } else if (path.endsWith('.css')) {
-          res.set('Content-Type', 'text/css');
-        }
-      }
-    })(req, res, next);
-  } else {
-    next();
+// Static file serving - after API routes
+const staticMiddleware = express.static('dist', {
+  setHeaders: (res, path) => {
+    if (path.endsWith('.js')) {
+      res.set('Content-Type', 'application/javascript');
+    } else if (path.endsWith('.css')) {
+      res.set('Content-Type', 'text/css');
+    }
   }
 });
 
-// Catch-all route for the frontend SPA - only for non-API routes
-app.get('*', (req, res, next) => {
-  if (!req.path.startsWith('/api/')) {
-    res.sendFile('index.html', { root: 'dist' });
-  } else {
-    next();
+app.use(staticMiddleware);
+
+// SPA fallback - after static files and API routes
+app.get('*', (req, res) => {
+  // Don't handle API routes here
+  if (req.path.startsWith('/api/')) {
+    res.status(404).json({ error: 'API endpoint not found' });
+    return;
   }
+  res.sendFile('index.html', { root: 'dist' });
 });
 
 const cache = new NodeCache({ stdTTL: 60 }); // Cache for 60 seconds
