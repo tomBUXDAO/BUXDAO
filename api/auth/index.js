@@ -247,15 +247,6 @@ async function handleProcess(req, res) {
 // Initiate Discord auth
 async function handleDiscordAuth(req, res) {
   try {
-    // Double check client ID is available
-    if (!DISCORD_CLIENT_ID || DISCORD_CLIENT_ID === 'undefined') {
-      console.error('[Discord Auth] Client ID not available:', process.env.DISCORD_CLIENT_ID);
-      throw new Error('Discord client ID is not properly configured');
-    }
-
-    // Log the actual value being used
-    console.log('[Discord Auth] Using client ID:', DISCORD_CLIENT_ID);
-    
     // Generate state for security
     const state = crypto.randomBytes(16).toString('hex');
     
