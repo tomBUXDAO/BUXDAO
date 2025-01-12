@@ -17,17 +17,22 @@ const FRONTEND_URL = process.env.NODE_ENV === 'production'
 router.get('/', async (req, res) => {
   const { code, state } = req.query;
 
-  // Verify state matches
-  if (!state || state !== req.session.discord_state) {
+  // Verify state matches (check both session and cookies)
+  const sessionState = req.session.discord_state;
+  const cookieState = req.cookies.discord_state;
+
+  if (!state || (!sessionState && !cookieState) || (state !== sessionState && state !== cookieState)) {
     console.error('State mismatch:', { 
       providedState: state, 
-      storedState: req.session.discord_state 
+      sessionState,
+      cookieState
     });
     return res.redirect(`${FRONTEND_URL}/verify?error=invalid_state`);
   }
 
-  // Clear stored state
+  // Clear stored states
   delete req.session.discord_state;
+  res.clearCookie('discord_state', { path: '/' });
 
   if (!code) {
     console.error('No code provided in callback');

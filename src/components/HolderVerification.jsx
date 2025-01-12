@@ -36,7 +36,14 @@ const HolderVerification = () => {
       const code = searchParams.get('code');
       const state = searchParams.get('state');
       const error = searchParams.get('error');
-      const storedState = localStorage.getItem('discord_state');
+      
+      // Get state from cookie
+      const cookies = document.cookie.split(';').reduce((acc, cookie) => {
+        const [key, value] = cookie.trim().split('=');
+        acc[key] = value;
+        return acc;
+      }, {});
+      const storedState = cookies['discord_state'];
 
       if (error) {
         console.error('OAuth error:', decodeURIComponent(error));
@@ -53,7 +60,7 @@ const HolderVerification = () => {
           }
 
           // Clear stored state
-          localStorage.removeItem('discord_state');
+          document.cookie = 'discord_state=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
 
           // Include state parameter in callback
           window.location.href = `${API_BASE}/api/auth/discord/callback?code=${code}&state=${state}`;
@@ -76,8 +83,8 @@ const HolderVerification = () => {
       const state = crypto.getRandomValues(new Uint8Array(16))
         .reduce((str, byte) => str + byte.toString(16).padStart(2, '0'), '');
       
-      // Store state in localStorage
-      localStorage.setItem('discord_state', state);
+      // Store state in a cookie that will persist through redirect
+      document.cookie = `discord_state=${state}; path=/; max-age=300; secure; samesite=lax`;
       
       // Redirect to our backend auth endpoint
       window.location.href = `/api/auth/discord?state=${state}`;
