@@ -62,13 +62,12 @@ app.get('/api/printful/products', async (req, res) => {
 
   try {
     console.log('[Printful] Making request to Printful API...');
-    const auth = Buffer.from(PRINTFUL_API_KEY + ':').toString('base64');
     
     const response = await axios({
       method: 'get',
       url: `${PRINTFUL_API_URL}/store/products`,
       headers: {
-        'Authorization': `Basic ${auth}`,
+        'Authorization': `Bearer ${PRINTFUL_API_KEY}`,
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       }
@@ -96,12 +95,11 @@ app.get('/api/printful/products/:id', async (req, res) => {
   }
 
   try {
-    const auth = Buffer.from(PRINTFUL_API_KEY + ':').toString('base64');
     const response = await axios({
       method: 'get',
       url: `${PRINTFUL_API_URL}/store/products/${req.params.id}`,
       headers: {
-        'Authorization': `Basic ${auth}`,
+        'Authorization': `Bearer ${PRINTFUL_API_KEY}`,
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       }

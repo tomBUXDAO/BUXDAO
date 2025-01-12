@@ -4,13 +4,16 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev:vite": "vite",
+    "dev:server": "node server.js",
+    "dev": "node dev.js",
     "server": "node server.js",
-    "start": "concurrently \"npm run dev\" \"npm run server\"",
+    "start": "npm run dev",
     "build": "vite build",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
-    "update-bux-holders": "node api/scripts/fetch_bux_holders.js"
+    "update-bux-holders": "node api/scripts/fetch_bux_holders.js",
+    "rebuild": "npm rebuild"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
