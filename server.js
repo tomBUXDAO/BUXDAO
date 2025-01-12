@@ -44,7 +44,17 @@ app.use(cors({
 // PostgreSQL client setup
 const pool = new pg.Pool({
   connectionString: process.env.POSTGRES_URL,
-  ssl: { rejectUnauthorized: false }
+  ssl: { rejectUnauthorized: false },
+  connectionTimeoutMillis: 10000,
+  idleTimeoutMillis: 30000,
+  max: 20,
+  retryDelay: 1000,
+  maxRetries: 3
+});
+
+// Add connection error handling
+pool.on('error', (err) => {
+  console.error('Unexpected error on idle client', err);
 });
 
 // Session configuration with PostgreSQL store
@@ -52,7 +62,8 @@ const PostgresqlStore = pgSession(session);
 const sessionStore = new PostgresqlStore({
   pool,
   tableName: 'session',
-  createTableIfMissing: true
+  createTableIfMissing: true,
+  pruneSessionInterval: 60
 });
 
 // Session middleware - before routes, after CORS
