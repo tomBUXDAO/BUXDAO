@@ -71,22 +71,29 @@ const HolderVerification = () => {
   }, [location]);
 
   const handleDiscordLogin = () => {
-    setError(null);
-    setIsLoading(true);
-    
     try {
-      const state = generateState();
-      const discordUrl = `https://discord.com/oauth2/authorize?response_type=code&client_id=1326719755779969044&scope=identify%20guilds.join&state=${state}&redirect_uri=${encodeURIComponent(`${API_BASE}/api/auth/discord/callback`)}&prompt=consent`;
+      // Generate state parameter
+      const state = crypto.getRandomValues(new Uint8Array(16))
+        .reduce((str, byte) => str + byte.toString(16).padStart(2, '0'), '');
       
-      // Store state in localStorage for verification
+      // Store state in localStorage
       localStorage.setItem('discord_state', state);
       
-      // Use window.location.replace for proper redirection
-      window.location.replace(discordUrl);
-    } catch (err) {
-      console.error('Error initiating Discord login:', err);
-      setError('Failed to initiate Discord login. Please try again.');
-      setIsLoading(false);
+      // Build Discord OAuth URL
+      const params = new URLSearchParams({
+        client_id: import.meta.env.VITE_DISCORD_CLIENT_ID,
+        redirect_uri: window.location.origin + '/api/auth/discord/callback',
+        response_type: 'code',
+        scope: 'identify guilds.join',
+        state: state,
+        prompt: 'consent'
+      });
+
+      // Redirect to Discord OAuth
+      window.location.href = `https://discord.com/oauth2/authorize?${params.toString()}`;
+    } catch (error) {
+      console.error('Failed to initiate Discord login:', error);
+      setError('Failed to start Discord authentication');
     }
   };
 

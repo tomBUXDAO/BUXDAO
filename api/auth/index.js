@@ -279,37 +279,8 @@ async function handleDiscordCallback(req, res) {
 
   try {
     const { code, state } = req.query;
-    const cookies = parse(req.headers.cookie || '');
-    
-    console.log('[Discord Callback] Headers:', {
-      cookie: req.headers.cookie,
-      host: req.headers.host,
-      referer: req.headers.referer
-    });
     console.log('[Discord Callback] Query:', { code, state });
-    console.log('[Discord Callback] Cookies:', cookies);
     
-    // Verify state parameter
-    if (!state || !cookies.discord_state) {
-      const error = !state ? 'Missing state parameter' : 'Missing state cookie';
-      console.error(`[Discord Callback] ${error}`, {
-        state,
-        cookieState: cookies.discord_state,
-        allCookies: cookies
-      });
-      res.setHeader('Location', ORIGIN + '/verify?error=' + encodeURIComponent(error));
-      return res.status(302).end();
-    }
-
-    if (state !== cookies.discord_state) {
-      console.error('[Discord Callback] State mismatch', {
-        queryState: state,
-        cookieState: cookies.discord_state
-      });
-      res.setHeader('Location', ORIGIN + '/verify?error=' + encodeURIComponent('Invalid state parameter'));
-      return res.status(302).end();
-    }
-
     if (!code) {
       console.error('[Discord Callback] No code provided');
       res.setHeader('Location', ORIGIN + '/verify?error=' + encodeURIComponent('No code provided'));
@@ -326,20 +297,16 @@ async function handleDiscordCallback(req, res) {
     });
 
     console.log('[Discord Callback] Token request params:', params.toString());
-    console.log('[Discord Callback] Callback URL:', CALLBACK_URL);
-
-    const tokenResponse = await fetch('https://discord.com/api/v9/oauth2/token', {
+    const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
-        'Accept': 'application/json',
-        'User-Agent': 'BUXDAO Discord OAuth'
+        'Accept': 'application/json'
       },
       body: params
     });
 
     const responseText = await tokenResponse.text();
-    console.log('[Discord Callback] Token response status:', tokenResponse.status);
     console.log('[Discord Callback] Token response:', responseText);
 
     if (!tokenResponse.ok) {
@@ -359,11 +326,10 @@ async function handleDiscordCallback(req, res) {
     }
 
     console.log('[Discord Callback] Got token, fetching user data...');
-    const userResponse = await fetch('https://discord.com/api/v9/users/@me', {
+    const userResponse = await fetch('https://discord.com/api/users/@me', {
       headers: {
         'Authorization': `Bearer ${tokenData.access_token}`,
-        'Accept': 'application/json',
-        'User-Agent': 'BUXDAO Discord OAuth'
+        'Accept': 'application/json'
       }
     });
 
@@ -375,14 +341,7 @@ async function handleDiscordCallback(req, res) {
     const userData = await userResponse.json();
     console.log('[Discord Callback] Got user data:', userData.id);
 
-    // Clear state cookie and set auth cookies
-    res.setHeader('Set-Cookie', [
-      serialize('discord_state', '', {
-        ...COOKIE_OPTIONS,
-        expires: new Date(0)
-      })
-    ]);
-
+    // Set auth cookies
     setAuthCookies(res, tokenData.access_token, userData);
 
     // Redirect back to verify page
