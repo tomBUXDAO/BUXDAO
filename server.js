@@ -170,8 +170,7 @@ app.use('/api/*', (req, res) => {
 });
 
 // Static file serving - after API routes
-const staticHandler = express.static('dist', {
-  index: false,
+app.use(express.static('dist', {
   setHeaders: (res, path) => {
     if (path.endsWith('.js')) {
       res.set('Content-Type', 'application/javascript');
@@ -179,19 +178,13 @@ const staticHandler = express.static('dist', {
       res.set('Content-Type', 'text/css');
     }
   }
-});
+}));
 
-app.use((req, res, next) => {
+// SPA fallback - serve index.html for all non-API routes
+app.get('*', (req, res) => {
   if (req.path.startsWith('/api/')) {
-    return next();
-  }
-  staticHandler(req, res, next);
-});
-
-// SPA fallback - only for non-API routes
-app.get('*', (req, res, next) => {
-  if (req.path.startsWith('/api/')) {
-    return next();
+    res.status(404).json({ error: 'API endpoint not found' });
+    return;
   }
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
