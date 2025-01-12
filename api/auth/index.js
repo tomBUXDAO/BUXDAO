@@ -263,14 +263,17 @@ async function handleDiscordAuth(req, res) {
     console.log('[Discord Auth] Setting state cookie:', state);
     console.log('[Discord Auth] Redirecting to:', discordUrl);
 
-    // Set cookies and redirect
+    // First clear any existing cookies
     res.setHeader('Set-Cookie', [
-      // Set state cookie
-      serialize('discord_state', state, cookieOptions),
-      // Clear any existing auth cookies to prevent conflicts
-      serialize('discord_token', '', { ...cookieOptions, expires: new Date(0) }),
-      serialize('discord_user', '', { ...cookieOptions, expires: new Date(0) })
+      'discord_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=Lax',
+      'discord_user=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=Lax',
+      'discord_state=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=Lax'
     ]);
+
+    // Then set the new state cookie
+    const stateCookie = `discord_state=${state}; Path=/; Max-Age=300; HttpOnly; Secure; SameSite=Lax`;
+    res.setHeader('Set-Cookie', stateCookie);
+    console.log('[Discord Auth] Setting cookie:', stateCookie);
 
     // Set redirect header after cookies
     res.setHeader('Location', discordUrl);
@@ -482,21 +485,13 @@ async function handleLogout(req, res) {
 
 // Helper functions
 function setAuthCookies(res, token, userData) {
-  const cookieOptions = {
-    path: '/',
-    httpOnly: true,
-    secure: true,
-    sameSite: 'lax',
-    maxAge: 60 * 60 * 24 * 7 // 7 days
-  };
-
   const cookies = [
-    serialize('discord_token', token, cookieOptions),
-    serialize('discord_user', JSON.stringify({
+    `discord_token=${token}; Path=/; Max-Age=${60 * 60 * 24 * 7}; HttpOnly; Secure; SameSite=Lax`,
+    `discord_user=${JSON.stringify({
       discord_id: userData.id,
       discord_username: userData.username,
       avatar: userData.avatar,
-    }), cookieOptions)
+    })}; Path=/; Max-Age=${60 * 60 * 24 * 7}; HttpOnly; Secure; SameSite=Lax`
   ];
 
   console.log('[Auth] Setting auth cookies:', cookies);
@@ -504,18 +499,10 @@ function setAuthCookies(res, token, userData) {
 }
 
 function clearAuthCookies(res) {
-  const cookieOptions = {
-    path: '/',
-    httpOnly: true,
-    secure: true,
-    sameSite: 'lax',
-    expires: new Date(0)
-  };
-
   const cookies = [
-    serialize('discord_token', '', cookieOptions),
-    serialize('discord_user', '', cookieOptions),
-    serialize('discord_state', '', cookieOptions)
+    'discord_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=Lax',
+    'discord_user=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=Lax',
+    'discord_state=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=Lax'
   ];
 
   console.log('[Auth] Clearing cookies:', cookies);
