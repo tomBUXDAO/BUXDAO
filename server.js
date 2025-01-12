@@ -73,7 +73,11 @@ app.get('/api/printful/products', async (req, res) => {
     console.log('Fetching Printful products list');
     
     if (!process.env.PRINTFUL_API_KEY) {
-      throw new Error('PRINTFUL_API_KEY is not set');
+      console.error('PRINTFUL_API_KEY is not set');
+      return res.status(500).json({
+        error: 'Internal server error',
+        message: 'API key not configured'
+      });
     }
 
     const response = await axios({
@@ -82,11 +86,16 @@ app.get('/api/printful/products', async (req, res) => {
       headers: {
         'Authorization': `Bearer ${process.env.PRINTFUL_API_KEY}`,
         'Accept': 'application/json'
-      }
+      },
+      validateStatus: false
     });
 
-    if (!response.data.result) {
-      throw new Error('Invalid response format from Printful API');
+    if (!response.data || !response.data.result) {
+      console.error('Invalid response from Printful:', response.data);
+      return res.status(500).json({
+        error: 'Invalid response format from Printful API',
+        details: response.data
+      });
     }
 
     // Transform the data to match our frontend needs
@@ -99,10 +108,12 @@ app.get('/api/printful/products', async (req, res) => {
       sync_variants: item.sync_variants || []
     }));
 
-    res.json(products);
+    // Set proper headers
+    res.setHeader('Content-Type', 'application/json');
+    return res.json(products);
   } catch (error) {
     console.error('Error fetching from Printful:', error);
-    res.status(500).json({
+    return res.status(500).json({
       error: 'Internal server error',
       message: error.message
     });
@@ -115,7 +126,11 @@ app.get('/api/printful/products/:id', async (req, res) => {
     console.log('Fetching Printful product details:', productId);
     
     if (!process.env.PRINTFUL_API_KEY) {
-      throw new Error('PRINTFUL_API_KEY is not set');
+      console.error('PRINTFUL_API_KEY is not set');
+      return res.status(500).json({
+        error: 'Internal server error',
+        message: 'API key not configured'
+      });
     }
 
     const response = await axios({
@@ -124,28 +139,46 @@ app.get('/api/printful/products/:id', async (req, res) => {
       headers: {
         'Authorization': `Bearer ${process.env.PRINTFUL_API_KEY}`,
         'Accept': 'application/json'
-      }
+      },
+      validateStatus: false
     });
 
-    if (!response.data.result) {
-      throw new Error('Invalid response format from Printful API');
+    if (!response.data || !response.data.result) {
+      console.error('Invalid response from Printful:', response.data);
+      return res.status(500).json({
+        error: 'Invalid response format from Printful API',
+        details: response.data
+      });
     }
 
-    res.json(response.data.result);
+    // Set proper headers
+    res.setHeader('Content-Type', 'application/json');
+    return res.json(response.data.result);
   } catch (error) {
     console.error('Error fetching from Printful:', error);
-    res.status(500).json({
+    return res.status(500).json({
       error: 'Internal server error',
       message: error.message
     });
   }
 });
 
+// Add Edge Function proxy middleware before static files
+app.use('/api/printful/*', (req, res, next) => {
+  console.log('Edge Function proxy middleware:', req.path);
+  // Forward the request to the Edge Function
+  res.setHeader('Content-Type', 'application/json');
+  next();
+});
+
 // Serve static files from the dist directory
 app.use(express.static('dist'));
 
-// Catch-all route to serve the frontend
-app.get('*', (req, res) => {
+// Catch-all route to serve the frontend - exclude API routes
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api/')) {
+    return next();
+  }
   res.sendFile('index.html', { root: 'dist' });
 });
 

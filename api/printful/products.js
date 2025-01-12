@@ -1,50 +1,48 @@
 export const config = {
   runtime: 'edge',
-  regions: ['iad1']  // Deploy to US East (N. Virginia)
+  regions: ['iad1']
 };
 
 export default async function handler(req) {
-  console.log('Edge Function: Handling request', {
-    method: req.method,
-    url: req.url,
-    headers: Object.fromEntries(req.headers)
-  });
-
+  console.log('Edge Function handler:', req.url);
+  
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    console.log('Edge Function: Handling CORS preflight');
     return new Response(null, {
       status: 204,
       headers: {
         'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET,OPTIONS',
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type,Accept,Authorization',
-        'Access-Control-Max-Age': '86400'
-      }
+        'Access-Control-Max-Age': '86400',
+      },
     });
   }
 
   // Only allow GET requests
   if (req.method !== 'GET') {
-    console.log('Edge Function: Method not allowed:', req.method);
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
+    console.error('Invalid method:', req.method);
+    return new Response(
+      JSON.stringify({ error: 'Method not allowed' }),
+      {
+        status: 405,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+        },
       }
-    });
+    );
   }
 
   try {
-    console.log('Edge Function: Fetching Printful products list');
+    console.log('Fetching from Printful API...');
     
     if (!process.env.PRINTFUL_API_KEY) {
-      console.error('Edge Function: PRINTFUL_API_KEY is not set');
-      throw new Error('PRINTFUL_API_KEY is not set');
+      console.error('PRINTFUL_API_KEY not configured');
+      throw new Error('API key not configured');
     }
 
-    // Add a delay to ensure we're not hitting rate limits
+    // Add a small delay to avoid rate limits
     await new Promise(resolve => setTimeout(resolve, 100));
 
     const response = await fetch('https://api.printful.com/store/products', {
@@ -54,53 +52,30 @@ export default async function handler(req) {
       }
     });
 
-    console.log('Edge Function: Printful API response', {
-      status: response.status,
-      statusText: response.statusText,
-      headers: Object.fromEntries(response.headers)
-    });
+    console.log('Printful API response status:', response.status);
+    console.log('Printful API response headers:', Object.fromEntries(response.headers.entries()));
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Edge Function: Printful API error:', {
-        status: response.status,
-        statusText: response.statusText,
-        error: errorText
-      });
-      return new Response(JSON.stringify({ 
-        error: 'Printful API error',
-        status: response.status,
-        message: response.statusText,
-        details: errorText
-      }), {
-        status: response.status,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-          'Cache-Control': 'no-store'
-        }
-      });
+      console.error('Printful API error:', errorText);
+      throw new Error(`Printful API error: ${response.statusText}`);
+    }
+
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      console.error('Invalid content type:', contentType);
+      throw new Error('Invalid response format from Printful API');
     }
 
     const data = await response.json();
-    console.log('Edge Function: Printful API data:', JSON.stringify(data).slice(0, 200) + '...');
-    
+    console.log('Printful API data received');
+
     if (!data.result) {
-      console.error('Edge Function: Invalid response format from Printful API:', data);
-      return new Response(JSON.stringify({ 
-        error: 'Invalid response format from Printful API',
-        details: data
-      }), {
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-          'Cache-Control': 'no-store'
-        }
-      });
+      console.error('Invalid response structure:', data);
+      throw new Error('Invalid response structure from Printful API');
     }
 
-    // Transform the data to match our frontend needs
+    // Transform the data
     const products = data.result.map(item => ({
       id: item.id,
       name: item.name,
@@ -110,29 +85,29 @@ export default async function handler(req) {
       sync_variants: item.sync_variants || []
     }));
 
-    const responseBody = JSON.stringify(products);
-    console.log('Edge Function: Sending response:', responseBody.slice(0, 200) + '...');
-
-    return new Response(responseBody, {
+    return new Response(JSON.stringify(products), {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*',
-        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300'
-      }
+        'Cache-Control': 'no-store',
+      },
     });
   } catch (error) {
-    console.error('Edge Function: Error fetching from Printful:', error);
-    return new Response(JSON.stringify({ 
-      error: 'Internal server error',
-      message: error.message
-    }), {
-      status: 500,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Cache-Control': 'no-store'
+    console.error('Edge Function error:', error);
+    return new Response(
+      JSON.stringify({
+        error: 'Internal server error',
+        message: error.message
+      }),
+      {
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Cache-Control': 'no-store',
+        },
       }
-    });
+    );
   }
 } 
