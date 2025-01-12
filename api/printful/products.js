@@ -4,8 +4,15 @@ export const config = {
 };
 
 export default async function handler(req) {
+  console.log('Edge Function: Handling request', {
+    method: req.method,
+    url: req.url,
+    headers: Object.fromEntries(req.headers)
+  });
+
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
+    console.log('Edge Function: Handling CORS preflight');
     return new Response(null, {
       status: 204,
       headers: {
@@ -19,6 +26,7 @@ export default async function handler(req) {
 
   // Only allow GET requests
   if (req.method !== 'GET') {
+    console.log('Edge Function: Method not allowed:', req.method);
     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
       status: 405,
       headers: {
@@ -29,9 +37,10 @@ export default async function handler(req) {
   }
 
   try {
-    console.log('Fetching Printful products list');
+    console.log('Edge Function: Fetching Printful products list');
     
     if (!process.env.PRINTFUL_API_KEY) {
+      console.error('Edge Function: PRINTFUL_API_KEY is not set');
       throw new Error('PRINTFUL_API_KEY is not set');
     }
 
@@ -42,9 +51,19 @@ export default async function handler(req) {
       }
     });
 
+    console.log('Edge Function: Printful API response', {
+      status: response.status,
+      statusText: response.statusText,
+      headers: Object.fromEntries(response.headers)
+    });
+
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`Printful API error: ${response.status} ${response.statusText}`, errorText);
+      console.error('Edge Function: Printful API error:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText
+      });
       return new Response(JSON.stringify({ 
         error: 'Printful API error',
         status: response.status,
@@ -61,8 +80,10 @@ export default async function handler(req) {
     }
 
     const contentType = response.headers.get('content-type');
+    console.log('Edge Function: Response content type:', contentType);
+
     if (!contentType || !contentType.includes('application/json')) {
-      console.error('Invalid content type from Printful API:', contentType);
+      console.error('Edge Function: Invalid content type from Printful API:', contentType);
       return new Response(JSON.stringify({ 
         error: 'Invalid content type from Printful API',
         received: contentType
@@ -76,10 +97,30 @@ export default async function handler(req) {
       });
     }
 
-    const data = await response.json();
+    const responseText = await response.text();
+    console.log('Edge Function: Raw response:', responseText.slice(0, 200) + '...');
+
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (e) {
+      console.error('Edge Function: Failed to parse JSON response:', e);
+      return new Response(JSON.stringify({
+        error: 'Failed to parse JSON response',
+        details: e.message,
+        received: responseText.slice(0, 200) + '...'
+      }), {
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Cache-Control': 'no-store'
+        }
+      });
+    }
     
     if (!data.result) {
-      console.error('Invalid response format from Printful API:', data);
+      console.error('Edge Function: Invalid response format from Printful API:', data);
       return new Response(JSON.stringify({ 
         error: 'Invalid response format from Printful API',
         details: data
@@ -104,7 +145,7 @@ export default async function handler(req) {
     }));
 
     const responseBody = JSON.stringify(products);
-    console.log('Sending response:', responseBody.slice(0, 200) + '...');
+    console.log('Edge Function: Sending response:', responseBody.slice(0, 200) + '...');
 
     return new Response(responseBody, {
       status: 200,
@@ -115,7 +156,7 @@ export default async function handler(req) {
       }
     });
   } catch (error) {
-    console.error('Error fetching from Printful:', error);
+    console.error('Edge Function: Error fetching from Printful:', error);
     return new Response(JSON.stringify({ 
       error: 'Internal server error',
       message: error.message
