@@ -11,6 +11,7 @@ import cookieParser from 'cookie-parser';
 import session from 'express-session';
 import PostgresqlStore from 'connect-pg-simple';
 import pool from './config/database.js';
+import helmet from 'helmet';
 
 // Import routers
 import authCheckRouter from './api/auth/check.js';
@@ -146,17 +147,20 @@ app.use((req, res, next) => {
 });
 
 // Add security headers
-app.use((req, res, next) => {
-  res.setHeader(
-    'Content-Security-Policy',
-    "default-src 'self'; " +
-    "img-src 'self' data: https: http:; " +
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
-    "style-src 'self' 'unsafe-inline'; " +
-    "connect-src 'self' https://api.coingecko.com https://discord.com;"
-  );
-  next();
-});
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "fonts.googleapis.com"],
+      fontSrc: ["'self'", "fonts.gstatic.com"],
+      imgSrc: ["'self'", "data:", "cdn.discordapp.com", "*.arweave.net", "*.ipfs.nftstorage.link"],
+      connectSrc: ["'self'", "discord.com"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+      frameSrc: ["'none'"],
+      objectSrc: ["'none'"]
+    }
+  }
+}));
 
 // API middleware - only for /api routes
 app.use('/api', (req, res, next) => {
