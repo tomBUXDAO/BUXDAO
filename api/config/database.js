@@ -13,15 +13,15 @@ const pool = new Pool({
   keepAliveInitialDelayMillis: 10000
 });
 
-// Add event listeners for pool errors
+// Add event listeners for better monitoring and error handling
 pool.on('error', (err, client) => {
   console.error('Unexpected error on idle client', err);
   // Attempt to reconnect
-  client.release(true);
+  client.release(true); // Force release with error
 });
 
-pool.on('connect', (client) => {
-  console.log('New client connected to database');
+pool.on('connect', () => {
+  console.log('New client connected to the pool');
 });
 
 pool.on('remove', () => {

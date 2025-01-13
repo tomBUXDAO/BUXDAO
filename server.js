@@ -23,6 +23,7 @@ import collectionsRouter from './api/collections/index.js';
 import celebcatzRouter from './api/celebcatz/index.js';
 import topHoldersHandler from './api/top-holders.js';
 import tokenMetricsRouter from './api/token-metrics.js';
+import userRouter from './api/user/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -291,6 +292,7 @@ app.use('/api/collections', collectionsRouter);
 app.use('/api/celebcatz', celebcatzRouter);
 app.use('/api/top-holders', topHoldersHandler);
 app.use('/api/token-metrics', tokenMetricsRouter);
+app.use('/api/user', userRouter);
 
 // API 404 handler
 app.use('/api/*', (req, res) => {
