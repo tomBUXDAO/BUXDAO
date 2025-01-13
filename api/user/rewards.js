@@ -1,4 +1,4 @@
-import { pool } from '../db';
+import pool from '../../config/database.js';
 
 const DAILY_YIELD_RATE = 0.001; // 0.1% daily yield
 const SECONDS_PER_DAY = 86400;

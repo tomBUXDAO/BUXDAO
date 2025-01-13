@@ -1,4 +1,4 @@
-import { pool } from '../db';
+import pool from '../../config/database.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
