@@ -14,149 +14,53 @@ const REDIRECT_URI = process.env.NODE_ENV === 'production'
   : 'http://localhost:3001/api/auth/discord/callback';
 
 router.get('/', async (req, res) => {
-  // Clear any existing sessions first
-  res.clearCookie('buxdao.sid');
-  
-  const { code, state } = req.query;
-  console.log('Discord callback received:', {
-    sessionID: req.sessionID,
-    hasSession: !!req.session,
-    sessionState: req.session?.discord_state,
-    receivedState: state,
-    code: !!code
-  });
-
-  // Ensure session exists
-  if (!req.session) {
-    console.error('No session found:', {
-      sessionID: req.sessionID,
-      cookies: req.headers.cookie
-    });
-    return res.redirect(`${FRONTEND_URL}/verify?error=no_session`);
-  }
-
-  // Get state from both session and cookie
-  const sessionState = req.session.discord_state;
-  const cookieState = req.cookies.discord_state;
-
-  // Validate state
-  if (!state || (!sessionState && !cookieState) || (state !== sessionState && state !== cookieState)) {
-    console.error('State validation failed:', {
-      sessionState,
-      cookieState,
-      receivedState: state,
-      sessionID: req.sessionID
-    });
-    return res.redirect(`${FRONTEND_URL}/verify?error=invalid_state`);
-  }
-
-  // Clear state from both session and cookie
-  delete req.session.discord_state;
-  res.clearCookie('discord_state');
-
-  // Save session after clearing state
-  await new Promise((resolve, reject) => {
-    req.session.save((err) => {
-      if (err) {
-        console.error('Failed to save session after state clear:', err);
-        reject(err);
-      } else {
-        resolve();
-      }
-    });
-  });
-
-  // Exchange code for token
-  const tokenResponse = await fetch(`${DISCORD_API}/oauth2/token`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded'
-    },
-    body: new URLSearchParams({
-      client_id: process.env.DISCORD_CLIENT_ID,
-      client_secret: process.env.DISCORD_CLIENT_SECRET,
-      grant_type: 'authorization_code',
-      code,
-      redirect_uri: REDIRECT_URI
-    })
-  });
-
-  if (!tokenResponse.ok) {
-    const errorText = await tokenResponse.text();
-    console.error('Token exchange failed:', {
-      status: tokenResponse.status,
-      error: errorText
-    });
-    return res.redirect(`${FRONTEND_URL}/verify?error=token_exchange_failed`);
-  }
-
-  const tokenData = await tokenResponse.json();
-
-  // Get user info
-  const userResponse = await fetch(`${DISCORD_API}/users/@me`, {
-    headers: {
-      Authorization: `Bearer ${tokenData.access_token}`
-    }
-  });
-
-  if (!userResponse.ok) {
-    const errorText = await userResponse.text();
-    console.error('User info fetch failed:', {
-      status: userResponse.status,
-      error: errorText
-    });
-    return res.redirect(`${FRONTEND_URL}/verify?error=user_info_failed`);
-  }
-
-  const userData = await userResponse.json();
-  console.log('User info fetched:', { id: userData.id, username: userData.username });
-
-  // Store user data in session
-  req.session.user = {
-    discord_id: userData.id,
-    discord_username: userData.username,
-    avatar: userData.avatar,
-    access_token: tokenData.access_token
-  };
-
-  // Save session before database operations
-  await new Promise((resolve, reject) => {
-    req.session.save((err) => {
-      if (err) {
-        console.error('Failed to save session with user data:', err);
-        reject(err);
-      } else {
-        resolve();
-      }
-    });
-  });
-
-  // Get database connection
-  client = await pool.connect();
-
+  let client;
   try {
-    await client.query('BEGIN');
+    // Clear any existing sessions first
+    res.clearCookie('buxdao.sid');
+    
+    const { code, state } = req.query;
+    console.log('Discord callback received:', {
+      sessionID: req.sessionID,
+      hasSession: !!req.session,
+      sessionState: req.session?.discord_state,
+      receivedState: state,
+      code: !!code
+    });
 
-    // Update or insert user_roles
-    await client.query(
-      `INSERT INTO user_roles (discord_id, discord_name)
-       VALUES ($1, $2)
-       ON CONFLICT (discord_id) 
-       DO UPDATE SET 
-         discord_name = $2,
-         last_updated = CURRENT_TIMESTAMP
-       RETURNING *`,
-      [userData.id, userData.username]
-    );
+    // Ensure session exists
+    if (!req.session) {
+      console.error('No session found:', {
+        sessionID: req.sessionID,
+        cookies: req.headers.cookie
+      });
+      return res.redirect(`${FRONTEND_URL}/verify?error=no_session`);
+    }
 
-    await client.query('COMMIT');
-    console.log('Database transaction completed successfully');
+    // Get state from both session and cookie
+    const sessionState = req.session.discord_state;
+    const cookieState = req.cookies.discord_state;
 
-    // Ensure session is saved before redirect
+    // Validate state
+    if (!state || (!sessionState && !cookieState) || (state !== sessionState && state !== cookieState)) {
+      console.error('State validation failed:', {
+        sessionState,
+        cookieState,
+        receivedState: state,
+        sessionID: req.sessionID
+      });
+      return res.redirect(`${FRONTEND_URL}/verify?error=invalid_state`);
+    }
+
+    // Clear state from both session and cookie
+    delete req.session.discord_state;
+    res.clearCookie('discord_state');
+
+    // Save session after clearing state
     await new Promise((resolve, reject) => {
       req.session.save((err) => {
         if (err) {
-          console.error('Failed to save session before redirect:', err);
+          console.error('Failed to save session after state clear:', err);
           reject(err);
         } else {
           resolve();
@@ -164,31 +68,131 @@ router.get('/', async (req, res) => {
       });
     });
 
-    res.redirect(`${FRONTEND_URL}/verify`);
-  } catch (dbError) {
-    await client.query('ROLLBACK');
-    console.error('Database operation failed:', {
-      error: dbError.message,
-      stack: dbError.stack,
-      code: dbError.code
+    // Exchange code for token
+    const tokenResponse = await fetch(`${DISCORD_API}/oauth2/token`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: new URLSearchParams({
+        client_id: process.env.DISCORD_CLIENT_ID,
+        client_secret: process.env.DISCORD_CLIENT_SECRET,
+        grant_type: 'authorization_code',
+        code,
+        redirect_uri: REDIRECT_URI
+      })
+    });
+
+    if (!tokenResponse.ok) {
+      const errorText = await tokenResponse.text();
+      console.error('Token exchange failed:', {
+        status: tokenResponse.status,
+        error: errorText
+      });
+      return res.redirect(`${FRONTEND_URL}/verify?error=token_exchange_failed`);
+    }
+
+    const tokenData = await tokenResponse.json();
+
+    // Get user info
+    const userResponse = await fetch(`${DISCORD_API}/users/@me`, {
+      headers: {
+        Authorization: `Bearer ${tokenData.access_token}`
+      }
+    });
+
+    if (!userResponse.ok) {
+      const errorText = await userResponse.text();
+      console.error('User info fetch failed:', {
+        status: userResponse.status,
+        error: errorText
+      });
+      return res.redirect(`${FRONTEND_URL}/verify?error=user_info_failed`);
+    }
+
+    const userData = await userResponse.json();
+    console.log('User info fetched:', { id: userData.id, username: userData.username });
+
+    // Store user data in session
+    req.session.user = {
+      discord_id: userData.id,
+      discord_username: userData.username,
+      avatar: userData.avatar,
+      access_token: tokenData.access_token
+    };
+
+    // Save session before database operations
+    await new Promise((resolve, reject) => {
+      req.session.save((err) => {
+        if (err) {
+          console.error('Failed to save session with user data:', err);
+          reject(err);
+        } else {
+          resolve();
+        }
+      });
+    });
+
+    // Get database connection
+    client = await pool.connect();
+
+    try {
+      await client.query('BEGIN');
+
+      // Update or insert user_roles
+      await client.query(
+        `INSERT INTO user_roles (discord_id, discord_name)
+         VALUES ($1, $2)
+         ON CONFLICT (discord_id) 
+         DO UPDATE SET 
+           discord_name = $2,
+           last_updated = CURRENT_TIMESTAMP
+         RETURNING *`,
+        [userData.id, userData.username]
+      );
+
+      await client.query('COMMIT');
+      console.log('Database transaction completed successfully');
+
+      // Ensure session is saved before redirect
+      await new Promise((resolve, reject) => {
+        req.session.save((err) => {
+          if (err) {
+            console.error('Failed to save session before redirect:', err);
+            reject(err);
+          } else {
+            resolve();
+          }
+        });
+      });
+
+      res.redirect(`${FRONTEND_URL}/verify`);
+    } catch (dbError) {
+      if (client) {
+        await client.query('ROLLBACK');
+      }
+      console.error('Database operation failed:', {
+        error: dbError.message,
+        stack: dbError.stack,
+        code: dbError.code
+      });
+      
+      res.redirect(`${FRONTEND_URL}/verify?error=database_error`);
+    }
+  } catch (error) {
+    console.error('Discord callback error:', {
+      message: error.message,
+      stack: error.stack,
+      sessionID: req.sessionID,
+      sessionExists: !!req.session
     });
     
-    res.redirect(`${FRONTEND_URL}/verify?error=database_error`);
+    return res.redirect(`${FRONTEND_URL}/verify?error=server_error`);
+  } finally {
+    if (client) {
+      await client.release();
+    }
   }
-} catch (error) {
-  console.error('Discord callback error:', {
-    message: error.message,
-    stack: error.stack,
-    sessionID: req.sessionID,
-    sessionExists: !!req.session
-  });
-  
-  return res.redirect(`${FRONTEND_URL}/verify?error=server_error`);
-} finally {
-  if (client) {
-    await client.release();
-  }
-}
 });
 
 export default router; 
