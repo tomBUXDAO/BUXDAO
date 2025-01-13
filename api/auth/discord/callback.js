@@ -16,9 +16,6 @@ const REDIRECT_URI = process.env.NODE_ENV === 'production'
 router.get('/', async (req, res) => {
   let client;
   try {
-    // Clear any existing sessions first
-    res.clearCookie('buxdao.sid');
-    
     const { code, state } = req.query;
     console.log('Discord callback received:', {
       sessionID: req.sessionID,
@@ -37,36 +34,21 @@ router.get('/', async (req, res) => {
       return res.redirect(`${FRONTEND_URL}/verify?error=no_session`);
     }
 
-    // Get state from both session and cookie
+    // Get state from session
     const sessionState = req.session.discord_state;
-    const cookieState = req.cookies.discord_state;
 
     // Validate state
-    if (!state || (!sessionState && !cookieState) || (state !== sessionState && state !== cookieState)) {
+    if (!state || !sessionState || state !== sessionState) {
       console.error('State validation failed:', {
         sessionState,
-        cookieState,
         receivedState: state,
         sessionID: req.sessionID
       });
       return res.redirect(`${FRONTEND_URL}/verify?error=invalid_state`);
     }
 
-    // Clear state from both session and cookie
+    // Clear state from session
     delete req.session.discord_state;
-    res.clearCookie('discord_state');
-
-    // Save session after clearing state
-    await new Promise((resolve, reject) => {
-      req.session.save((err) => {
-        if (err) {
-          console.error('Failed to save session after state clear:', err);
-          reject(err);
-        } else {
-          resolve();
-        }
-      });
-    });
 
     // Exchange code for token
     const tokenResponse = await fetch(`${DISCORD_API}/oauth2/token`, {
@@ -113,24 +95,30 @@ router.get('/', async (req, res) => {
     const userData = await userResponse.json();
     console.log('User info fetched:', { id: userData.id, username: userData.username });
 
-    // Store user data in session
-    req.session.user = {
+    // Prepare user data
+    const user = {
       discord_id: userData.id,
       discord_username: userData.username,
       avatar: userData.avatar,
       access_token: tokenData.access_token
     };
 
-    // Save session before database operations
-    await new Promise((resolve, reject) => {
-      req.session.save((err) => {
-        if (err) {
-          console.error('Failed to save session with user data:', err);
-          reject(err);
-        } else {
-          resolve();
-        }
-      });
+    // Store user data in session
+    req.session.user = user;
+
+    // Set auth cookies
+    res.cookie('discord_token', tokenData.access_token, {
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+    });
+
+    res.cookie('discord_user', JSON.stringify(user), {
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
     });
 
     // Get database connection
@@ -154,7 +142,7 @@ router.get('/', async (req, res) => {
       await client.query('COMMIT');
       console.log('Database transaction completed successfully');
 
-      // Ensure session is saved before redirect
+      // Save session before redirect
       await new Promise((resolve, reject) => {
         req.session.save((err) => {
           if (err) {
@@ -180,17 +168,14 @@ router.get('/', async (req, res) => {
       res.redirect(`${FRONTEND_URL}/verify?error=database_error`);
     }
   } catch (error) {
-    console.error('Discord callback error:', {
-      message: error.message,
-      stack: error.stack,
-      sessionID: req.sessionID,
-      sessionExists: !!req.session
+    console.error('Unexpected error:', {
+      error: error.message,
+      stack: error.stack
     });
-    
-    return res.redirect(`${FRONTEND_URL}/verify?error=server_error`);
+    res.redirect(`${FRONTEND_URL}/verify?error=server_error`);
   } finally {
     if (client) {
-      await client.release();
+      client.release();
     }
   }
 });
