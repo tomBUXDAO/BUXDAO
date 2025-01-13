@@ -16,7 +16,7 @@ const REDIRECT_URI = process.env.DISCORD_REDIRECT_URI || (
 router.get('/', async (req, res) => {
   try {
     // Generate random state
-    const state = crypto.randomBytes(16).toString('hex');
+    const state = crypto.randomBytes(32).toString('hex');
     
     // Store state in session
     req.session.discord_state = state;
@@ -24,15 +24,26 @@ router.get('/', async (req, res) => {
     // Force session save before redirect
     await new Promise((resolve, reject) => {
       req.session.save((err) => {
-        if (err) reject(err);
-        else resolve();
+        if (err) {
+          console.error('Failed to save session state:', err);
+          reject(err);
+        } else {
+          console.log('Session state saved successfully:', {
+            sessionID: req.sessionID,
+            state,
+            hasSession: !!req.session
+          });
+          resolve();
+        }
       });
     });
 
-    console.log('Setting Discord state:', {
-      sessionID: req.sessionID,
-      state,
-      hasSession: !!req.session
+    // Set state cookie as backup
+    res.cookie('discord_state', state, {
+      maxAge: 5 * 60 * 1000, // 5 minutes
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
     });
 
     // Build Discord OAuth URL

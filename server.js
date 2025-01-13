@@ -100,14 +100,16 @@ initDatabase().catch(err => {
 // Session configuration with PostgreSQL store
 const pgSession = PostgresqlStore(session);
 
-app.use(session({
+const sessionMiddleware = session({
   store: new pgSession({
     pool,
-    tableName: 'session'
+    tableName: 'session',
+    createTableIfMissing: true,
+    pruneSessionInterval: 60 * 15 // Prune expired sessions every 15 minutes
   }),
   name: 'buxdao.sid',
   secret: process.env.SESSION_SECRET || 'your-secret-key',
-  resave: false,
+  resave: true, // Changed to true to ensure session is saved
   saveUninitialized: false,
   proxy: process.env.NODE_ENV === 'production',
   cookie: {
@@ -116,7 +118,22 @@ app.use(session({
     secure: process.env.NODE_ENV === 'production',
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
   }
-}));
+});
+
+// Handle session errors
+app.use((req, res, next) => {
+  const handleSessionError = (err) => {
+    console.error('Session error:', err);
+    // Clear any existing session cookie
+    res.clearCookie('buxdao.sid');
+    next(err);
+  };
+
+  sessionMiddleware(req, res, (err) => {
+    if (err) handleSessionError(err);
+    else next();
+  });
+});
 
 // Add session debugging middleware
 app.use((req, res, next) => {

@@ -32,40 +32,42 @@ router.get('/', async (req, res) => {
   try {
     const { code, state } = req.query;
     console.log('Discord callback received:', {
-      code: !!code,
-      state,
       sessionID: req.sessionID,
       hasSession: !!req.session,
       sessionState: req.session?.discord_state,
-      cookies: req.headers.cookie
+      receivedState: state,
+      code: !!code
     });
-
-    if (!code || !state) {
-      console.error('Missing required parameters:', { code: !!code, state: !!state });
-      return res.redirect(`${FRONTEND_URL}/verify?error=missing_params`);
-    }
 
     // Ensure session exists
     if (!req.session) {
-      console.error('No session found:', { 
+      console.error('No session found:', {
         sessionID: req.sessionID,
         cookies: req.headers.cookie
       });
       return res.redirect(`${FRONTEND_URL}/verify?error=no_session`);
     }
 
-    // Verify state matches
-    if (!req.session.discord_state || state !== req.session.discord_state) {
-      console.error('State mismatch:', {
-        sessionState: req.session.discord_state,
+    // Get state from both session and cookie
+    const sessionState = req.session.discord_state;
+    const cookieState = req.cookies.discord_state;
+
+    // Validate state
+    if (!state || (!sessionState && !cookieState) || (state !== sessionState && state !== cookieState)) {
+      console.error('State validation failed:', {
+        sessionState,
+        cookieState,
         receivedState: state,
         sessionID: req.sessionID
       });
       return res.redirect(`${FRONTEND_URL}/verify?error=invalid_state`);
     }
 
-    // Clear the state after verification
+    // Clear state from both session and cookie
     delete req.session.discord_state;
+    res.clearCookie('discord_state');
+
+    // Save session after clearing state
     await new Promise((resolve, reject) => {
       req.session.save((err) => {
         if (err) {
