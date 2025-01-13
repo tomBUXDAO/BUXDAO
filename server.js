@@ -10,7 +10,7 @@ import { fileURLToPath } from 'url';
 import cookieParser from 'cookie-parser';
 import session from 'express-session';
 import PostgresqlStore from 'connect-pg-simple';
-import { Pool } from 'pg';
+import pool from './config/database.js';
 import helmet from 'helmet';
 import { Pool } from 'pg';
 
@@ -53,7 +53,6 @@ const pool = new Pool({
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 10000,
-<<<<<<< Updated upstream
 });
 
 // Test database connection and create tables if needed
@@ -107,8 +106,6 @@ initDatabase().catch(err => {
     stack: err.stack
   });
   process.exit(1);
-=======
->>>>>>> Stashed changes
 });
 
 // Parse cookies and JSON body - before session middleware
