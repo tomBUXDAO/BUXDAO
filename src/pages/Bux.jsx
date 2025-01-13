@@ -12,6 +12,8 @@ import {
 import UserProfile from '../components/UserProfile';
 
 const Bux = () => {
+  const [error, setError] = useState(null);
+  
   const [tokenData, setTokenData] = useState({
     totalSupply: '0',
     publicSupply: '0',
@@ -23,7 +25,7 @@ const Bux = () => {
 
   const [topHolders, setTopHolders] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [viewType, setViewType] = useState('bux,nfts'); // 'bux', 'nfts', 'combined'
+  const [viewType, setViewType] = useState('bux,nfts');
   const [selectedCollection, setSelectedCollection] = useState('all');
   
   const collections = [
@@ -36,16 +38,17 @@ const Bux = () => {
   ];
 
   // Get the base URL for API calls
-  const baseUrl = import.meta.env.DEV ? '' : 'https://buxdao.com';    // Use local API in development
+  const baseUrl = import.meta.env.DEV ? 'http://localhost:3001' : 'https://buxdao.com';
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setIsLoading(true);
+        setError(null); // Reset error state
 
         const [metricsResponse, holdersResponse] = await Promise.all([
-          fetch(`${CONFIG.api.baseUrl}${CONFIG.api.endpoints.tokenMetrics}`),
-          fetch(`${CONFIG.api.baseUrl}${CONFIG.api.endpoints.topHolders}?collection=${selectedCollection}&view=${viewType}`)
+          fetch(`${baseUrl}/api/token-metrics`),
+          fetch(`${baseUrl}/api/top-holders?collection=${selectedCollection}&type=${viewType}`)
         ]);
 
         if (!metricsResponse.ok || !holdersResponse.ok) {
@@ -57,10 +60,10 @@ const Bux = () => {
           holdersResponse.json()
         ]);
 
-        console.log('Holders API Response:', holdersData); // Debug log
+        console.log('Holders API Response:', holdersData);
 
         setTokenData(metricsData);
-        setTopHolders(holdersData.holders || []); // Assuming the data is nested under 'holders'
+        setTopHolders(holdersData.holders || []);
       } catch (err) {
         console.error('Error fetching data:', err);
         setError(err.message);
@@ -70,7 +73,7 @@ const Bux = () => {
     };
 
     fetchData();
-  }, [selectedCollection, viewType]);
+  }, [selectedCollection, viewType, baseUrl]);
 
   const revenueSources = [
     {
@@ -165,16 +168,16 @@ const Bux = () => {
                     <div className="sm:col-span-2">
                       <p className="text-gray-300 text-sm mb-1">Liquidity Pool</p>
                       <p className="text-gray-200 font-semibold text-xl">
-                        {tokenData.liquidityPool} SOL
+                        {Number(tokenData.liquidityPool).toFixed(4)} SOL
                         <span className="text-gray-400 text-sm ml-1">
-                          {tokenData.solPrice ? `($${(Number(tokenData.liquidityPool) * tokenData.solPrice).toLocaleString(undefined, { maximumFractionDigits: 2 })})` : ''}
+                          {tokenData.solPrice ? `($${(Number(tokenData.liquidityPool) * tokenData.solPrice).toFixed(2)})` : ''}
                         </span>
                       </p>
                     </div>
                     <div>
                       <p className="text-gray-300 text-sm mb-1">Token Value (SOL)</p>
                       <p className="text-gray-200 font-semibold text-xl">
-                        {tokenData.tokenValue} SOL
+                        {Number(tokenData.tokenValue).toFixed(8)} SOL
                       </p>
                     </div>
                     <div>
@@ -226,6 +229,11 @@ const Bux = () => {
                 </h3>
               </div>
               <div className="flex-1 w-full">
+                {error && (
+                  <div className="text-red-500 bg-red-100/10 p-4 rounded-lg mb-4">
+                    Error: {error}
+                  </div>
+                )}
                 <span className="block text-gray-400 text-sm mb-4">Listed NFTs are not included in holder counts</span>
                 
                 {/* Filter Controls */}

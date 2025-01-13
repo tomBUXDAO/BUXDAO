@@ -1,6 +1,7 @@
 import express from 'express';
 import { PublicKey } from '@solana/web3.js';
 import pool from '../../config/database.js';
+import { syncUserRoles } from '../integrations/discord/roles.js';
 
 const router = express.Router();
 
@@ -93,9 +94,15 @@ router.post('/', async (req, res) => {
         await client.query('COMMIT');
         console.log('Updated user_roles and ownership entries:', userRolesResult.rows[0]);
         
+        // Sync Discord roles
+        const guildId = process.env.DISCORD_GUILD_ID;
+        const syncResult = await syncUserRoles(req.session.user.discord_id, guildId);
+        console.log('Discord role sync result:', syncResult);
+        
         return res.status(200).json({
           success: true,
-          message: 'Wallet verified and ownership updated'
+          message: 'Wallet verified and ownership updated',
+          rolesSynced: syncResult
         });
       } catch (error) {
         await client.query('ROLLBACK');
