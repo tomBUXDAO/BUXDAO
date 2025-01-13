@@ -18,7 +18,10 @@ router.get('/', async (req, res) => {
     console.log('Discord auth request:', {
       sessionID: req.sessionID,
       hasSession: !!req.session,
-      cookies: req.headers.cookie
+      cookies: req.headers.cookie,
+      secure: req.secure,
+      protocol: req.protocol,
+      'x-forwarded-proto': req.headers['x-forwarded-proto']
     });
 
     // Generate random state
@@ -40,13 +43,19 @@ router.get('/', async (req, res) => {
     await new Promise((resolve, reject) => {
       req.session.save((err) => {
         if (err) {
-          console.error('Failed to save session state:', err);
+          console.error('Failed to save session state:', {
+            error: err.message,
+            stack: err.stack,
+            sessionID: req.sessionID
+          });
           reject(err);
         } else {
           console.log('Session state saved successfully:', {
             sessionID: req.sessionID,
             state,
-            hasSession: !!req.session
+            hasSession: !!req.session,
+            secure: req.secure,
+            protocol: req.protocol
           });
           resolve();
         }
@@ -67,13 +76,19 @@ router.get('/', async (req, res) => {
       client_id: process.env.DISCORD_CLIENT_ID,
       redirect_uri: REDIRECT_URI,
       state,
-      sessionID: req.sessionID
+      sessionID: req.sessionID,
+      secure: req.secure,
+      protocol: req.protocol
     });
 
     // Redirect to Discord OAuth
     res.redirect(`https://discord.com/api/oauth2/authorize?${params.toString()}`);
   } catch (error) {
-    console.error('Discord auth error:', error);
+    console.error('Discord auth error:', {
+      error: error.message,
+      stack: error.stack,
+      sessionID: req.sessionID
+    });
     res.redirect(`${FRONTEND_URL}/verify?error=auth_failed`);
   }
 });

@@ -31,7 +31,8 @@ const app = express();
 
 // Trust proxy in production
 if (process.env.NODE_ENV === 'production') {
-  app.set('trust proxy', 1);
+  app.set('trust proxy', true);
+  app.enable('trust proxy');
 }
 
 // CORS configuration - must be first
@@ -97,6 +98,10 @@ initDatabase().catch(err => {
   process.exit(1);
 });
 
+// Parse cookies and JSON body - before session middleware
+app.use(cookieParser());
+app.use(express.json());
+
 // Session configuration with PostgreSQL store
 const pgSession = PostgresqlStore(session);
 
@@ -104,20 +109,22 @@ app.use(session({
   store: new pgSession({
     pool,
     tableName: 'session',
-    createTableIfMissing: true
+    createTableIfMissing: true,
+    pruneSessionInterval: 60
   }),
   name: 'buxdao.sid',
   secret: process.env.SESSION_SECRET || 'your-secret-key',
   resave: false,
   saveUninitialized: true,
   rolling: true,
-  proxy: process.env.NODE_ENV === 'production',
+  proxy: true, // Trust proxy
   cookie: {
     maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-    path: '/'
+    path: '/',
+    domain: process.env.NODE_ENV === 'production' ? '.buxdao.com' : undefined
   }
 }));
 
@@ -129,14 +136,13 @@ app.use((req, res, next) => {
     sessionID: req.sessionID,
     hasSession: !!req.session,
     discordState: req.session?.discord_state,
-    cookies: req.headers.cookie
+    cookies: req.headers.cookie,
+    secure: req.secure,
+    protocol: req.protocol,
+    'x-forwarded-proto': req.headers['x-forwarded-proto']
   });
   next();
 });
-
-// Parse cookies and JSON body
-app.use(cookieParser());
-app.use(express.json());
 
 // Debug logging
 app.use((req, res, next) => {
