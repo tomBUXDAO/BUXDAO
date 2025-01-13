@@ -1,6 +1,5 @@
-import pkg from 'pg';
-const { Pool } = pkg;
 import { PublicKey, Connection, LAMPORTS_PER_SOL } from '@solana/web3.js';
+import pool from '../config/database.js';
 
 export default async function handler(req, res) {
   let client;
@@ -11,13 +10,7 @@ export default async function handler(req, res) {
     const PROJECT_WALLET = 'CatzBPyMJcQgnAZ9hCtSNzDTrLLsRxerJYwh5LMe87kY';
     const ME_ESCROW = '1BWutmTvYPwDtmw9abTkS4Ssr8no61spGAvW1X6NDix';
 
-    // Create database client
-    const pool = new Pool({
-      connectionString: process.env.POSTGRES_URL,
-      ssl: {
-        rejectUnauthorized: false
-      }
-    });
+    // Get client from pool
     client = await pool.connect();
 
     // Get SOL price

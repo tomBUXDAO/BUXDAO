@@ -12,7 +12,6 @@ import session from 'express-session';
 import PostgresqlStore from 'connect-pg-simple';
 import pool from './config/database.js';
 import helmet from 'helmet';
-import { Pool } from 'pg';
 
 // Import routers
 import authCheckRouter from './api/auth/check.js';

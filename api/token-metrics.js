@@ -1,7 +1,6 @@
 import express from 'express';
-import pkg from 'pg';
-const { Pool } = pkg;
 import { Connection, PublicKey, LAMPORTS_PER_SOL } from '@solana/web3.js';
+import pool from '../config/database.js';
 
 const router = express.Router();
 
@@ -10,13 +9,7 @@ router.get('/', async (req, res) => {
   try {
     console.log('Fetching token metrics...');
     
-    // Create database client
-    const pool = new Pool({
-      connectionString: process.env.POSTGRES_URL,
-      ssl: {
-        rejectUnauthorized: false
-      }
-    });
+    // Get client from pool
     client = await pool.connect();
     
     // Get supply metrics from database
