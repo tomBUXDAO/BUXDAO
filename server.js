@@ -46,15 +46,6 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'Accept']
 }));
 
-// Database connection pool configuration
-const pool = new Pool({
-  connectionString: process.env.POSTGRES_URL,
-  ssl: process.env.NODE_ENV === 'production',
-  max: 20,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 10000,
-});
-
 // Test database connection and create tables if needed
 const initDatabase = async () => {
   let client;
