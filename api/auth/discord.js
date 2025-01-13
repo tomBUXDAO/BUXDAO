@@ -15,6 +15,9 @@ const REDIRECT_URI = process.env.DISCORD_REDIRECT_URI || (
 
 router.get('/', async (req, res) => {
   try {
+    // Clear any existing sessions
+    res.clearCookie('buxdao.sid');
+    
     // Generate random state
     const state = crypto.randomBytes(32).toString('hex');
     

@@ -103,12 +103,14 @@ const pgSession = PostgresqlStore(session);
 app.use(session({
   store: new pgSession({
     pool,
-    tableName: 'session'
+    tableName: 'session',
+    disableTouch: true // Prevent session touches that create duplicate sessions
   }),
   name: 'buxdao.sid',
   secret: process.env.SESSION_SECRET || 'your-secret-key',
   resave: false,
   saveUninitialized: false,
+  rolling: false, // Prevent rolling session updates
   proxy: process.env.NODE_ENV === 'production',
   cookie: {
     maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
