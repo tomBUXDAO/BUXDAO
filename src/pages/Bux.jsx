@@ -419,7 +419,6 @@ const Bux = () => {
 
       {/* Add UserProfile section at the bottom */}
       <section className="mt-12">
-        <h2 className="text-3xl font-bold text-white mb-6">Your Profile</h2>
         <UserProfile />
       </section>
     </div>
