@@ -191,7 +191,16 @@ app.use(helmet({
       defaultSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'", "fonts.googleapis.com"],
       fontSrc: ["'self'", "fonts.gstatic.com"],
-      imgSrc: ["'self'", "data:", "cdn.discordapp.com", "*.arweave.net", "*.ipfs.nftstorage.link"],
+      imgSrc: [
+        "'self'", 
+        "data:", 
+        "cdn.discordapp.com", 
+        "arweave.net", 
+        "*.arweave.net",
+        "gateway.pinata.cloud",
+        "*.ipfs.nftstorage.link",
+        "nftstorage.link"
+      ],
       connectSrc: ["'self'", "discord.com"],
       scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
       frameSrc: ["'none'"],
