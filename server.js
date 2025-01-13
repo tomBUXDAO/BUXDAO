@@ -12,6 +12,7 @@ import session from 'express-session';
 import PostgresqlStore from 'connect-pg-simple';
 import pool from './config/database.js';
 import helmet from 'helmet';
+import { Pool } from 'pg';
 
 // Import routers
 import authCheckRouter from './api/auth/check.js';
@@ -44,6 +45,15 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'Accept']
 }));
+
+// Database connection pool configuration
+const pool = new Pool({
+  connectionString: process.env.POSTGRES_URL,
+  ssl: process.env.NODE_ENV === 'production',
+  max: 20,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 10000,
+});
 
 // Test database connection and create tables if needed
 const initDatabase = async () => {
