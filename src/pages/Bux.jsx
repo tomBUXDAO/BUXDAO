@@ -9,6 +9,7 @@ import {
   WrenchScrewdriverIcon,
   SparklesIcon
 } from '@heroicons/react/24/outline';
+import UserProfile from '../components/UserProfile';
 
 const Bux = () => {
   const [tokenData, setTokenData] = useState({
@@ -39,57 +40,37 @@ const Bux = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      setIsLoading(true);
       try {
-        // Debug log
-        console.log('Fetching from:', `${baseUrl}/api/token-metrics`);
-        
-        // Always fetch token metrics for BUX values
-        const metricsResponse = await fetch(`${baseUrl}/api/token-metrics`);
-        
-        if (!metricsResponse.ok) {
-          console.error('Metrics response error:', await metricsResponse.text());
-          throw new Error(`HTTP error! status: ${metricsResponse.status}`);
-        }
-        
-        const metricsData = await metricsResponse.json();
-        console.log('Metrics data:', metricsData); // Debug log
-        
-        // Format the values
-        const formatNumber = (num) => Number(num).toLocaleString(undefined, { maximumFractionDigits: 2 });
-        const formatSol = (num) => Number(num).toFixed(2);
-        const formatTokenValue = (num) => Number(num).toFixed(8);
-        
-        setTokenData({
-          totalSupply: formatNumber(metricsData.totalSupply),
-          publicSupply: formatNumber(metricsData.publicSupply),
-          exemptSupply: formatNumber(metricsData.exemptSupply),
-          liquidityPool: formatSol(metricsData.liquidityPool),
-          solPrice: metricsData.solPrice,
-          tokenValue: formatTokenValue(metricsData.tokenValue)
-        });
+        setIsLoading(true);
 
-        // Fetch top holders with filters
-        const holdersResponse = await fetch(`${baseUrl}/api/top-holders?type=${viewType}&collection=${selectedCollection}`);
+        const [metricsResponse, holdersResponse] = await Promise.all([
+          fetch(`${CONFIG.api.baseUrl}${CONFIG.api.endpoints.tokenMetrics}`),
+          fetch(`${CONFIG.api.baseUrl}${CONFIG.api.endpoints.topHolders}?collection=${selectedCollection}&view=${viewType}`)
+        ]);
 
-        if (!holdersResponse.ok) {
-          console.error('Holders response error:', await holdersResponse.text());
-          throw new Error(`HTTP error! status: ${holdersResponse.status}`);
+        if (!metricsResponse.ok || !holdersResponse.ok) {
+          throw new Error('Failed to fetch data');
         }
-        
-        const holdersData = await holdersResponse.json();
-        console.log('Holders data:', holdersData); // Debug log
-        setTopHolders(holdersData.holders);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        setTopHolders([]);
+
+        const [metricsData, holdersData] = await Promise.all([
+          metricsResponse.json(),
+          holdersResponse.json()
+        ]);
+
+        console.log('Holders API Response:', holdersData); // Debug log
+
+        setTokenData(metricsData);
+        setTopHolders(holdersData.holders || []); // Assuming the data is nested under 'holders'
+      } catch (err) {
+        console.error('Error fetching data:', err);
+        setError(err.message);
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchData();
-  }, [viewType, selectedCollection, baseUrl]);
+  }, [selectedCollection, viewType]);
 
   const revenueSources = [
     {
@@ -426,6 +407,12 @@ const Bux = () => {
             </div>
           </div>
         </div>
+      </section>
+
+      {/* Add UserProfile section at the bottom */}
+      <section className="mt-12">
+        <h2 className="text-3xl font-bold text-white mb-6">Your Profile</h2>
+        <UserProfile />
       </section>
     </div>
   );

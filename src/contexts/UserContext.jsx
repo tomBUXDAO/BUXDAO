@@ -1,7 +1,7 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 
-const UserContext = createContext();
+export const UserContext = createContext();
 
 export const useUser = () => {
   const context = useContext(UserContext);
@@ -21,7 +21,6 @@ export const UserProvider = ({ children }) => {
     ? 'https://buxdao.com' 
     : 'http://localhost:3001';
 
-  // Check auth status on mount and when wallet changes
   useEffect(() => {
     const checkAuth = async () => {
       if (!initialized) {
@@ -34,7 +33,7 @@ export const UserProvider = ({ children }) => {
             },
             cache: 'no-store'
           });
-
+          
           if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
           }
@@ -76,7 +75,6 @@ export const UserProvider = ({ children }) => {
   const handleLogout = async () => {
     try {
       console.log('Initiating logout...');
-      // Call logout endpoint
       const response = await fetch(`${API_BASE}/api/auth/logout`, {
         method: 'POST',
         credentials: 'include',
@@ -143,6 +141,4 @@ export const UserProvider = ({ children }) => {
       {children}
     </UserContext.Provider>
   );
-};
-
-export default UserContext; 
+}; 

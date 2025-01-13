@@ -1,13 +1,8 @@
 import express from 'express';
 import { PublicKey } from '@solana/web3.js';
-import pg from 'pg';
-import { syncUserRoles } from '../discord/roles.js';
+import pool from '../../config/database.js';
 
 const router = express.Router();
-const pool = new pg.Pool({
-  connectionString: process.env.POSTGRES_URL,
-  ssl: { rejectUnauthorized: false }
-});
 
 const DISCORD_GUILD_ID = process.env.DISCORD_GUILD_ID;
 
@@ -95,9 +90,6 @@ router.post('/', async (req, res) => {
           [req.session.user.discord_id, req.session.user.discord_username, wallet_address]
         );
 
-        // Sync Discord roles
-        await syncUserRoles(req.session.user.discord_id, DISCORD_GUILD_ID);
-
         await client.query('COMMIT');
         console.log('Updated user_roles and ownership entries:', userRolesResult.rows[0]);
         
@@ -112,17 +104,26 @@ router.post('/', async (req, res) => {
         client.release();
       }
     } catch (dbError) {
-      console.error('Database error updating wallet address:', dbError);
+      console.error('Database error updating wallet address:', {
+        message: dbError.message,
+        code: dbError.code,
+        stack: dbError.stack,
+        query: dbError.query
+      });
       return res.status(500).json({
         success: false,
-        message: 'Failed to update user roles'
+        message: dbError.message || 'Failed to update user roles'
       });
     }
   } catch (error) {
-    console.error('Wallet verification error:', error);
+    console.error('Wallet verification error:', {
+      message: error.message,
+      code: error.code,
+      stack: error.stack
+    });
     return res.status(500).json({ 
       success: false,
-      message: 'Failed to verify wallet'
+      message: error.message || 'Failed to verify wallet'
     });
   }
 });

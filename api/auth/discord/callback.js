@@ -1,59 +1,80 @@
 import express from 'express';
 import fetch from 'node-fetch';
-import pg from 'pg';
-import { syncUserRoles } from '../../discord/roles.js';
+import pool from '../../../config/database.js';
 
 const router = express.Router();
-const pool = new pg.Pool({
-  connectionString: process.env.POSTGRES_URL,
-  ssl: { rejectUnauthorized: false }
-});
 
-const DISCORD_API = 'https://discord.com/api/v10';
+const DISCORD_API = 'https://discord.com/api/v9';
 const DISCORD_GUILD_ID = process.env.DISCORD_GUILD_ID;
+const FRONTEND_URL = process.env.NODE_ENV === 'production' 
+  ? 'https://buxdao.com'
+  : 'http://localhost:5173';
+const REDIRECT_URI = process.env.NODE_ENV === 'production'
+  ? 'https://buxdao.com/api/auth/discord/callback'
+  : 'http://localhost:3001/api/auth/discord/callback';
 
 router.get('/', async (req, res) => {
   // Add CORS headers
-  res.header('Access-Control-Allow-Origin', 'https://buxdao.com');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  
-  console.log('Discord callback received:', { 
-    state: req.query.state,
-    hasCode: !!req.query.code,
-    sessionState: req.session?.discord_state,
-    cookies: req.headers.cookie
-  });
-  
+  res.header('Access-Control-Allow-Origin', process.env.NODE_ENV === 'production' 
+    ? 'https://buxdao.com' 
+    : 'http://localhost:5173');
+  res.header('Access-Control-Allow-Credentials', true);
+  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type');
+
+  // Handle preflight
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(200);
+    return;
+  }
+
+  let client;
   try {
     const { code, state } = req.query;
+    console.log('Discord callback received:', {
+      code: !!code,
+      state,
+      sessionID: req.sessionID,
+      hasSession: !!req.session,
+      sessionState: req.session?.discord_state,
+      cookies: req.headers.cookie
+    });
 
     if (!code || !state) {
       console.error('Missing required parameters:', { code: !!code, state: !!state });
-      return res.status(400).json({
-        success: false,
-        message: 'Missing required parameters'
+      return res.redirect(`${FRONTEND_URL}/verify?error=missing_params`);
+    }
+
+    // Ensure session exists
+    if (!req.session) {
+      console.error('No session found:', { 
+        sessionID: req.sessionID,
+        cookies: req.headers.cookie
       });
+      return res.redirect(`${FRONTEND_URL}/verify?error=no_session`);
     }
 
     // Verify state matches
-    if (!req.session?.discord_state || state !== req.session.discord_state) {
-      console.error('State mismatch or missing session:', {
-        sessionExists: !!req.session,
-        sessionState: req.session?.discord_state,
-        receivedState: state
+    if (!req.session.discord_state || state !== req.session.discord_state) {
+      console.error('State mismatch:', {
+        sessionState: req.session.discord_state,
+        receivedState: state,
+        sessionID: req.sessionID
       });
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid state parameter or session expired'
-      });
+      return res.redirect(`${FRONTEND_URL}/verify?error=invalid_state`);
     }
 
     // Clear the state after verification
     delete req.session.discord_state;
-
-    console.log('Exchanging code for token...', {
-      clientId: process.env.DISCORD_CLIENT_ID,
-      redirectUri: process.env.DISCORD_REDIRECT_URI
+    await new Promise((resolve, reject) => {
+      req.session.save((err) => {
+        if (err) {
+          console.error('Failed to save session after state clear:', err);
+          reject(err);
+        } else {
+          resolve();
+        }
+      });
     });
 
     // Exchange code for token
@@ -67,7 +88,7 @@ router.get('/', async (req, res) => {
         client_secret: process.env.DISCORD_CLIENT_SECRET,
         grant_type: 'authorization_code',
         code,
-        redirect_uri: process.env.DISCORD_REDIRECT_URI
+        redirect_uri: REDIRECT_URI
       })
     });
 
@@ -75,21 +96,14 @@ router.get('/', async (req, res) => {
       const errorText = await tokenResponse.text();
       console.error('Token exchange failed:', {
         status: tokenResponse.status,
-        error: errorText,
-        redirectUri: process.env.DISCORD_REDIRECT_URI
+        error: errorText
       });
-      return res.status(400).json({
-        success: false,
-        message: 'Failed to exchange code for token',
-        details: process.env.NODE_ENV === 'development' ? errorText : undefined
-      });
+      return res.redirect(`${FRONTEND_URL}/verify?error=token_exchange_failed`);
     }
 
     const tokenData = await tokenResponse.json();
-    console.log('Token exchange successful');
 
     // Get user info
-    console.log('Fetching user info...');
     const userResponse = await fetch(`${DISCORD_API}/users/@me`, {
       headers: {
         Authorization: `Bearer ${tokenData.access_token}`
@@ -102,28 +116,13 @@ router.get('/', async (req, res) => {
         status: userResponse.status,
         error: errorText
       });
-      return res.status(400).json({
-        success: false,
-        message: 'Failed to fetch user info',
-        details: process.env.NODE_ENV === 'development' ? errorText : undefined
-      });
+      return res.redirect(`${FRONTEND_URL}/verify?error=user_info_failed`);
     }
 
     const userData = await userResponse.json();
-    console.log('User info fetched:', {
-      id: userData.id,
-      username: userData.username
-    });
+    console.log('User info fetched:', { id: userData.id, username: userData.username });
 
     // Store user data in session
-    if (!req.session) {
-      console.error('No session available for storing user data');
-      return res.status(500).json({
-        success: false,
-        message: 'Session unavailable'
-      });
-    }
-
     req.session.user = {
       discord_id: userData.id,
       discord_username: userData.username,
@@ -131,14 +130,26 @@ router.get('/', async (req, res) => {
       access_token: tokenData.access_token
     };
 
-    const client = await pool.connect();
+    // Save session before database operations
+    await new Promise((resolve, reject) => {
+      req.session.save((err) => {
+        if (err) {
+          console.error('Failed to save session with user data:', err);
+          reject(err);
+        } else {
+          resolve();
+        }
+      });
+    });
+
+    // Get database connection
+    client = await pool.connect();
+
     try {
-      console.log('Starting database transaction...');
       await client.query('BEGIN');
 
       // Update or insert user_roles
-      console.log('Updating user_roles...');
-      const userRolesResult = await client.query(
+      await client.query(
         `INSERT INTO user_roles (discord_id, discord_name)
          VALUES ($1, $2)
          ON CONFLICT (discord_id) 
@@ -148,37 +159,46 @@ router.get('/', async (req, res) => {
          RETURNING *`,
         [userData.id, userData.username]
       );
-      console.log('User roles updated:', userRolesResult.rows[0]);
-
-      // Sync Discord roles
-      console.log('Syncing Discord roles...');
-      const syncResult = await syncUserRoles(userData.id, DISCORD_GUILD_ID);
-      console.log('Role sync result:', { success: syncResult });
 
       await client.query('COMMIT');
-      console.log('Transaction committed');
+      console.log('Database transaction completed successfully');
 
-      // Redirect to verify page
-      console.log('Redirecting to verify page...');
-      res.redirect('/verify');
-    } catch (error) {
-      console.error('Database transaction failed:', error);
+      // Ensure session is saved before redirect
+      await new Promise((resolve, reject) => {
+        req.session.save((err) => {
+          if (err) {
+            console.error('Failed to save session before redirect:', err);
+            reject(err);
+          } else {
+            resolve();
+          }
+        });
+      });
+
+      res.redirect(`${FRONTEND_URL}/verify`);
+    } catch (dbError) {
       await client.query('ROLLBACK');
-      throw error;
-    } finally {
-      client.release();
+      console.error('Database operation failed:', {
+        error: dbError.message,
+        stack: dbError.stack,
+        code: dbError.code
+      });
+      
+      res.redirect(`${FRONTEND_URL}/verify?error=database_error`);
     }
   } catch (error) {
     console.error('Discord callback error:', {
       message: error.message,
       stack: error.stack,
+      sessionID: req.sessionID,
       sessionExists: !!req.session
     });
-    res.status(500).json({
-      success: false,
-      message: 'Internal server error',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    
+    return res.redirect(`${FRONTEND_URL}/verify?error=server_error`);
+  } finally {
+    if (client) {
+      await client.release();
+    }
   }
 });
 
