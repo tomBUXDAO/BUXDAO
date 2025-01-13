@@ -44,7 +44,15 @@ router.get('/', async (req, res) => {
         receivedState: state,
         sessionID: req.sessionID
       });
-      return res.redirect(`${FRONTEND_URL}/verify?error=invalid_state`);
+      // Clear session and redirect
+      req.session.destroy((err) => {
+        if (err) {
+          console.error('Failed to destroy session:', err);
+        }
+        res.clearCookie('buxdao.sid');
+        return res.redirect(`${FRONTEND_URL}/verify?error=invalid_state`);
+      });
+      return;
     }
 
     // Clear state from session

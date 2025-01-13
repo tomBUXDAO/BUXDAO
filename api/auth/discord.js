@@ -15,9 +15,22 @@ const REDIRECT_URI = process.env.DISCORD_REDIRECT_URI || (
 
 router.get('/', async (req, res) => {
   try {
-    // Clear any existing sessions
-    res.clearCookie('buxdao.sid');
-    
+    console.log('Discord auth request:', {
+      sessionID: req.sessionID,
+      hasSession: !!req.session,
+      cookies: req.headers.cookie
+    });
+
+    // Ensure session exists
+    if (!req.session) {
+      console.error('No session found');
+      return res.redirect(`${FRONTEND_URL}/verify?error=no_session`);
+    }
+
+    // Clear any existing auth data
+    delete req.session.user;
+    delete req.session.discord_state;
+
     // Generate random state
     const state = crypto.randomBytes(32).toString('hex');
     
@@ -41,21 +54,14 @@ router.get('/', async (req, res) => {
       });
     });
 
-    // Set state cookie as backup
-    res.cookie('discord_state', state, {
-      maxAge: 5 * 60 * 1000, // 5 minutes
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
-    });
-
     // Build Discord OAuth URL
     const params = new URLSearchParams({
       client_id: process.env.DISCORD_CLIENT_ID,
       redirect_uri: REDIRECT_URI,
       response_type: 'code',
       scope: 'identify guilds.join',
-      state: state
+      state: state,
+      prompt: 'consent'
     });
 
     console.log('Redirecting to Discord with params:', {
