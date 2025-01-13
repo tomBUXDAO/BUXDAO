@@ -12,6 +12,7 @@ import session from 'express-session';
 import PostgresqlStore from 'connect-pg-simple';
 import pool from './config/database.js';
 import helmet from 'helmet';
+import { Pool } from 'pg';
 
 // Import routers
 import authCheckRouter from './api/auth/check.js';
@@ -44,6 +45,15 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'Accept']
 }));
+
+// Database connection pool configuration
+const pool = new Pool({
+  connectionString: process.env.POSTGRES_URL,
+  ssl: process.env.NODE_ENV === 'production',
+  max: 20,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 10000,
+});
 
 // Test database connection and create tables if needed
 const initDatabase = async () => {
@@ -105,28 +115,57 @@ app.use(express.json());
 // Session configuration with PostgreSQL store
 const pgSession = PostgresqlStore(session);
 
-app.use(session({
+const sessionConfig = {
   store: new pgSession({
     pool,
     tableName: 'session',
     createTableIfMissing: true,
-    pruneSessionInterval: 60
+    pruneSessionInterval: 60,
+    errorLog: console.error
   }),
   name: 'buxdao.sid',
   secret: process.env.SESSION_SECRET || 'your-secret-key',
   resave: false,
-  saveUninitialized: true,
+  saveUninitialized: false,
   rolling: true,
-  proxy: true, // Trust proxy
+  proxy: true,
   cookie: {
-    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+    maxAge: 30 * 24 * 60 * 60 * 1000,
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
     path: '/',
     domain: process.env.NODE_ENV === 'production' ? '.buxdao.com' : undefined
+  },
+  unset: 'destroy'
+};
+
+// Clean up duplicate sessions
+app.use((req, res, next) => {
+  const cookies = req.cookies;
+  if (cookies && cookies['buxdao.sid']) {
+    const sessionCookies = req.headers.cookie
+      ?.split(';')
+      .filter(c => c.trim().startsWith('buxdao.sid='));
+    
+    if (sessionCookies && sessionCookies.length > 1) {
+      // Keep only the most recent session
+      const validSession = sessionCookies[0].split('=')[1];
+      res.cookie('buxdao.sid', validSession, {
+        maxAge: sessionConfig.cookie.maxAge,
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        path: '/',
+        domain: process.env.NODE_ENV === 'production' ? '.buxdao.com' : undefined
+      });
+    }
   }
-}));
+  next();
+});
+
+// Initialize session middleware
+app.use(session(sessionConfig));
 
 // Add session debugging middleware
 app.use((req, res, next) => {
