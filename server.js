@@ -104,19 +104,20 @@ app.use(session({
   store: new pgSession({
     pool,
     tableName: 'session',
-    disableTouch: true // Prevent session touches that create duplicate sessions
+    createTableIfMissing: true
   }),
   name: 'buxdao.sid',
   secret: process.env.SESSION_SECRET || 'your-secret-key',
   resave: false,
-  saveUninitialized: false,
-  rolling: false, // Prevent rolling session updates
+  saveUninitialized: true,
+  rolling: true,
   proxy: process.env.NODE_ENV === 'production',
   cookie: {
     maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    path: '/'
   }
 }));
 

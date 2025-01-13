@@ -21,18 +21,17 @@ router.get('/', async (req, res) => {
       cookies: req.headers.cookie
     });
 
-    // Ensure session exists
-    if (!req.session) {
-      console.error('No session found');
-      return res.redirect(`${FRONTEND_URL}/verify?error=no_session`);
-    }
-
-    // Clear any existing auth data
-    delete req.session.user;
-    delete req.session.discord_state;
-
     // Generate random state
     const state = crypto.randomBytes(32).toString('hex');
+    
+    // Initialize session if it doesn't exist
+    if (!req.session) {
+      req.session = {};
+    }
+
+    // Clear any existing auth data but keep the session
+    delete req.session.user;
+    delete req.session.discord_state;
     
     // Store state in session
     req.session.discord_state = state;
