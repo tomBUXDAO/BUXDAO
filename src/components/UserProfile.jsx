@@ -1,41 +1,73 @@
 import React, { useState, useEffect } from 'react';
 import { useUser } from '../contexts/UserContext';
 
+const API_BASE_URL = 'http://localhost:3001';
+
+// NFT reward allocations
+const DAILY_REWARDS = {
+  'Celeb Catz': 20,
+  'Money Monsters 3D': 7,
+  'FCKed Catz': 5,
+  'Money Monsters': 5,
+  'A.I. BitBots': 3,
+  'Collab Collections': 1
+};
+
+// Map DB symbols to display names
+const SYMBOL_TO_NAME = {
+  'CelebCatz': 'Celeb Catz',
+  'MM3D': 'Money Monsters 3D',
+  'FCKEDCATZ': 'FCKed Catz',
+  'MM': 'Money Monsters',
+  'AIBB': 'A.I. BitBots'
+};
+
 const UserProfile = () => {
   const { discordUser: user, walletConnected: isAuthenticated } = useUser();
-  const [holdings, setHoldings] = useState(null);
-  const [rewards, setRewards] = useState(null);
+  const [userData, setUserData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [cashoutAmount, setCashoutAmount] = useState('');
 
-  // NFT reward allocations
-  const DAILY_REWARDS = {
-    'Celeb Catz': 20,
-    'Money Monsters 3D': 7,
-    'FCKed Catz': 5,
-    'Money Monsters': 5,
-    'A.I. BitBots': 3,
-    'Collab Collections': 1
-  };
-
   useEffect(() => {
     const fetchUserData = async () => {
-      if (!isAuthenticated) return;
+      if (!isAuthenticated || !user?.wallet_address) {
+        setIsLoading(false);
+        return;
+      }
       
       try {
-        const [holdingsRes, rewardsRes] = await Promise.all([
-          fetch('/api/user/holdings', { credentials: 'include' }),
-          fetch('/api/user/rewards', { credentials: 'include' })
-        ]);
+        const response = await fetch(`${API_BASE_URL}/api/top-holders?collection=all&type=bux,nfts`, {
+          credentials: 'include',
+          headers: {
+            'Accept': 'application/json'
+          }
+        });
+        
+        if (!response.ok) throw new Error('Failed to fetch holders data');
+        
+        const { holders } = await response.json();
+        console.log('Looking for Discord username:', user.discord_username);
+        
+        // Find user data by Discord username
+        const myData = holders.find(h => h.address === user.discord_username);
+        console.log('Found holder data:', myData);
 
-        if (holdingsRes.ok && rewardsRes.ok) {
-          const [holdingsData, rewardsData] = await Promise.all([
-            holdingsRes.json(),
-            rewardsRes.json()
-          ]);
-
-          setHoldings(holdingsData);
-          setRewards(rewardsData);
+        if (myData) {
+          setUserData({
+            wallet_address: user.wallet_address,
+            balance: parseInt(myData.bux.replace(/,/g, '')) || 0,
+            unclaimed_rewards: 0,
+            collections: {
+              'Celeb Catz': parseInt(myData.celebcatz_count) || 0,
+              'Money Monsters 3D': parseInt(myData.mm3d_count) || 0,
+              'FCKed Catz': parseInt(myData.fckedcatz_count) || 0,
+              'Money Monsters': parseInt(myData.mm_count) || 0,
+              'A.I. BitBots': parseInt(myData.aibb_count) || 0,
+              'Collab Collections': parseInt(myData.collab_count) || 0
+            },
+            totalCount: parseInt(myData.nfts) || 0,
+            roles: user.roles || []
+          });
         }
       } catch (error) {
         console.error('Failed to fetch user data:', error);
@@ -45,11 +77,11 @@ const UserProfile = () => {
     };
 
     fetchUserData();
-  }, [isAuthenticated]);
+  }, [isAuthenticated, user]);
 
   // Calculate total daily yield from NFTs
   const calculateCollectionYield = (collection) => {
-    const count = holdings?.collections?.find(c => c.name === collection)?.count || 0;
+    const count = userData?.collections?.[collection] || 0;
     return count * (DAILY_REWARDS[collection] || 0);
   };
 
@@ -108,7 +140,7 @@ const UserProfile = () => {
                 </thead>
                 <tbody>
                   {Object.entries(DAILY_REWARDS).map(([collection, reward]) => {
-                    const count = holdings?.collections?.find(c => c.name === collection)?.count || 0;
+                    const count = userData?.collections?.[collection] || 0;
                     return (
                       <tr key={collection} className="border-b border-fuchsia-500/10">
                         <td className="py-2 text-violet-100">{collection}</td>
@@ -119,7 +151,7 @@ const UserProfile = () => {
                   })}
                   <tr className="font-semibold">
                     <td className="py-2 text-fuchsia-300">Total</td>
-                    <td className="py-2 text-fuchsia-300 text-right">{holdings?.totalCount || 0}</td>
+                    <td className="py-2 text-fuchsia-300 text-right">{userData?.totalCount || 0}</td>
                     <td className="py-2 text-fuchsia-300 text-right">{totalDailyYield} $BUX</td>
                   </tr>
                 </tbody>
@@ -131,7 +163,7 @@ const UserProfile = () => {
           <div className="bg-gradient-to-br from-gray-900/90 to-gray-800/90 rounded-lg p-6 shadow-lg backdrop-blur-sm border border-fuchsia-500/20">
             <h3 className="text-xl font-semibold text-white mb-4">My Roles</h3>
             <div className="flex flex-wrap gap-2">
-              {holdings?.roles?.map(role => (
+              {userData?.roles?.map(role => (
                 <span 
                   key={role.id}
                   className="px-3 py-1 rounded-full text-sm font-medium bg-gradient-to-r from-fuchsia-500 to-violet-500 text-white shadow-lg"
@@ -150,11 +182,11 @@ const UserProfile = () => {
             <div className="mb-6">
               <p className="text-fuchsia-300 mb-2">Unclaimed Rewards</p>
               <p className="text-2xl font-bold text-white mb-3">
-                {rewards?.unclaimedAmount || 0} $BUX
+                {userData?.unclaimed_rewards || 0} $BUX
               </p>
               <button
                 className="w-full py-2 px-4 rounded-lg font-medium bg-gradient-to-r from-fuchsia-500 to-violet-500 text-white transition-all hover:from-fuchsia-600 hover:to-violet-600 disabled:from-gray-700 disabled:to-gray-600 disabled:text-gray-400 disabled:cursor-not-allowed shadow-lg"
-                disabled={!rewards?.unclaimedAmount}
+                disabled={!userData?.unclaimed_rewards}
               >
                 Claim Rewards
               </button>
@@ -164,7 +196,7 @@ const UserProfile = () => {
             <div>
               <p className="text-fuchsia-300 mb-2">BUX Balance</p>
               <p className="text-2xl font-bold text-white mb-3">
-                {rewards?.balance || 0} $BUX
+                {userData?.balance || 0} $BUX
               </p>
               <div className="space-y-3">
                 <input

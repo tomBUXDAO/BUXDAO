@@ -38,12 +38,10 @@ if (process.env.NODE_ENV === 'production') {
 
 // CORS configuration - must be first
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? ['https://buxdao.com', 'https://www.buxdao.com'] 
-    : ['http://localhost:5173'],
+  origin: ['http://localhost:5173', 'http://localhost:3001'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'Accept']
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 // Test database connection and create tables if needed
@@ -60,7 +58,27 @@ const initDatabase = async () => {
         discord_name VARCHAR(255) NOT NULL,
         wallet_address VARCHAR(255),
         last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        roles JSONB DEFAULT '[]'::jsonb
+        roles JSONB DEFAULT '[]'::jsonb,
+        fcked_catz_holder BOOLEAN DEFAULT false,
+        money_monsters_holder BOOLEAN DEFAULT false,
+        ai_bitbots_holder BOOLEAN DEFAULT false,
+        moneymonsters3d_holder BOOLEAN DEFAULT false,
+        celebcatz_holder BOOLEAN DEFAULT false,
+        collab_holder BOOLEAN DEFAULT false
+      );
+    `);
+
+    // Create bux_holders table if it doesn't exist
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS bux_holders (
+        wallet_address VARCHAR(255) PRIMARY KEY,
+        owner_discord_id VARCHAR(255) REFERENCES user_roles(discord_id),
+        owner_name VARCHAR(255),
+        balance DECIMAL(20,8) DEFAULT 0,
+        unclaimed_rewards DECIMAL(20,8) DEFAULT 0,
+        last_claim_time TIMESTAMP,
+        last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        is_exempt BOOLEAN DEFAULT false
       );
     `);
 
@@ -214,6 +232,15 @@ app.use(helmet({
 app.use('/api', (req, res, next) => {
   res.set('Content-Type', 'application/json');
   res.set('Cache-Control', 'no-store');
+  next();
+});
+
+// Authentication middleware
+app.use('/api/user', (req, res, next) => {
+  if (!req.session?.user) {
+    return res.status(401).json({ error: 'Not authenticated' });
+  }
+  req.user = req.session.user;
   next();
 });
 

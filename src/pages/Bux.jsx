@@ -311,9 +311,9 @@ const Bux = () => {
                                   {index >= 25 && <span title={`Rank ${index + 1}`} className="text-amber-600">● {index + 1}</span>}
                                 </td>
                               )}
-                              <td className="py-3 px-6 text-purple-400">{holder.address}</td>
                               {viewType === 'bux' ? (
                                 <>
+                                  <td className="py-3 px-6 text-purple-400">{holder.address}</td>
                                   <td className="py-3 px-6 text-right">{holder.amount}</td>
                                   <td className="py-3 px-6 text-right">{holder.percentage}</td>
                                   <td className="py-3 px-6 text-right">{holder.value.split(' ')[0]} SOL</td>
@@ -321,12 +321,14 @@ const Bux = () => {
                                 </>
                               ) : viewType === 'nfts' ? (
                                 <>
+                                  <td className="py-3 px-6 text-purple-400">{holder.address}</td>
                                   <td className="py-3 px-6 text-right">{holder.amount.split(' ')[0]}</td>
                                   <td className="py-3 px-6 text-right">{holder.value.split(' ')[0]} SOL</td>
                                   <td className="py-3 px-6 text-right">${holder.value.split('($')[1]?.replace(')', '')}</td>
                                 </>
                               ) : (
                                 <>
+                                  <td className="py-3 px-6 text-purple-400">{holder.address}</td>
                                   <td className="py-3 px-6 text-right">{holder.bux}</td>
                                   <td className="py-3 px-6 text-right">{holder.nfts ? holder.nfts.split(' ')[0] : holder.nftCount}</td>
                                   <td className="py-3 px-6 text-right">{holder.value.split(' ')[0]} SOL</td>
