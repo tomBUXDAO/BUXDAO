@@ -220,7 +220,16 @@ app.use(helmet({
         "*.ipfs.nftstorage.link",
         "nftstorage.link"
       ],
-      connectSrc: ["'self'", "discord.com"],
+      connectSrc: [
+        "'self'", 
+        "discord.com",
+        process.env.NODE_ENV === 'development' ? "http://localhost:3001" : "https://buxdao.com",
+        "api.mainnet-beta.solana.com",
+        "solana-mainnet.g.alchemy.com",
+        "rpc.ankr.com",
+        "solana.getblock.io",
+        "mainnet.helius-rpc.com"
+      ],
       scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
       frameSrc: ["'none'"],
       objectSrc: ["'none'"]
