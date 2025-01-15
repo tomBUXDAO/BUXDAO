@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useUser } from '../contexts/UserContext';
 
-const API_BASE_URL = 'http://localhost:3001';
+const API_BASE_URL = process.env.NODE_ENV === 'production' 
+  ? 'https://buxdao.com'
+  : 'http://localhost:3001';
 
 // NFT reward allocations
 const DAILY_REWARDS = {

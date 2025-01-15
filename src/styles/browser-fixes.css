@@ -24,8 +24,7 @@ html {
 
 /* Fix column gaps */
 .column-gap {
-  column-gap: 1rem;
-  grid-column-gap: 1rem;
+  gap: 1rem;
 }
 
 /* Fix border radius typo */
