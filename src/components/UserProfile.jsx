@@ -32,22 +32,21 @@ const UserProfile = () => {
 
   useEffect(() => {
     const fetchUserData = async () => {
-      if (!isAuthenticated || !user?.wallet_address) {
+      if (!isAuthenticated || !user?.discord_username) {
         setIsLoading(false);
         return;
       }
       
       try {
-        const response = await fetch(`${API_BASE_URL}/api/top-holders?collection=all&type=bux,nfts`, {
+        // First fetch total holdings to get user's data
+        const totalResponse = await fetch(`${API_BASE_URL}/api/top-holders?collection=all&type=bux,nfts`, {
           credentials: 'include',
-          headers: {
-            'Accept': 'application/json'
-          }
+          headers: { 'Accept': 'application/json' }
         });
         
-        if (!response.ok) throw new Error('Failed to fetch holders data');
+        if (!totalResponse.ok) throw new Error('Failed to fetch holders data');
         
-        const { holders } = await response.json();
+        const { holders } = await totalResponse.json();
         console.log('Looking for Discord username:', user.discord_username);
         
         // Find user data by Discord username
@@ -55,19 +54,79 @@ const UserProfile = () => {
         console.log('Found holder data:', myData);
 
         if (myData) {
+          // Now fetch all collections data
+          const collections = ['celebcatz', 'moneymonsters3d', 'fckedcatz', 'moneymonsters', 'aibitbots'];
+          const collectionResponses = await Promise.all(
+            collections.map(collection => 
+              fetch(`${API_BASE_URL}/api/top-holders?collection=${collection}&type=nfts`, {
+                credentials: 'include',
+                headers: { 'Accept': 'application/json' }
+              })
+            )
+          );
+
+          const collectionData = await Promise.all(
+            collectionResponses.map(response => response.json())
+          );
+
+          // Extract collection counts from individual responses
+          const collectionCounts = {
+            'Celeb Catz': 0,
+            'Money Monsters 3D': 0,
+            'FCKed Catz': 0,
+            'Money Monsters': 0,
+            'A.I. BitBots': 0,
+            'Collab Collections': 0
+          };
+
+          // Map collection data to counts by finding the user's wallet in each collection
+          collectionData.forEach((data, index) => {
+            console.log(`Searching ${collections[index]} for wallet:`, user.wallet_address);
+            
+            // Get first 4 and last 4 chars of wallet address
+            const walletStart = user.wallet_address?.slice(0, 4);
+            const walletEnd = user.wallet_address?.slice(-4);
+            
+            // Find matching holder by checking if address contains either start or end of wallet
+            const userHolding = data.holders?.find(h => {
+              const fullAddr = h.address.replace('...', '');
+              return fullAddr.includes(walletStart) || fullAddr.includes(walletEnd);
+            });
+
+            console.log(`${collections[index]} found holding:`, userHolding);
+
+            if (userHolding) {
+              const count = parseInt(userHolding.amount.split(' ')[0]) || 0;
+              switch(collections[index]) {
+                case 'celebcatz':
+                  collectionCounts['Celeb Catz'] = count;
+                  break;
+                case 'moneymonsters3d':
+                  collectionCounts['Money Monsters 3D'] = count;
+                  break;
+                case 'fckedcatz':
+                  collectionCounts['FCKed Catz'] = count;
+                  break;
+                case 'moneymonsters':
+                  collectionCounts['Money Monsters'] = count;
+                  break;
+                case 'aibitbots':
+                  collectionCounts['A.I. BitBots'] = count;
+                  break;
+              }
+            }
+          });
+
+          // Extract total NFTs count
+          const nftsMatch = myData.nfts.match(/(\d+)/);
+          const totalNFTs = nftsMatch ? parseInt(nftsMatch[1]) : 0;
+
           setUserData({
             wallet_address: user.wallet_address,
             balance: parseInt(myData.bux.replace(/,/g, '')) || 0,
             unclaimed_rewards: 0,
-            collections: {
-              'Celeb Catz': parseInt(myData.celebcatz_count) || 0,
-              'Money Monsters 3D': parseInt(myData.mm3d_count) || 0,
-              'FCKed Catz': parseInt(myData.fckedcatz_count) || 0,
-              'Money Monsters': parseInt(myData.mm_count) || 0,
-              'A.I. BitBots': parseInt(myData.aibb_count) || 0,
-              'Collab Collections': parseInt(myData.collab_count) || 0
-            },
-            totalCount: parseInt(myData.nfts) || 0,
+            collections: collectionCounts,
+            totalCount: totalNFTs,
             roles: user.roles || []
           });
         }
@@ -91,24 +150,6 @@ const UserProfile = () => {
     (total, collection) => total + calculateCollectionYield(collection),
     0
   );
-
-  if (!isAuthenticated) {
-    return (
-      <div className="relative rounded-lg bg-gradient-to-br from-fuchsia-600 via-violet-600 to-blue-600 p-6 backdrop-blur-sm">
-        <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-sm rounded-lg">
-          <div className="text-center">
-            <div className="flex justify-center mb-4">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-fuchsia-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m0 0v2m0-2h2m-2 0H8m13 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <h3 className="text-xl font-bold text-white mb-2">Holder Verification Required</h3>
-            <p className="text-fuchsia-200">Please verify to view your profile and claim rewards</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   if (isLoading) {
     return (
@@ -136,25 +177,50 @@ const UserProfile = () => {
                 <thead>
                   <tr className="border-b border-fuchsia-500/30">
                     <th className="py-2 text-fuchsia-300">Collection</th>
-                    <th className="py-2 text-fuchsia-300 text-right">Count</th>
-                    <th className="py-2 text-fuchsia-300 text-right">Daily Yield</th>
+                    <th className="py-2 text-fuchsia-300 text-center">Count</th>
+                    <th className="py-2 text-fuchsia-300 text-center">
+                      <div className="text-sm">Daily</div>
+                      <div className="text-sm">Yield</div>
+                      <div className="text-xs">($BUX)</div>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {Object.entries(DAILY_REWARDS).map(([collection, reward]) => {
-                    const count = userData?.collections?.[collection] || 0;
+                  {userData && Object.entries(userData.collections).map(([collection, count]) => {
+                    // Transform display names
+                    const displayName = (() => {
+                      switch(collection) {
+                        case 'Money Monsters 3D': return '3D Monsters';
+                        case 'FCKed Catz': return 'Fcked Catz';
+                        case 'Collab Collections': return 'A.I. Collabs';
+                        default: return collection;
+                      }
+                    })();
+
+                    const dailyYield = (() => {
+                      switch(collection) {
+                        case 'Celeb Catz': return count * 20;
+                        case 'Money Monsters 3D': return count * 7;
+                        case 'FCKed Catz': return count * 5;
+                        case 'Money Monsters': return count * 5;
+                        case 'A.I. BitBots': return count * 3;
+                        case 'Collab Collections': return count * 0;
+                        default: return 0;
+                      }
+                    })();
+
                     return (
-                      <tr key={collection} className="border-b border-fuchsia-500/10">
-                        <td className="py-2 text-violet-100">{collection}</td>
-                        <td className="py-2 text-violet-100 text-right">{count}</td>
-                        <td className="py-2 text-violet-100 text-right">{count * reward} $BUX</td>
+                      <tr key={collection} className="border-t">
+                        <td className="py-2">{displayName}</td>
+                        <td className="text-center py-2">{count}</td>
+                        <td className="text-center py-2">{dailyYield}</td>
                       </tr>
                     );
                   })}
                   <tr className="font-semibold">
                     <td className="py-2 text-fuchsia-300">Total</td>
-                    <td className="py-2 text-fuchsia-300 text-right">{userData?.totalCount || 0}</td>
-                    <td className="py-2 text-fuchsia-300 text-right">{totalDailyYield} $BUX</td>
+                    <td className="py-2 text-fuchsia-300 text-center">{userData?.totalCount || 0}</td>
+                    <td className="py-2 text-fuchsia-300 text-center">{totalDailyYield}</td>
                   </tr>
                 </tbody>
               </table>
