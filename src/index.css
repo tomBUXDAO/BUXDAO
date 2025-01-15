@@ -6,11 +6,6 @@
 @tailwind utilities;
 
 @layer base {
-  html {
-    text-size-adjust: 100%;
-    -webkit-text-size-adjust: 100%;
-  }
-  
   html,
   body {
     @apply overflow-x-hidden;
