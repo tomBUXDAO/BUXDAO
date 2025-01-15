@@ -81,11 +81,16 @@ const UserProfile = () => {
 
           // Map collection data to counts by finding the user's wallet in each collection
           collectionData.forEach((data, index) => {
+            if (!user?.wallet_address) {
+              console.log('No wallet address available');
+              return;
+            }
+
             console.log(`Searching ${collections[index]} for wallet:`, user.wallet_address);
             
             // Get first 4 and last 4 chars of wallet address
-            const walletStart = user.wallet_address?.slice(0, 4);
-            const walletEnd = user.wallet_address?.slice(-4);
+            const walletStart = user.wallet_address.slice(0, 4);
+            const walletEnd = user.wallet_address.slice(-4);
             
             // Find matching holder by checking if address contains either start or end of wallet
             const userHolding = data.holders?.find(h => {
