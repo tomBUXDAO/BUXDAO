@@ -19,6 +19,7 @@ import discordAuthRouter from './api/auth/discord.js';
 import discordCallbackRouter from './api/auth/discord/callback.js';
 import walletAuthRouter from './api/auth/wallet.js';
 import logoutRouter from './api/auth/logout.js';
+import rolesRouter from './api/auth/roles.js';
 import collectionsRouter from './api/collections/index.js';
 import celebcatzRouter from './api/celebcatz/index.js';
 import topHoldersHandler from './api/top-holders.js';
@@ -41,7 +42,19 @@ app.use(cors({
   origin: ['http://localhost:5173', 'http://localhost:3001'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
+  exposedHeaders: ['Set-Cookie'],
+  preflightContinue: false,
+  optionsSuccessStatus: 204
+}));
+
+// Add CORS preflight handler
+app.options('*', cors({
+  origin: ['http://localhost:5173', 'http://localhost:3001'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
+  exposedHeaders: ['Set-Cookie']
 }));
 
 // Test database connection and create tables if needed
@@ -55,17 +68,60 @@ const initDatabase = async () => {
     await client.query(`
       CREATE TABLE IF NOT EXISTS user_roles (
         discord_id VARCHAR(255) PRIMARY KEY,
-        discord_name VARCHAR(255) NOT NULL,
+        discord_name VARCHAR(255),
         wallet_address VARCHAR(255),
-        last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        roles JSONB DEFAULT '[]'::jsonb,
         fcked_catz_holder BOOLEAN DEFAULT false,
         money_monsters_holder BOOLEAN DEFAULT false,
-        ai_bitbots_holder BOOLEAN DEFAULT false,
         moneymonsters3d_holder BOOLEAN DEFAULT false,
+        ai_bitbots_holder BOOLEAN DEFAULT false,
         celebcatz_holder BOOLEAN DEFAULT false,
-        collab_holder BOOLEAN DEFAULT false
+        fcked_catz_whale BOOLEAN DEFAULT false,
+        money_monsters_whale BOOLEAN DEFAULT false,
+        moneymonsters3d_whale BOOLEAN DEFAULT false,
+        ai_bitbots_whale BOOLEAN DEFAULT false,
+        bux_beginner BOOLEAN DEFAULT false,
+        bux_builder BOOLEAN DEFAULT false,
+        bux_saver BOOLEAN DEFAULT false,
+        bux_banker BOOLEAN DEFAULT false,
+        buxdao_5 BOOLEAN DEFAULT false,
+        roles JSONB DEFAULT '[]'::jsonb,
+        last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+    `);
+
+    // Create roles table if it doesn't exist
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS roles (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        type VARCHAR(50) NOT NULL CHECK (type IN ('holder', 'whale', 'token', 'special')),
+        collection VARCHAR(50) NOT NULL,
+        threshold INTEGER DEFAULT 1,
+        discord_role_id VARCHAR(255) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT roles_discord_role_id_key UNIQUE (discord_role_id)
+      );
+
+      -- Create index on discord_role_id for faster lookups
+      CREATE INDEX IF NOT EXISTS idx_roles_discord_role_id ON roles(discord_role_id);
+      -- Create index for filtering on type and collection
+      CREATE INDEX IF NOT EXISTS idx_roles_type_collection ON roles(type, collection);
+    `);
+
+    // Add roles column if it doesn't exist
+    await client.query(`
+      DO $$ 
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 
+          FROM information_schema.columns 
+          WHERE table_name = 'user_roles' 
+          AND column_name = 'roles'
+        ) THEN
+          ALTER TABLE user_roles ADD COLUMN roles JSONB DEFAULT '[]'::jsonb;
+        END IF;
+      END $$;
     `);
 
     // Create bux_holders table if it doesn't exist
@@ -90,6 +146,38 @@ const initDatabase = async () => {
         "expire" timestamp(6) NOT NULL,
         CONSTRAINT "session_pkey" PRIMARY KEY ("sid")
       );
+    `);
+
+    // Insert default roles if they don't exist
+    await client.query(`
+      INSERT INTO roles (name, type, collection, threshold, discord_role_id) VALUES
+      -- Holder roles
+      ('FCKed Catz Holder', 'holder', 'fcked_catz', 1, '1095033759612547133'),
+      ('Money Monsters Holder', 'holder', 'money_monsters', 1, '1093607056696692828'),
+      ('AI BitBots Holder', 'holder', 'ai_bitbots', 1, '1095034117877399686'),
+      ('Money Monsters 3D Holder', 'holder', 'moneymonsters3d', 1, '1093607187454111825'),
+      ('Celebrity Catz Holder', 'holder', 'celebcatz', 1, '1095335098112561234'),
+
+      -- Whale roles
+      ('FCKed Catz Whale', 'whale', 'fcked_catz', 25, '1095033566070583457'),
+      ('Money Monsters Whale', 'whale', 'money_monsters', 25, '1093606438674382858'),
+      ('AI BitBots Whale', 'whale', 'ai_bitbots', 10, '1095033899492573274'),
+      ('Money Monsters 3D Whale', 'whale', 'moneymonsters3d', 25, '1093606579355525252'),
+
+      -- BUX token roles
+      ('BUX Beginner', 'token', 'bux', 2500, '1248416679504117861'),
+      ('BUX Builder', 'token', 'bux', 10000, '1248417674476916809'),
+      ('BUX Saver', 'token', 'bux', 25000, '1248417591215784019'),
+      ('BUX Banker', 'token', 'bux', 50000, '1095363984581984357'),
+
+      -- Special roles
+      ('BUXDAO 5', 'special', 'all', 5, '1248428373487784006')
+      ON CONFLICT ON CONSTRAINT roles_discord_role_id_key DO UPDATE SET
+        name = EXCLUDED.name,
+        type = EXCLUDED.type,
+        collection = EXCLUDED.collection,
+        threshold = EXCLUDED.threshold,
+        updated_at = CURRENT_TIMESTAMP;
     `);
 
     console.log('Database initialized successfully');
@@ -223,13 +311,16 @@ app.use(helmet({
       connectSrc: [
         "'self'", 
         "discord.com",
-        process.env.NODE_ENV === 'development' ? "http://localhost:3001" : "https://buxdao.com",
+        "http://localhost:3001",
+        "http://localhost:5173",
+        process.env.NODE_ENV === 'development' ? "ws://localhost:5173" : null,
+        process.env.NODE_ENV === 'production' ? "https://buxdao.com" : null,
         "api.mainnet-beta.solana.com",
         "solana-mainnet.g.alchemy.com",
         "rpc.ankr.com",
         "solana.getblock.io",
         "mainnet.helius-rpc.com"
-      ],
+      ].filter(Boolean),
       scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
       frameSrc: ["'none'"],
       objectSrc: ["'none'"]
@@ -324,6 +415,7 @@ app.use('/api/auth/discord', discordAuthRouter);
 app.use('/api/auth/discord/callback', discordCallbackRouter);
 app.use('/api/auth/wallet', walletAuthRouter);
 app.use('/api/auth/logout', logoutRouter);
+app.use('/api/auth/roles', rolesRouter);
 app.use('/api/collections', collectionsRouter);
 app.use('/api/celebcatz', celebcatzRouter);
 app.use('/api/top-holders', topHoldersHandler);

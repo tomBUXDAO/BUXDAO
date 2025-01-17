@@ -4,6 +4,7 @@ import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
 import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
 import { clusterApiUrl } from '@solana/web3.js';
+import { PhantomWalletAdapter, SolflareWalletAdapter } from '@solana/wallet-adapter-wallets';
 
 // Import Solana wallet adapter styles
 import '@solana/wallet-adapter-react-ui/styles.css';
@@ -23,66 +24,24 @@ import { UserProvider } from './contexts/UserContext';
 // Import your styles
 import './index.css';
 
-// Add custom styles for the wallet modal
-const modalStyles = {
-  '.wallet-adapter-modal-wrapper': {
-    position: 'relative',
-  },
-  '.wallet-adapter-modal-close-button': {
-    position: 'absolute',
-    top: '16px',
-    right: '16px',
-    padding: '8px',
-    cursor: 'pointer',
-    backgroundColor: 'transparent',
-    border: 'none',
-    color: '#fff',
-    opacity: '0.6',
-    transition: 'opacity 0.15s',
-    '&:hover': {
-      opacity: '1',
-    },
-  },
-};
-
 const App = () => {
   // You can also provide a custom RPC endpoint
   const network = WalletAdapterNetwork.Mainnet;
   const endpoint = useMemo(() => clusterApiUrl(network), [network]);
 
-  // Remove explicit wallet adapters and let standard adapters handle it
-  const wallets = useMemo(() => [], []);
+  // Initialize wallet adapters with configuration
+  const wallets = useMemo(
+    () => [
+      new PhantomWalletAdapter(),
+      new SolflareWalletAdapter(),
+    ],
+    []
+  );
 
   return (
     <ConnectionProvider endpoint={endpoint}>
       <WalletProvider wallets={wallets} autoConnect>
         <WalletModalProvider>
-          <style>
-            {`
-              .wallet-adapter-modal-wrapper {
-                position: relative !important;
-              }
-              .wallet-adapter-modal-close-button {
-                position: absolute !important;
-                top: 16px !important;
-                right: 16px !important;
-                padding: 8px !important;
-                cursor: pointer !important;
-                background-color: transparent !important;
-                border: none !important;
-                color: #fff !important;
-                opacity: 0.6 !important;
-                transition: opacity 0.15s !important;
-              }
-              .wallet-adapter-modal-close-button:hover {
-                opacity: 1 !important;
-              }
-              .wallet-adapter-modal-close-button svg {
-                width: 24px !important;
-                height: 24px !important;
-              }
-            `}
-          </style>
           <UserProvider>
             <Router>
               <div className="min-h-screen bg-black text-white">

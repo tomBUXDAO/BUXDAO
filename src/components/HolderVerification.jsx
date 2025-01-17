@@ -15,7 +15,7 @@ function generateState() {
 }
 
 const HolderVerification = () => {
-  const { publicKey, connected, disconnect } = useWallet();
+  const { publicKey, connected, disconnect, connect } = useWallet();
   const { setVisible } = useWalletModal();
   const { discordUser, setDiscordUser, handleLogout } = useUser();
   const [loading, setLoading] = useState(false);
@@ -136,17 +136,73 @@ const HolderVerification = () => {
     }
   };
 
-  const handleWalletConnection = () => {
-    if (!connected) {
-      try {
-        console.log('Opening wallet modal...');
+  const handleWalletConnect = async () => {
+    console.log('Opening wallet modal...');
+    setError(null);
+    try {
+      if (!connected) {
+        setLoading(true);
+        // Open the wallet modal and wait for connection
         setVisible(true);
-      } catch (error) {
-        console.error('Error opening wallet modal:', error);
-        setError('Failed to open wallet connection modal. Please try again.');
+        
+        // The actual connection will happen through the wallet adapter
+        // We don't need to call connect() here as it's handled by the adapter
       }
+    } catch (error) {
+      console.error('Wallet connection error:', error);
+      setError('Failed to connect wallet. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
+
+  // Listen for wallet connection
+  useEffect(() => {
+    if (connected && publicKey) {
+      console.log('Wallet connected:', publicKey.toString());
+      setError(null);
+      setLoading(true);
+      
+      // Update the user data with wallet address
+      fetch(`${API_BASE}/api/auth/wallet`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          wallet_address: publicKey.toString(),
+          discord_id: discordUser?.discord_id,
+          discord_username: discordUser?.discord_username
+        })
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Failed to update wallet address');
+        }
+        return response.json();
+      })
+      .then(data => {
+        console.log('Wallet update response:', data);
+        if (data.success) {
+          setVerificationStatus('verified');
+          // Refresh user data without full page reload
+          window.location.reload();
+        } else {
+          throw new Error(data.message || 'Failed to verify wallet');
+        }
+      })
+      .catch(error => {
+        console.error('Failed to update wallet:', error);
+        setError(error.message);
+        setVerificationStatus('failed');
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+    }
+  }, [connected, publicKey, discordUser]);
 
   const handleClose = () => {
     navigate('/');
@@ -224,7 +280,7 @@ const HolderVerification = () => {
             </div>
           ) : (
             <button
-              onClick={handleWalletConnection}
+              onClick={handleWalletConnect}
               disabled={!discordUser}
               className="w-full bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -234,7 +290,7 @@ const HolderVerification = () => {
         </div>
 
         {/* Verification Status */}
-        {discordUser && connected && (
+        {discordUser && connected && !discordUser.wallet_address && (
           <div className="text-center">
             <button
               onClick={handleWalletVerification}

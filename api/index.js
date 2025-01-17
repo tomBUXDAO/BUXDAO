@@ -1,6 +1,7 @@
 import pkg from 'pg';
 const { Pool } = pkg;
 import axios from 'axios';
+import authHandler from './auth/index.js';
 
 const pool = new Pool({
   connectionString: process.env.POSTGRES_URL,
@@ -11,9 +12,11 @@ const pool = new Pool({
 
 export default async function handler(req, res) {
   // Set CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  const ORIGIN = process.env.NODE_ENV === 'production' ? 'https://buxdao.com' : 'http://localhost:5173';
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Origin', ORIGIN);
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept');
 
   // Handle OPTIONS request
   if (req.method === 'OPTIONS') {
@@ -26,6 +29,11 @@ export default async function handler(req, res) {
   console.log('Request method:', req.method);
   console.log('Environment:', process.env.NODE_ENV);
   console.log('Database URL exists:', !!process.env.POSTGRES_URL);
+
+  // Handle auth endpoints
+  if (req.url.startsWith('/api/auth/')) {
+    return authHandler(req, res);
+  }
 
   if (req.method === 'GET') {
     // Handle collection stats endpoint

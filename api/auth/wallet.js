@@ -64,6 +64,37 @@ router.post('/', async (req, res) => {
           });
         }
 
+        // Get NFT holdings to update holder flags
+        const nftHoldings = await client.query(
+          `SELECT symbol, COUNT(*) as count
+           FROM nft_metadata 
+           WHERE owner_wallet = $1
+           GROUP BY symbol`,
+          [wallet_address]
+        );
+
+        // Update holder flags based on NFT holdings
+        const updateFlags = await client.query(
+          `UPDATE user_roles
+           SET fcked_catz_holder = EXISTS(SELECT 1 FROM nft_metadata WHERE owner_wallet = $1 AND symbol = 'FCKEDCATZ'),
+               money_monsters_holder = EXISTS(SELECT 1 FROM nft_metadata WHERE owner_wallet = $1 AND symbol = 'MM'),
+               ai_bitbots_holder = EXISTS(SELECT 1 FROM nft_metadata WHERE owner_wallet = $1 AND symbol = 'AIBB'),
+               moneymonsters3d_holder = EXISTS(SELECT 1 FROM nft_metadata WHERE owner_wallet = $1 AND symbol = 'MM3D'),
+               celebcatz_holder = EXISTS(SELECT 1 FROM nft_metadata WHERE owner_wallet = $1 AND symbol = 'CelebCatz'),
+               fcked_catz_whale = (SELECT COUNT(*) >= 10 FROM nft_metadata WHERE owner_wallet = $1 AND symbol = 'FCKEDCATZ'),
+               money_monsters_whale = (SELECT COUNT(*) >= 10 FROM nft_metadata WHERE owner_wallet = $1 AND symbol = 'MM'),
+               ai_bitbots_whale = (SELECT COUNT(*) >= 10 FROM nft_metadata WHERE owner_wallet = $1 AND symbol = 'AIBB'),
+               moneymonsters3d_whale = (SELECT COUNT(*) >= 10 FROM nft_metadata WHERE owner_wallet = $1 AND symbol = 'MM3D'),
+               bux_beginner = EXISTS(SELECT 1 FROM bux_holders WHERE wallet_address = $1 AND balance >= 1000),
+               bux_builder = EXISTS(SELECT 1 FROM bux_holders WHERE wallet_address = $1 AND balance >= 10000),
+               bux_saver = EXISTS(SELECT 1 FROM bux_holders WHERE wallet_address = $1 AND balance >= 50000),
+               bux_banker = EXISTS(SELECT 1 FROM bux_holders WHERE wallet_address = $1 AND balance >= 100000),
+               buxdao_5 = EXISTS(SELECT 1 FROM bux_holders WHERE wallet_address = $1 AND balance >= 500000)
+           WHERE discord_id = $2
+           RETURNING *`,
+          [wallet_address, req.session.user.discord_id]
+        );
+
         // Insert or update bux_holders with 0 balance if no entry exists
         await client.query(
           `INSERT INTO bux_holders (

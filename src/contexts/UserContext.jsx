@@ -39,14 +39,45 @@ export const UserProvider = ({ children }) => {
           }
 
           const text = await response.text();
+          console.log('Raw auth check response:', text);
+          
           if (!text) {
             throw new Error('Empty response');
           }
 
           try {
             const data = JSON.parse(text);
+            console.log('Auth check response:', data);
             if (data.authenticated && data.user) {
-              setDiscordUser(data.user);
+              console.log('Setting discord user with data:', data.user);
+              
+              // Fetch user roles from Discord
+              try {
+                const rolesResponse = await fetch(`${API_BASE}/api/auth/roles`, {
+                  credentials: 'include',
+                  headers: {
+                    'Accept': 'application/json'
+                  }
+                });
+                
+                if (rolesResponse.ok) {
+                  const rolesData = await rolesResponse.json();
+                  data.user.roles = rolesData.roles || [];
+                  console.log('Fetched Discord roles:', data.user.roles);
+                }
+              } catch (rolesError) {
+                console.error('Failed to fetch roles:', rolesError);
+              }
+
+              const userData = {
+                ...data.user,
+                discord_roles: data.user.roles || [],
+                roles: data.user.roles || []
+              };
+              console.log('Setting discord user with processed data:', userData);
+              setDiscordUser(userData);
+            } else {
+              console.log('User not authenticated or no user data:', data);
             }
           } catch (parseError) {
             console.error('Failed to parse response:', text);

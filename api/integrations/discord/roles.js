@@ -17,15 +17,31 @@ let discordClient = null;
 async function getDiscordClient() {
   if (!discordClient) {
     try {
+      console.log('Initializing Discord client...');
       discordClient = new Client({
         intents: [
           GatewayIntentBits.Guilds,
-          GatewayIntentBits.GuildMembers
+          GatewayIntentBits.GuildMembers,
+          GatewayIntentBits.GuildPresences
         ]
       });
+
+      // Set up event handlers
+      discordClient.on('ready', () => {
+        console.log(`Logged in as ${discordClient.user.tag}`);
+      });
+
+      discordClient.on('error', (error) => {
+        console.error('Discord client error:', error);
+        discordClient = null;
+      });
+
+      // Login
       await discordClient.login(process.env.DISCORD_BOT_TOKEN);
+      console.log('Discord client login successful');
     } catch (error) {
       console.error('Failed to initialize Discord client:', error);
+      discordClient = null;
       return null;
     }
   }
@@ -69,19 +85,27 @@ export async function syncUserRoles(discordId, guildId) {
     }
 
     const userRoles = userResult.rows[0];
+    console.log('User roles from database:', userRoles);
+    
     const roles = await getRoles();
+    console.log('Available roles:', roles);
     
     // Get Discord client
     const discord = await getDiscordClient();
     if (!discord) {
-      console.log('Discord client unavailable - skipping role sync');
+      console.error('Discord client unavailable - skipping role sync');
       return false;
     }
     
     // Get Discord guild and member
     try {
+      console.log('Fetching guild...');
       const guild = await discord.guilds.fetch(guildId);
+      console.log('Guild fetched:', guild.name);
+      
+      console.log('Fetching member...');
       const member = await guild.members.fetch(discordId);
+      console.log('Member fetched:', member.user.tag);
       
       if (!member) {
         console.log(`Member ${discordId} not found in guild ${guildId}`);
@@ -96,6 +120,7 @@ export async function syncUserRoles(discordId, guildId) {
       for (const role of roles) {
         const shouldHaveRole = checkRoleEligibility(userRoles, role);
         const hasRole = member.roles.cache.has(role.discord_role_id);
+        console.log(`Role ${role.name}: Should have - ${shouldHaveRole}, Has role - ${hasRole}`);
 
         if (shouldHaveRole && !hasRole) {
           rolesToAdd.push(role.discord_role_id);
@@ -104,15 +129,26 @@ export async function syncUserRoles(discordId, guildId) {
         }
       }
 
+      console.log('Roles to add:', rolesToAdd);
+      console.log('Roles to remove:', rolesToRemove);
+
       // Apply role changes
       if (rolesToAdd.length > 0) {
-        await member.roles.add(rolesToAdd);
-        console.log(`Added roles for ${discordId}:`, rolesToAdd);
+        try {
+          await member.roles.add(rolesToAdd);
+          console.log(`Added roles for ${discordId}:`, rolesToAdd);
+        } catch (error) {
+          console.error('Error adding roles:', error);
+        }
       }
 
       if (rolesToRemove.length > 0) {
-        await member.roles.remove(rolesToRemove);
-        console.log(`Removed roles for ${discordId}:`, rolesToRemove);
+        try {
+          await member.roles.remove(rolesToRemove);
+          console.log(`Removed roles for ${discordId}:`, rolesToRemove);
+        } catch (error) {
+          console.error('Error removing roles:', error);
+        }
       }
 
       return true;
@@ -130,57 +166,72 @@ export async function syncUserRoles(discordId, guildId) {
 
 // Helper function to check if user should have a role
 function checkRoleEligibility(userRoles, role) {
+  let isEligible = false;
+  
   switch (role.type) {
     case 'holder':
       switch (role.collection) {
         case 'fcked_catz':
-          return userRoles.fcked_catz_holder;
+          isEligible = userRoles.fcked_catz_holder;
+          break;
         case 'money_monsters':
-          return userRoles.money_monsters_holder;
+          isEligible = userRoles.money_monsters_holder;
+          break;
         case 'ai_bitbots':
-          return userRoles.ai_bitbots_holder;
+          isEligible = userRoles.ai_bitbots_holder;
+          break;
         case 'moneymonsters3d':
-          return userRoles.moneymonsters3d_holder;
+          isEligible = userRoles.moneymonsters3d_holder;
+          break;
         case 'celebcatz':
-          return userRoles.celebcatz_holder;
+          isEligible = userRoles.celebcatz_holder;
+          break;
       }
       break;
 
     case 'whale':
       switch (role.collection) {
         case 'fcked_catz':
-          return userRoles.fcked_catz_whale;
+          isEligible = userRoles.fcked_catz_whale;
+          break;
         case 'money_monsters':
-          return userRoles.money_monsters_whale;
+          isEligible = userRoles.money_monsters_whale;
+          break;
         case 'ai_bitbots':
-          return userRoles.ai_bitbots_whale;
+          isEligible = userRoles.ai_bitbots_whale;
+          break;
         case 'moneymonsters3d':
-          return userRoles.moneymonsters3d_whale;
+          isEligible = userRoles.moneymonsters3d_whale;
+          break;
       }
       break;
 
     case 'token':
-      switch (role.collection) {
-        case 'bux':
-          switch (role.name) {
-            case 'BUX Beginner':
-              return userRoles.bux_beginner;
-            case 'BUX Builder':
-              return userRoles.bux_builder;
-            case 'BUX Saver':
-              return userRoles.bux_saver;
-            case 'BUX Banker':
-              return userRoles.bux_banker;
-          }
+      if (role.collection === 'bux') {
+        switch (role.name) {
+          case 'BUX Beginner':
+            isEligible = userRoles.bux_beginner;
+            break;
+          case 'BUX Builder':
+            isEligible = userRoles.bux_builder;
+            break;
+          case 'BUX Saver':
+            isEligible = userRoles.bux_saver;
+            break;
+          case 'BUX Banker':
+            isEligible = userRoles.bux_banker;
+            break;
+        }
       }
       break;
 
     case 'special':
       if (role.name === 'BUXDAO 5') {
-        return userRoles.buxdao_5;
+        isEligible = userRoles.buxdao_5;
       }
       break;
   }
 
-  return false;
+  console.log(`Checking eligibility for ${role.name}: ${isEligible}`);
+  return isEligible;
 } 

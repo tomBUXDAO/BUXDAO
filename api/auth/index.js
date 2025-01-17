@@ -53,10 +53,18 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Get the endpoint from the last part of the path
-    const endpoint = req.url.split('/').filter(Boolean).pop()?.split('?')[0] || '';
-    console.log('[Auth] Request URL:', req.url);
-    console.log('[Auth] Endpoint:', endpoint);
+    // Get the endpoint from the URL path
+    const pathParts = req.url.split('/').filter(Boolean);
+    const authIndex = pathParts.indexOf('auth');
+    const endpoint = pathParts[authIndex + 1]?.split('?')[0];
+    
+    console.log('[Auth Debug] URL:', req.url);
+    console.log('[Auth Debug] Path parts:', pathParts);
+    console.log('[Auth Debug] Endpoint:', endpoint);
+
+    if (!endpoint) {
+      return res.status(404).json({ error: 'Not found' });
+    }
 
     switch(endpoint) {
       case 'check':
@@ -68,11 +76,15 @@ export default async function handler(req, res) {
       case 'callback':
         return handleDiscordCallback(req, res);
       case 'wallet':
+      case 'update-wallet':
         return handleWallet(req, res);
+      case 'roles':
+        const handleRoles = (await import('./roles.js')).default;
+        return handleRoles(req, res);
       case 'logout':
         return handleLogout(req, res);
       default:
-        console.log('[Auth] No matching endpoint for:', endpoint);
+        console.log('[Auth] No matching endpoint:', endpoint);
         return res.status(404).json({ error: 'Not found' });
     }
   } catch (error) {
@@ -87,109 +99,37 @@ export default async function handler(req, res) {
 
 // Check auth status
 async function handleCheck(req, res) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
   try {
-    console.log('[Auth Check] Request headers:', {
-      cookie: req.headers.cookie,
-      origin: req.headers.origin,
-      host: req.headers.host
-    });
-    
     const cookies = parse(req.headers.cookie || '');
-    console.log('[Auth Check] Parsed cookies:', cookies);
-    
-    if (!cookies.discord_token || !cookies.discord_user) {
-      console.log('[Auth Check] Missing required cookies:', {
-        hasToken: !!cookies.discord_token,
-        hasUser: !!cookies.discord_user
-      });
-      return res.status(401).json({ 
-        authenticated: false,
-        error: 'Not authenticated',
-        details: 'Missing required cookies'
-      });
+    const discordUser = cookies.discord_user ? JSON.parse(cookies.discord_user) : null;
+
+    if (!discordUser) {
+      return res.status(200).json({ authenticated: false });
     }
 
-    // Verify Discord token is still valid
+    // Fetch wallet address from database
+    const client = await pool.connect();
     try {
-      const response = await fetch('https://discord.com/api/v9/users/@me', {
-        headers: {
-          'Authorization': `Bearer ${cookies.discord_token}`,
-          'Accept': 'application/json',
-          'User-Agent': 'BUXDAO Discord OAuth'
-        }
-      });
-
-      if (!response.ok) {
-        const responseText = await response.text();
-        console.log('[Auth Check] Invalid token response:', {
-          status: response.status,
-          response: responseText
-        });
-        clearAuthCookies(res);
-        return res.status(401).json({ 
-          authenticated: false,
-          error: 'Invalid token',
-          details: `Discord API returned ${response.status}`
-        });
-      }
-
-      const discordData = await response.json();
-      console.log('[Auth Check] Discord API response:', {
-        id: discordData.id,
-        username: discordData.username
-      });
-
-      let user;
-      try {
-        user = JSON.parse(cookies.discord_user);
-        console.log('[Auth Check] Parsed user data:', {
-          id: user.id,
-          username: user.discord_username
-        });
-        
-        // Update user data if needed
-        if (user.discord_id !== discordData.id) {
-          console.log('[Auth Check] User ID mismatch, updating cookie');
-          setAuthCookies(res, cookies.discord_token, discordData);
-          user = {
-            discord_id: discordData.id,
-            discord_username: discordData.username,
-            avatar: discordData.avatar
-          };
-        }
-      } catch (e) {
-        console.error('[Auth Check] Failed to parse user data:', e);
-        clearAuthCookies(res);
-        return res.status(401).json({ 
-          authenticated: false,
-          error: 'Invalid user data',
-          details: 'Failed to parse user cookie'
-        });
-      }
+      const result = await client.query(
+        'SELECT wallet_address FROM user_roles WHERE discord_id = $1',
+        [discordUser.discord_id]
+      );
+      
+      const walletAddress = result.rows[0]?.wallet_address;
 
       return res.status(200).json({ 
         authenticated: true,
-        user
+        user: {
+          ...discordUser,
+          wallet_address: walletAddress
+        }
       });
-    } catch (error) {
-      console.error('[Auth Check] Discord API error:', error);
-      return res.status(500).json({ 
-        authenticated: false,
-        error: 'Failed to verify with Discord',
-        details: error.message
-      });
+    } finally {
+      client.release();
     }
   } catch (error) {
-    console.error('[Auth Check] Unexpected error:', error);
-    return res.status(500).json({ 
-      authenticated: false,
-      error: 'Internal server error',
-      details: error.message
-    });
+    console.error('[Auth Check] Error:', error);
+    return res.status(500).json({ error: 'Failed to check authentication status' });
   }
 }
 
@@ -355,10 +295,26 @@ async function handleWallet(req, res) {
   }
 
   try {
-    const { walletAddress, discord_id, discord_username } = req.body;
+    console.log('[Wallet Debug] Request body:', req.body);
+    
+    const cookies = parse(req.headers.cookie || '');
+    console.log('[Wallet Debug] Cookies:', cookies);
+    
+    if (!cookies.discord_user) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
 
-    if (!walletAddress || !discord_id || !discord_username) {
-      return res.status(400).json({ error: 'Missing required fields' });
+    const user = JSON.parse(cookies.discord_user);
+    console.log('[Wallet Debug] User data:', user);
+
+    const { wallet_address } = req.body;
+
+    if (!wallet_address) {
+      return res.status(400).json({ error: 'Missing wallet_address' });
+    }
+
+    if (!user.discord_id) {
+      return res.status(401).json({ error: 'Not authenticated' });
     }
 
     // Update database
@@ -366,21 +322,33 @@ async function handleWallet(req, res) {
     try {
       await client.query('BEGIN');
       
+      console.log('[Wallet Debug] Updating user_roles for discord_id:', user.discord_id);
+      
       const result = await client.query(
-        'INSERT INTO holders (wallet_address, discord_id, discord_username, last_verified) VALUES ($1, $2, $3, NOW()) ON CONFLICT (wallet_address) DO UPDATE SET discord_id = $2, discord_username = $3, last_verified = NOW() RETURNING *',
-        [walletAddress, discord_id, discord_username]
+        'UPDATE user_roles SET wallet_address = $1, last_updated = CURRENT_TIMESTAMP WHERE discord_id = $2 RETURNING *',
+        [wallet_address, user.discord_id]
       );
 
+      if (result.rowCount === 0) {
+        console.log('[Wallet Debug] No existing user_roles entry, creating new one');
+        // Insert if no update was made
+        await client.query(
+          'INSERT INTO user_roles (wallet_address, discord_id, discord_username) VALUES ($1, $2, $3)',
+          [wallet_address, user.discord_id, user.discord_username]
+        );
+      }
+
       await client.query('COMMIT');
-      return res.status(200).json(result.rows[0]);
+      return res.status(200).json({ success: true });
     } catch (error) {
+      console.error('[Wallet Debug] Database error:', error);
       await client.query('ROLLBACK');
       throw error;
     } finally {
       client.release();
     }
   } catch (error) {
-    console.error('Wallet verification error:', error);
+    console.error('[Wallet Debug] Error:', error);
     return res.status(500).json({ error: 'Failed to verify wallet' });
   }
 }

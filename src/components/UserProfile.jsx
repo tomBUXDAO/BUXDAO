@@ -80,47 +80,45 @@ const UserProfile = () => {
           };
 
           // Map collection data to counts by finding the user's wallet in each collection
-          collectionData.forEach((data, index) => {
-            if (!user?.wallet_address) {
-              console.log('No wallet address available');
-              return;
-            }
+          if (user.wallet_address) {
+            console.log('Using wallet address:', user.wallet_address);
+            collectionData.forEach((data, index) => {
+              // Get first 4 and last 4 chars of wallet address
+              const walletStart = user.wallet_address.slice(0, 4);
+              const walletEnd = user.wallet_address.slice(-4);
+              
+              // Find matching holder by checking if address contains either start or end of wallet
+              const userHolding = data.holders?.find(h => {
+                const fullAddr = h.address.replace('...', '');
+                return fullAddr.includes(walletStart) || fullAddr.includes(walletEnd);
+              });
 
-            console.log(`Searching ${collections[index]} for wallet:`, user.wallet_address);
-            
-            // Get first 4 and last 4 chars of wallet address
-            const walletStart = user.wallet_address.slice(0, 4);
-            const walletEnd = user.wallet_address.slice(-4);
-            
-            // Find matching holder by checking if address contains either start or end of wallet
-            const userHolding = data.holders?.find(h => {
-              const fullAddr = h.address.replace('...', '');
-              return fullAddr.includes(walletStart) || fullAddr.includes(walletEnd);
-            });
+              console.log(`${collections[index]} found holding:`, userHolding);
 
-            console.log(`${collections[index]} found holding:`, userHolding);
-
-            if (userHolding) {
-              const count = parseInt(userHolding.amount.split(' ')[0]) || 0;
-              switch(collections[index]) {
-                case 'celebcatz':
-                  collectionCounts['Celeb Catz'] = count;
-                  break;
-                case 'moneymonsters3d':
-                  collectionCounts['Money Monsters 3D'] = count;
-                  break;
-                case 'fckedcatz':
-                  collectionCounts['FCKed Catz'] = count;
-                  break;
-                case 'moneymonsters':
-                  collectionCounts['Money Monsters'] = count;
-                  break;
-                case 'aibitbots':
-                  collectionCounts['A.I. BitBots'] = count;
-                  break;
+              if (userHolding) {
+                const count = parseInt(userHolding.amount.split(' ')[0]) || 0;
+                switch(collections[index]) {
+                  case 'celebcatz':
+                    collectionCounts['Celeb Catz'] = count;
+                    break;
+                  case 'moneymonsters3d':
+                    collectionCounts['Money Monsters 3D'] = count;
+                    break;
+                  case 'fckedcatz':
+                    collectionCounts['FCKed Catz'] = count;
+                    break;
+                  case 'moneymonsters':
+                    collectionCounts['Money Monsters'] = count;
+                    break;
+                  case 'aibitbots':
+                    collectionCounts['A.I. BitBots'] = count;
+                    break;
+                }
               }
-            }
-          });
+            });
+          } else {
+            console.log('No wallet address available in user data:', user);
+          }
 
           // Extract total NFTs count
           const nftsMatch = myData.nfts.match(/(\d+)/);
@@ -132,7 +130,7 @@ const UserProfile = () => {
             unclaimed_rewards: 0,
             collections: collectionCounts,
             totalCount: totalNFTs,
-            roles: user.roles || []
+            roles: user.discord_roles || []
           });
         }
       } catch (error) {
@@ -236,14 +234,52 @@ const UserProfile = () => {
           <div className="bg-gradient-to-br from-gray-900/90 to-gray-800/90 rounded-lg p-6 shadow-lg backdrop-blur-sm border border-fuchsia-500/20">
             <h3 className="text-xl font-semibold text-white mb-4">My Roles</h3>
             <div className="flex flex-wrap gap-2">
-              {userData?.roles?.map(role => (
-                <span 
-                  key={role.id}
-                  className="px-3 py-1 rounded-full text-sm font-medium bg-gradient-to-r from-fuchsia-500 to-violet-500 text-white shadow-lg"
-                >
-                  {role.name}
-                </span>
-              ))}
+              {(!userData?.roles || userData.roles.length === 0) && (
+                <div className="text-gray-400 text-sm">
+                  <p>Please connect your wallet and verify in Discord</p>
+                  <p className="mt-1 text-xs">This will sync your roles and holdings.</p>
+                </div>
+              )}
+              {userData?.roles?.map((role, index) => {
+                // Define role colors - matching Discord's common role colors
+                const roleColors = {
+                  'LEADER': '#ffd700',      // Gold
+                  'TEAM': '#ff7f50',        // Coral
+                  'BUX BANKER': '#32cd32',  // Lime Green
+                  'Server Booster': '#ff73fa', // Pink
+                  'CELEB': '#00ffff',       // Cyan
+                  'MONSTER': '#808080',     // Gray
+                  'CAT': '#4169e1',         // Royal Blue
+                  'MONSTER 3D': '#ff0000',  // Red
+                  'MONSTER': '#ff69b4',     // Pink
+                  'BITBOT': '#98fb98',      // Pale Green
+                  'BUX DAO 5': '#32cd32',   // Lime Green
+                  'AI squirrel': '#808080', // Gray
+                  'AI energy ape': '#808080', // Gray
+                  'Rictd bot': '#808080',   // Gray
+                  'Candy bot': '#808080',   // Gray
+                  'Doodle bot': '#808080',  // Gray
+                  'Claim & Cashout': '#9370db', // Medium Purple
+                  // Add more roles and colors as needed
+                };
+
+                const roleColor = roleColors[role.name] || '#99aab5'; // Default Discord gray
+
+                return (
+                  <div 
+                    key={role.id || index} 
+                    className="inline-flex items-center bg-gray-800/50 rounded px-2 py-1"
+                  >
+                    <div 
+                      className="w-2.5 h-2.5 rounded-full mr-2" 
+                      style={{ backgroundColor: roleColor }}
+                    />
+                    <span className="text-sm font-medium" style={{ color: roleColor }}>
+                      {role.name}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
