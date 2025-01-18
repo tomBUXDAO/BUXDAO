@@ -1,9 +1,15 @@
 import express from 'express';
 import { parse } from 'cookie';
-import { Pool } from 'pg';
+import pkg from 'pg';
+const { Pool } = pkg;
 
 const router = express.Router();
-const pool = new Pool();
+const pool = new Pool({
+  connectionString: process.env.POSTGRES_URL,
+  ssl: {
+    rejectUnauthorized: false
+  }
+});
 
 router.get('/', async (req, res) => {
   try {
