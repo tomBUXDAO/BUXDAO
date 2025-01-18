@@ -1,4 +1,5 @@
 import express from 'express';
+import { parse } from 'cookie';
 import pool from '../../config/database.js';
 import { syncUserRoles } from '../integrations/discord/roles.js';
 
@@ -7,9 +8,11 @@ const router = express.Router();
 router.get('/', async (req, res) => {
   let client;
   try {
-    // Get user from session
-    const user = req.session?.user;
-    if (!user) {
+    // Get user from cookie instead of session
+    const cookies = req.headers.cookie ? parse(req.headers.cookie) : {};
+    const discordUser = cookies.discord_user ? JSON.parse(cookies.discord_user) : null;
+
+    if (!discordUser || !discordUser.discord_id) {
       return res.status(401).json({ error: 'Not authenticated' });
     }
 
@@ -33,14 +36,14 @@ router.get('/', async (req, res) => {
     
     // Create user record if it doesn't exist
     await client.query(`
-      INSERT INTO user_roles (discord_id, discord_name, wallet_address, roles)
+      INSERT INTO user_roles (discord_id, discord_username, wallet_address, roles)
       VALUES ($1, $2, $3, '[]'::jsonb)
       ON CONFLICT (discord_id) 
       DO UPDATE SET 
-        discord_name = EXCLUDED.discord_name,
+        discord_username = EXCLUDED.discord_username,
         wallet_address = EXCLUDED.wallet_address,
         last_updated = CURRENT_TIMESTAMP
-    `, [user.discord_id, user.discord_username, user.wallet_address]);
+    `, [discordUser.discord_id, discordUser.discord_username, discordUser.wallet_address]);
     
     // Get user roles and holdings from database
     const result = await client.query(`
@@ -96,7 +99,7 @@ router.get('/', async (req, res) => {
         ) as discord_roles
       FROM user_roles ur
       WHERE ur.discord_id = $1
-    `, [user.discord_id]);
+    `, [discordUser.discord_id]);
 
     if (!result.rows[0]) {
       return res.status(200).json({ roles: [], holdings: {} });
@@ -117,12 +120,12 @@ router.get('/', async (req, res) => {
       UPDATE user_roles 
       SET roles = $1::jsonb 
       WHERE discord_id = $2
-    `, [JSON.stringify(roles), user.discord_id]);
+    `, [JSON.stringify(roles), discordUser.discord_id]);
 
     // Sync roles with Discord if we have a wallet connected
     if (userData.wallet_address) {
       const guildId = process.env.DISCORD_GUILD_ID;
-      await syncUserRoles(user.discord_id, guildId);
+      await syncUserRoles(discordUser.discord_id, guildId);
     }
 
     res.status(200).json({
