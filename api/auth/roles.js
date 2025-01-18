@@ -122,10 +122,16 @@ router.get('/', async (req, res) => {
       WHERE discord_id = $2
     `, [JSON.stringify(roles), discordUser.discord_id]);
 
-    // Sync roles with Discord if we have a wallet connected
-    if (userData.wallet_address) {
-      const guildId = process.env.DISCORD_GUILD_ID;
-      await syncUserRoles(discordUser.discord_id, guildId);
+    // Only sync with Discord if we have a wallet and it's requested
+    const shouldSync = req.query.sync === 'true' && userData.wallet_address;
+    if (shouldSync) {
+      try {
+        const guildId = process.env.DISCORD_GUILD_ID;
+        await syncUserRoles(discordUser.discord_id, guildId);
+      } catch (error) {
+        console.error('Discord sync error:', error);
+        // Don't fail the request if Discord sync fails
+      }
     }
 
     res.status(200).json({
@@ -137,8 +143,7 @@ router.get('/', async (req, res) => {
     console.error('Error in roles endpoint:', error);
     res.status(500).json({ 
       error: 'Internal server error',
-      message: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      message: error.message
     });
   } finally {
     if (client) {
