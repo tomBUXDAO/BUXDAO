@@ -8,57 +8,25 @@ const FRONTEND_URL = process.env.NODE_ENV === 'production'
 
 router.post('/', async (req, res) => {
   try {
-    console.log('Logout request received:', {
-      sessionID: req.sessionID,
-      hasSession: !!req.session,
-      cookies: req.headers.cookie
-    });
+    // Set CORS headers
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Origin', FRONTEND_URL);
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-    // Destroy session in database first
-    if (req.session) {
-      await new Promise((resolve, reject) => {
-        req.session.destroy((err) => {
-          if (err) {
-            console.error('Session destruction error:', err);
-            reject(err);
-          } else {
-            resolve();
-          }
-        });
-      });
-    }
-
-    // Clear session cookie with exact same settings as session config
-    res.clearCookie('buxdao.sid', {
-      path: '/',
-      httpOnly: true,
-      secure: false,
-      sameSite: 'lax'
-    });
-
-    // Clear other auth cookies
+    // Clear all auth cookies with correct settings
     const cookieOptions = {
       path: '/',
       httpOnly: true,
-      secure: false,
-      sameSite: 'lax'
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      expires: new Date(0)
     };
 
     res.clearCookie('discord_token', cookieOptions);
     res.clearCookie('discord_user', cookieOptions);
     res.clearCookie('discord_state', cookieOptions);
-
-    // Clear session from store
-    if (req.sessionStore) {
-      await new Promise((resolve) => {
-        req.sessionStore.destroy(req.sessionID, (err) => {
-          if (err) {
-            console.error('Session store destruction error:', err);
-          }
-          resolve();
-        });
-      });
-    }
+    res.clearCookie('buxdao.sid', cookieOptions);
 
     res.json({
       success: true,
