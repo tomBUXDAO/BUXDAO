@@ -29,12 +29,13 @@ router.get('/', async (req, res) => {
     
     // Initialize session if it doesn't exist
     if (!req.session) {
-      req.session = {};
+      console.error('No session found');
+      return res.redirect(`${FRONTEND_URL}/verify?error=no_session`);
     }
 
-    // Clear any existing auth data but keep the session
-    delete req.session.user;
-    delete req.session.discord_state;
+    // Clear any existing auth data
+    req.session.user = null;
+    req.session.discord_state = null;
     
     // Store state in session
     req.session.discord_state = state;
@@ -62,7 +63,7 @@ router.get('/', async (req, res) => {
       });
     });
 
-    // Build Discord OAuth URL
+    // Build Discord OAuth URL with state
     const params = new URLSearchParams({
       client_id: process.env.DISCORD_CLIENT_ID,
       redirect_uri: REDIRECT_URI,
@@ -70,15 +71,6 @@ router.get('/', async (req, res) => {
       scope: 'identify guilds.join',
       state: state,
       prompt: 'consent'
-    });
-
-    console.log('Redirecting to Discord with params:', {
-      client_id: process.env.DISCORD_CLIENT_ID,
-      redirect_uri: REDIRECT_URI,
-      state,
-      sessionID: req.sessionID,
-      secure: req.secure,
-      protocol: req.protocol
     });
 
     // Redirect to Discord OAuth

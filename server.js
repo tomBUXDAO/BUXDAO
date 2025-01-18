@@ -229,9 +229,10 @@ const sessionConfig = {
   cookie: {
     maxAge: 30 * 24 * 60 * 60 * 1000,
     httpOnly: true,
-    secure: false,
-    sameSite: 'lax',
-    path: '/'
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    path: '/',
+    domain: process.env.NODE_ENV === 'production' ? '.buxdao.com' : undefined
   }
 };
 
