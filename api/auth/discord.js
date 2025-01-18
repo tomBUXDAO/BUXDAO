@@ -27,43 +27,23 @@ router.get('/', async (req, res) => {
     // Generate random state
     const state = crypto.randomBytes(32).toString('hex');
     
-    // Initialize session if it doesn't exist
+    // Initialize session
     if (!req.session) {
-      console.error('No session found');
-      return res.redirect(`${FRONTEND_URL}/verify?error=no_session`);
+      req.session = {};
     }
 
-    // Clear any existing auth data
-    req.session.user = null;
-    req.session.discord_state = null;
-
-    // Store state in session
+    // Store state in session and cookies
     req.session.discord_state = state;
+    res.cookie('discord_state', state, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax'
+    });
     
     // Force session save before redirect
-    await new Promise((resolve, reject) => {
-      req.session.save((err) => {
-        if (err) {
-          console.error('Failed to save session state:', {
-            error: err.message,
-            stack: err.stack,
-            sessionID: req.sessionID
-          });
-          reject(err);
-        } else {
-          console.log('Session state saved successfully:', {
-            sessionID: req.sessionID,
-            state,
-            hasSession: !!req.session,
-            secure: req.secure,
-            protocol: req.protocol
-          });
-          resolve();
-        }
-      });
-    });
+    await new Promise((resolve) => req.session.save(resolve));
 
-    // Build Discord OAuth URL with state
+    // Build Discord OAuth URL
     const params = new URLSearchParams({
       client_id: process.env.DISCORD_CLIENT_ID,
       redirect_uri: REDIRECT_URI,
@@ -73,14 +53,9 @@ router.get('/', async (req, res) => {
       prompt: 'consent'
     });
 
-    // Redirect to Discord OAuth
     res.redirect(`https://discord.com/api/oauth2/authorize?${params.toString()}`);
   } catch (error) {
-    console.error('Discord auth error:', {
-      error: error.message,
-      stack: error.stack,
-      sessionID: req.sessionID
-    });
+    console.error('Discord auth error:', error);
     res.redirect(`${FRONTEND_URL}/verify?error=auth_failed`);
   }
 });

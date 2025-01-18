@@ -26,30 +26,23 @@ router.get('/', async (req, res) => {
     });
 
     const { code, state } = req.query;
+    const cookieState = req.cookies.discord_state;
+    const sessionState = req.session?.discord_state;
 
-    // Validate state parameter
-    if (!state || !req.session?.discord_state || state !== req.session.discord_state) {
+    // Validate state using either session or cookie
+    if (!state || (!sessionState && !cookieState) || (state !== sessionState && state !== cookieState)) {
       console.error('State validation failed:', {
         receivedState: state,
-        storedState: req.session?.discord_state,
-        sessionID: req.sessionID,
-        cookies: req.headers.cookie
+        sessionState,
+        cookieState
       });
       return res.redirect(`${FRONTEND_URL}/verify?error=invalid_state`);
     }
 
-    // Clear state from session
+    // Clear state
     req.session.discord_state = null;
-    await new Promise((resolve, reject) => {
-      req.session.save(err => {
-        if (err) {
-          console.error('Failed to clear session state:', err);
-          reject(err);
-        } else {
-          resolve();
-        }
-      });
-    });
+    res.clearCookie('discord_state');
+    await new Promise(resolve => req.session.save(resolve));
 
     if (!code) {
       console.error('No code received in callback');
