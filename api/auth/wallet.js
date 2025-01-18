@@ -16,12 +16,28 @@ router.post('/', async (req, res) => {
         user: !!req.session?.user,
         sessionID: req.sessionID
       });
-      return res.status(401).json({ error: 'Not authenticated - no valid session' });
+      return res.status(401).json({ 
+        success: false,
+        error: 'Not authenticated - no valid session' 
+      });
     }
 
     const { walletAddress } = req.body;
     if (!walletAddress) {
-      return res.status(400).json({ error: 'Wallet address is required' });
+      return res.status(400).json({ 
+        success: false,
+        error: 'Wallet address is required' 
+      });
+    }
+
+    // Validate Solana address
+    try {
+      new PublicKey(walletAddress);
+    } catch (err) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Invalid wallet address' 
+      });
     }
 
     // Save wallet address to session
@@ -36,17 +52,27 @@ router.post('/', async (req, res) => {
     // Update database
     const result = await pool.query(
       'UPDATE user_roles SET wallet_address = $1 WHERE discord_id = $2 RETURNING *',
-      [walletAddress, req.session.user.id]
+      [walletAddress, req.session.user.discord_id]
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'User not found' });
+      return res.status(404).json({ 
+        success: false,
+        error: 'User not found' 
+      });
     }
 
-    res.json({ message: 'Wallet verified successfully', user: result.rows[0] });
+    res.json({ 
+      success: true,
+      message: 'Wallet verified successfully', 
+      user: result.rows[0] 
+    });
   } catch (error) {
     console.error('Wallet verification error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ 
+      success: false,
+      error: 'Internal server error' 
+    });
   }
 });
 

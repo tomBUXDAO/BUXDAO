@@ -172,9 +172,7 @@ const HolderVerification = () => {
           'Accept': 'application/json'
         },
         body: JSON.stringify({
-          wallet_address: publicKey.toString(),
-          discord_id: discordUser?.discord_id,
-          discord_username: discordUser?.discord_username
+          walletAddress: publicKey.toString()
         })
       })
       .then(response => {
