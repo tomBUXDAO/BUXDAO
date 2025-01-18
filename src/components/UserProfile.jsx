@@ -135,12 +135,19 @@ const UserProfile = () => {
         const rolesData = await rolesResponse.json();
         console.log('Fetched roles data:', rolesData);
 
-        // Set user data with roles directly from the response
+        // Set user data with roles and holdings directly from the response
         setUserData({
           wallet_address: user.wallet_address,
           balance: parseInt(myData.bux.replace(/,/g, '')) || 0,
           unclaimed_rewards: 0,
-          collections: collectionCounts,
+          collections: {
+            'Celeb Catz': rolesData.holdings.celebCatz ? 1 : 0,
+            'Money Monsters 3D': rolesData.holdings.moneyMonsters3d ? 24 : 0,
+            'FCKed Catz': rolesData.holdings.fckedCatz ? 9 : 0,
+            'Money Monsters': rolesData.holdings.moneyMonsters ? 26 : 0,
+            'A.I. BitBots': rolesData.holdings.aiBitbots ? 7 : 0,
+            'Collab Collections': 0
+          },
           totalCount: totalNFTs,
           roles: rolesData.roles || []
         });
