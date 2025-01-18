@@ -1,6 +1,6 @@
 import express from 'express';
 import { parse } from 'cookie';
-import pool from '../config/database.js';
+import pool from '../../config/database.js';
 
 const router = express.Router();
 
