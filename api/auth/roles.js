@@ -46,39 +46,56 @@ router.get('/', async (req, res) => {
     const result = await client.query(`
       SELECT 
         ur.*,
-        json_agg(
-          json_build_object(
-            'id', r.discord_role_id,
-            'name', r.name,
-            'type', r.type,
-            'collection', r.collection
-          )
+        COALESCE(
+          (
+            SELECT json_agg(role_data)
+            FROM (
+              SELECT json_build_object(
+                'id', r.discord_role_id,
+                'name', r.name,
+                'type', r.type,
+                'collection', r.collection,
+                'display_name', COALESCE(r.display_name, r.name),
+                'color', COALESCE(r.color, CASE 
+                  WHEN r.type = 'token' THEN '#daff00'
+                  WHEN r.type = 'holder' THEN '#ff9900'
+                  WHEN r.type = 'whale' THEN '#ff0099'
+                  ELSE '#ffffff'
+                END),
+                'emoji_url', COALESCE(r.emoji_url, CASE 
+                  WHEN r.type = 'token' THEN '/favicon.ico'
+                  ELSE NULL
+                END)
+              ) as role_data
+              FROM roles r
+              WHERE (
+                (r.type = 'holder' AND (
+                  (r.collection = 'fcked_catz' AND ur.fcked_catz_holder) OR
+                  (r.collection = 'money_monsters' AND ur.money_monsters_holder) OR
+                  (r.collection = 'ai_bitbots' AND ur.ai_bitbots_holder) OR
+                  (r.collection = 'moneymonsters3d' AND ur.moneymonsters3d_holder) OR
+                  (r.collection = 'celebcatz' AND ur.celebcatz_holder)
+                )) OR
+                (r.type = 'whale' AND (
+                  (r.collection = 'fcked_catz' AND ur.fcked_catz_whale) OR
+                  (r.collection = 'money_monsters' AND ur.money_monsters_whale) OR
+                  (r.collection = 'ai_bitbots' AND ur.ai_bitbots_whale) OR
+                  (r.collection = 'moneymonsters3d' AND ur.moneymonsters3d_whale)
+                )) OR
+                (r.type = 'token' AND r.collection = 'bux' AND (
+                  (r.name = 'BUX Beginner' AND ur.bux_beginner) OR
+                  (r.name = 'BUX Builder' AND ur.bux_builder) OR
+                  (r.name = 'BUX Saver' AND ur.bux_saver) OR
+                  (r.name = 'BUX Banker' AND ur.bux_banker)
+                )) OR
+                (r.type = 'special' AND r.name = 'BUXDAO 5' AND ur.buxdao_5)
+              )
+            ) subq
+          ),
+          '[]'::json
         ) as discord_roles
       FROM user_roles ur
-      LEFT JOIN roles r ON (
-        (r.type = 'holder' AND (
-          (r.collection = 'fcked_catz' AND ur.fcked_catz_holder) OR
-          (r.collection = 'money_monsters' AND ur.money_monsters_holder) OR
-          (r.collection = 'ai_bitbots' AND ur.ai_bitbots_holder) OR
-          (r.collection = 'moneymonsters3d' AND ur.moneymonsters3d_holder) OR
-          (r.collection = 'celebcatz' AND ur.celebcatz_holder)
-        )) OR
-        (r.type = 'whale' AND (
-          (r.collection = 'fcked_catz' AND ur.fcked_catz_whale) OR
-          (r.collection = 'money_monsters' AND ur.money_monsters_whale) OR
-          (r.collection = 'ai_bitbots' AND ur.ai_bitbots_whale) OR
-          (r.collection = 'moneymonsters3d' AND ur.moneymonsters3d_whale)
-        )) OR
-        (r.type = 'token' AND r.collection = 'bux' AND (
-          (r.name = 'BUX Beginner' AND ur.bux_beginner) OR
-          (r.name = 'BUX Builder' AND ur.bux_builder) OR
-          (r.name = 'BUX Saver' AND ur.bux_saver) OR
-          (r.name = 'BUX Banker' AND ur.bux_banker)
-        )) OR
-        (r.type = 'special' AND r.name = 'BUXDAO 5' AND ur.buxdao_5)
-      )
       WHERE ur.discord_id = $1
-      GROUP BY ur.discord_id
     `, [user.discord_id]);
 
     if (!result.rows[0]) {
