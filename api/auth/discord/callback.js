@@ -101,13 +101,25 @@ router.get('/', async (req, res) => {
 
     await client.query('COMMIT');
 
-    // Store user data in session
-    req.session.user = {
+    // Store user data in both session and cookies
+    const userInfo = {
       discord_id: userData.id,
       discord_username: userData.username,
       avatar: userData.avatar,
       access_token: tokenData.access_token
     };
+
+    req.session.user = userInfo;
+    res.cookie('discord_user', JSON.stringify(userInfo), {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax'
+    });
+    res.cookie('discord_token', tokenData.access_token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax'
+    });
 
     // Save session
     await new Promise((resolve, reject) => {

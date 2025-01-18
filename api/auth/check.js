@@ -1,34 +1,49 @@
 import express from 'express';
 import { parse } from 'cookie';
+import { Pool } from 'pg';
 
 const router = express.Router();
+const pool = new Pool();
 
 router.get('/', async (req, res) => {
   try {
     console.log('Auth check request:', {
       sessionID: req.sessionID,
       hasSession: !!req.session,
-      sessionUser: req.session?.user,
       cookies: req.headers.cookie
     });
 
-    // Only use session-based auth
-    if (!req.session || !req.session.user || !req.session.user.discord_id) {
+    // Check for discord_user cookie
+    const cookies = req.headers.cookie ? parse(req.headers.cookie) : {};
+    const discordUser = cookies.discord_user ? JSON.parse(cookies.discord_user) : null;
+
+    if (!discordUser || !discordUser.discord_id) {
       return res.status(401).json({
         authenticated: false,
         message: 'Not authenticated'
       });
     }
 
-    return res.json({
-      authenticated: true,
-      user: {
-        discord_id: req.session.user.discord_id,
-        discord_username: req.session.user.discord_username,
-        avatar: req.session.user.avatar,
-        wallet_address: req.session.user.wallet_address
-      }
-    });
+    // Get wallet address from database
+    const client = await pool.connect();
+    try {
+      const result = await client.query(
+        'SELECT wallet_address FROM user_roles WHERE discord_id = $1',
+        [discordUser.discord_id]
+      );
+
+      return res.json({
+        authenticated: true,
+        user: {
+          discord_id: discordUser.discord_id,
+          discord_username: discordUser.discord_username,
+          avatar: discordUser.avatar,
+          wallet_address: result.rows[0]?.wallet_address
+        }
+      });
+    } finally {
+      client.release();
+    }
   } catch (error) {
     console.error('Auth check error:', error);
     res.status(500).json({
