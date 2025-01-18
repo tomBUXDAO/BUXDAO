@@ -142,11 +142,8 @@ const HolderVerification = () => {
     try {
       if (!connected) {
         setLoading(true);
-        // Open the wallet modal and wait for connection
+        // Open the wallet modal
         setVisible(true);
-        
-        // The actual connection will happen through the wallet adapter
-        // We don't need to call connect() here as it's handled by the adapter
       }
     } catch (error) {
       console.error('Wallet connection error:', error);
@@ -175,11 +172,12 @@ const HolderVerification = () => {
           walletAddress: publicKey.toString()
         })
       })
-      .then(response => {
+      .then(async response => {
+        const data = await response.json();
         if (!response.ok) {
-          throw new Error('Failed to update wallet address');
+          throw new Error(data.error || 'Failed to update wallet address');
         }
-        return response.json();
+        return data;
       })
       .then(data => {
         console.log('Wallet update response:', data);
@@ -188,7 +186,7 @@ const HolderVerification = () => {
           // Refresh user data without full page reload
           window.location.reload();
         } else {
-          throw new Error(data.message || 'Failed to verify wallet');
+          throw new Error(data.error || 'Failed to verify wallet');
         }
       })
       .catch(error => {
