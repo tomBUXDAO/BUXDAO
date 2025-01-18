@@ -1,31 +1,40 @@
 import express from 'express';
 import { PublicKey, Connection } from '@solana/web3.js';
-import pool from '../../config/database.js';
-import { syncUserRoles } from '../integrations/discord/roles.js';
-import { checkHoldings } from '../utils/holdings.js';
+import { parse } from 'cookie';
+import pkg from 'pg';
+const { Pool } = pkg;
 
 const router = express.Router();
+const pool = new Pool({
+  connectionString: process.env.POSTGRES_URL,
+  ssl: {
+    rejectUnauthorized: false
+  }
+});
 
 const DISCORD_GUILD_ID = process.env.DISCORD_GUILD_ID;
 const RPC_URL = process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
 
 router.post('/', async (req, res) => {
   try {
-    // Check if user is authenticated
-    if (!req.session || !req.session.user) {
+    // Check for discord_user cookie
+    const cookies = req.headers.cookie ? parse(req.headers.cookie) : {};
+    const discordUser = cookies.discord_user ? JSON.parse(cookies.discord_user) : null;
+
+    if (!discordUser || !discordUser.discord_id) {
       console.error('Session validation failed:', {
-        session: !!req.session,
-        user: !!req.session?.user,
+        cookies: !!cookies,
+        discordUser: !!discordUser,
         sessionID: req.sessionID
       });
       return res.status(401).json({ 
         success: false,
-        error: 'Not authenticated - no valid session' 
+        error: 'Not authenticated' 
       });
     }
 
-    const { walletAddress } = req.body;
-    if (!walletAddress) {
+    const { wallet_address } = req.body;
+    if (!wallet_address) {
       return res.status(400).json({ 
         success: false,
         error: 'Wallet address is required' 
@@ -34,22 +43,13 @@ router.post('/', async (req, res) => {
 
     // Validate Solana address
     try {
-      new PublicKey(walletAddress);
+      new PublicKey(wallet_address);
     } catch (err) {
       return res.status(400).json({ 
         success: false,
         error: 'Invalid wallet address' 
       });
     }
-
-    // Save wallet address to session
-    req.session.user.walletAddress = walletAddress;
-    await new Promise((resolve, reject) => {
-      req.session.save(err => {
-        if (err) reject(err);
-        else resolve();
-      });
-    });
 
     // Create database client
     const client = await pool.connect();
@@ -60,51 +60,22 @@ router.post('/', async (req, res) => {
       // Update wallet address
       const result = await client.query(
         'UPDATE user_roles SET wallet_address = $1 WHERE discord_id = $2 RETURNING *',
-        [walletAddress, req.session.user.discord_id]
+        [wallet_address, discordUser.discord_id]
       );
 
       if (result.rows.length === 0) {
-        await client.query('ROLLBACK');
-        return res.status(404).json({ 
-          success: false,
-          error: 'User not found' 
-        });
+        // Insert if no update was made
+        await client.query(
+          'INSERT INTO user_roles (wallet_address, discord_id, discord_username) VALUES ($1, $2, $3)',
+          [wallet_address, discordUser.discord_id, discordUser.discord_username]
+        );
       }
-
-      // Check holdings
-      const connection = new Connection(RPC_URL);
-      const holdings = await checkHoldings(connection, walletAddress);
-
-      // Update holdings in database
-      await client.query(`
-        UPDATE user_roles 
-        SET 
-          fcked_catz_holder = $1,
-          money_monsters_holder = $2,
-          ai_bitbots_holder = $3,
-          moneymonsters3d_holder = $4,
-          celebcatz_holder = $5,
-          last_updated = CURRENT_TIMESTAMP
-        WHERE discord_id = $6
-      `, [
-        holdings.fckedCatz > 0,
-        holdings.moneyMonsters > 0,
-        holdings.aiBitbots > 0,
-        holdings.moneyMonsters3d > 0,
-        holdings.celebCatz > 0,
-        req.session.user.discord_id
-      ]);
 
       await client.query('COMMIT');
 
-      // Sync Discord roles
-      await syncUserRoles(req.session.user.discord_id, DISCORD_GUILD_ID);
-
       res.json({ 
         success: true,
-        message: 'Wallet verified and holdings updated successfully', 
-        user: result.rows[0],
-        holdings
+        message: 'Wallet verified successfully'
       });
     } catch (error) {
       await client.query('ROLLBACK');
