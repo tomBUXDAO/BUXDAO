@@ -25,14 +25,14 @@ const SYMBOL_TO_NAME = {
 };
 
 const UserProfile = () => {
-  const { discordUser: user, walletConnected: isAuthenticated } = useUser();
+  const { discordUser: user } = useUser();
   const [userData, setUserData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [cashoutAmount, setCashoutAmount] = useState('');
 
   useEffect(() => {
     const fetchUserData = async () => {
-      if (!isAuthenticated || !user?.discord_username) {
+      if (!user?.discord_id) {
         setIsLoading(false);
         return;
       }
@@ -92,46 +92,33 @@ const UserProfile = () => {
           'Collab Collections': 0
         };
 
-        // Map collection data to counts by finding the user's wallet in each collection
-        if (user.wallet_address) {
-          console.log('Using wallet address:', user.wallet_address);
-          collectionData.forEach((data, index) => {
-            // Get first 4 and last 4 chars of wallet address
-            const walletStart = user.wallet_address.slice(0, 4);
-            const walletEnd = user.wallet_address.slice(-4);
-            
-            // Find matching holder by checking if address contains either start or end of wallet
-            const userHolding = data.holders?.find(h => {
-              const fullAddr = h.address.replace('...', '');
-              return fullAddr.includes(walletStart) || fullAddr.includes(walletEnd);
-            });
+        // Map collection data to counts by finding the user's data in each collection
+        collectionData.forEach((data, index) => {
+          const userHolding = data.holders?.find(h => h.discord_username === user.discord_username);
+          
+          console.log(`${collections[index]} found holding:`, userHolding);
 
-            console.log(`${collections[index]} found holding:`, userHolding);
-
-            if (userHolding) {
-              const count = parseInt(userHolding.amount.split(' ')[0]) || 0;
-              switch(collections[index]) {
-                case 'celebcatz':
-                  collectionCounts['Celeb Catz'] = count;
-                  break;
-                case 'moneymonsters3d':
-                  collectionCounts['Money Monsters 3D'] = count;
-                  break;
-                case 'fckedcatz':
-                  collectionCounts['FCKed Catz'] = count;
-                  break;
-                case 'moneymonsters':
-                  collectionCounts['Money Monsters'] = count;
-                  break;
-                case 'aibitbots':
-                  collectionCounts['A.I. BitBots'] = count;
-                  break;
-              }
+          if (userHolding) {
+            const count = parseInt(userHolding.amount.split(' ')[0]) || 0;
+            switch(collections[index]) {
+              case 'celebcatz':
+                collectionCounts['Celeb Catz'] = count;
+                break;
+              case 'moneymonsters3d':
+                collectionCounts['Money Monsters 3D'] = count;
+                break;
+              case 'fckedcatz':
+                collectionCounts['FCKed Catz'] = count;
+                break;
+              case 'moneymonsters':
+                collectionCounts['Money Monsters'] = count;
+                break;
+              case 'aibitbots':
+                collectionCounts['A.I. BitBots'] = count;
+                break;
             }
-          });
-        } else {
-          console.log('No wallet address available in user data:', user);
-        }
+          }
+        });
 
         // Extract total NFTs count
         const nftsMatch = myData.nfts.match(/(\d+)/);
@@ -161,10 +148,10 @@ const UserProfile = () => {
       } finally {
         setIsLoading(false);
       }
-    };
+    }
 
     fetchUserData();
-  }, [isAuthenticated, user]);
+  }, [user]);
 
   // Calculate total daily yield from NFTs
   const calculateCollectionYield = (collection) => {
