@@ -106,50 +106,41 @@ export const UserProvider = ({ children }) => {
   const handleLogout = async () => {
     try {
       console.log('Initiating logout...');
+      
+      // Disconnect wallet first if connected
+      if (connected) {
+        await disconnect();
+      }
+
+      // Reset state before server call
+      setDiscordUser(null);
+      setInitialized(false);
+
+      // Call server logout
       const response = await fetch(`${API_BASE}/api/auth/logout`, {
         method: 'POST',
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
-        }
+        },
+        cache: 'no-store'
       });
 
-      let data;
-      try {
-        data = await response.json();
-      } catch (e) {
-        console.error('Failed to parse logout response:', e);
-        throw new Error('Invalid server response');
-      }
+      console.log('Logout response:', response.status);
       
-      if (!response.ok) {
-        console.error('Logout failed:', data);
-        throw new Error(data.details || 'Logout failed');
-      }
-      
-      console.log('Logout successful, clearing state...');
-      
-      // Reset state
-      setDiscordUser(null);
-      setInitialized(false);
-      
-      // Disconnect wallet if connected
-      if (connected) {
-        await disconnect();
-      }
+      // Clear all cookies manually
+      document.cookie.split(';').forEach(cookie => {
+        const [name] = cookie.split('=');
+        document.cookie = `${name.trim()}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
+      });
 
-      // Force reload to clear any cached state
-      window.location.reload();
+      // Force a hard reload to clear everything
+      window.location.href = '/';
     } catch (err) {
       console.error('Logout failed:', err);
-      // Continue with state reset even if server logout fails
-      setDiscordUser(null);
-      setInitialized(false);
-      if (connected) {
-        await disconnect();
-      }
-      window.location.reload();
+      // Force reload anyway
+      window.location.href = '/';
     }
   };
 
