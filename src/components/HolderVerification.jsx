@@ -121,11 +121,20 @@ const HolderVerification = () => {
         throw new Error(data.message || 'Verification failed');
       }
 
+      // Fetch roles after successful wallet verification
+      const rolesResponse = await fetch(`${API_BASE}/api/auth/roles`, {
+        credentials: 'include'
+      });
+
+      if (!rolesResponse.ok) {
+        throw new Error('Failed to fetch roles');
+      }
+
+      const rolesData = await rolesResponse.json();
+      
       // Update local state with roles
       setVerificationStatus('verified');
-      
-      // Show success message
-      setError(data.message);
+      setError('Wallet verified successfully! Your roles have been updated.');
 
     } catch (err) {
       console.error('Wallet verification failed:', err);
@@ -158,49 +167,9 @@ const HolderVerification = () => {
     if (connected && publicKey && discordUser) {
       console.log('Wallet connected:', publicKey.toString());
       setError(null);
-      setLoading(true);
-      
-      // Update the user data with wallet address
-      fetch(`${API_BASE}/api/auth/wallet`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify({
-          walletAddress: publicKey.toString(),
-          discord_id: discordUser.discord_id,
-          discord_username: discordUser.discord_username
-        })
-      })
-      .then(async response => {
-        const data = await response.json();
-        if (!response.ok) {
-          throw new Error(data.error || 'Failed to update wallet address');
-        }
-        return data;
-      })
-      .then(data => {
-        console.log('Wallet update response:', data);
-        if (data.success) {
-          setVerificationStatus('verified');
-          // Instead of page reload, just update the state
-          setError('Wallet verified successfully!');
-        } else {
-          throw new Error(data.error || 'Failed to verify wallet');
-        }
-      })
-      .catch(error => {
-        console.error('Failed to update wallet:', error);
-        setError(error.message);
-        setVerificationStatus('failed');
-      })
-      .finally(() => {
-        setLoading(false);
-      });
+      handleWalletVerification();
     }
-  }, [connected, publicKey, discordUser]); // Only depend on these values
+  }, [connected, publicKey, discordUser]);
 
   const handleClose = () => {
     navigate('/');
