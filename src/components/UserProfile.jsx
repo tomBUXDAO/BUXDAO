@@ -94,7 +94,8 @@ const UserProfile = () => {
 
         // Map collection data to counts by finding the user's data in each collection
         collectionData.forEach((data, index) => {
-          const userHolding = data.holders?.find(h => h.discord_username === user.discord_username);
+          // Find user holding by address (which is their discord username in the data)
+          const userHolding = data.holders?.find(h => h.address === user.discord_username);
           
           console.log(`${collections[index]} found holding:`, userHolding);
 
