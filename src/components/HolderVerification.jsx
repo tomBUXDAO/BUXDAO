@@ -155,7 +155,7 @@ const HolderVerification = () => {
 
   // Listen for wallet connection
   useEffect(() => {
-    if (connected && publicKey) {
+    if (connected && publicKey && discordUser) {
       console.log('Wallet connected:', publicKey.toString());
       setError(null);
       setLoading(true);
@@ -169,7 +169,9 @@ const HolderVerification = () => {
           'Accept': 'application/json'
         },
         body: JSON.stringify({
-          walletAddress: publicKey.toString()
+          walletAddress: publicKey.toString(),
+          discord_id: discordUser.discord_id,
+          discord_username: discordUser.discord_username
         })
       })
       .then(async response => {
@@ -183,8 +185,8 @@ const HolderVerification = () => {
         console.log('Wallet update response:', data);
         if (data.success) {
           setVerificationStatus('verified');
-          // Refresh user data without full page reload
-          window.location.reload();
+          // Instead of page reload, just update the state
+          setError('Wallet verified successfully!');
         } else {
           throw new Error(data.error || 'Failed to verify wallet');
         }
@@ -198,7 +200,7 @@ const HolderVerification = () => {
         setLoading(false);
       });
     }
-  }, [connected, publicKey, discordUser]);
+  }, [connected, publicKey, discordUser]); // Only depend on these values
 
   const handleClose = () => {
     navigate('/');
