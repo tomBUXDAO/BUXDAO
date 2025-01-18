@@ -1,144 +1,122 @@
 import express from 'express';
-import axios from 'axios';
-import pool from '../../config/database.js';
+import fetch from 'node-fetch';
+import pool from '../../../config/database.js';
 
 const router = express.Router();
 
-const FRONTEND_URL = process.env.NODE_ENV === 'production' 
+const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID;
+const DISCORD_CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
+const CALLBACK_URL = process.env.NODE_ENV === 'production'
+  ? 'https://buxdao.com/api/auth/discord/callback'
+  : 'http://localhost:3001/api/auth/discord/callback';
+const FRONTEND_URL = process.env.NODE_ENV === 'production'
   ? 'https://buxdao.com'
   : 'http://localhost:5173';
 
 router.get('/', async (req, res) => {
-  console.log('Discord callback request:', {
-    sessionID: req.sessionID,
-    hasSession: !!req.session,
-    state: req.query.state,
-    sessionState: req.session?.discord_state,
-    cookies: req.headers.cookie
-  });
-
-  let client;
+  const client = await pool.connect();
+  
   try {
-    // Validate state
-    const state = req.query.state;
-    const storedState = req.session?.discord_state;
+    const { code, state } = req.query;
 
-    if (!state || !storedState || state !== storedState) {
+    // Validate state parameter
+    if (!state || !req.session?.discord_state || state !== req.session.discord_state) {
       console.error('State validation failed:', {
         receivedState: state,
-        storedState,
+        storedState: req.session?.discord_state,
         sessionID: req.sessionID
       });
       return res.redirect(`${FRONTEND_URL}/verify?error=invalid_state`);
     }
 
-    // Exchange code for token
-    const tokenResponse = await axios.post('https://discord.com/api/oauth2/token', 
-      new URLSearchParams({
-        client_id: process.env.DISCORD_CLIENT_ID,
-        client_secret: process.env.DISCORD_CLIENT_SECRET,
-        grant_type: 'authorization_code',
-        code: req.query.code,
-        redirect_uri: process.env.NODE_ENV === 'production'
-          ? 'https://buxdao.com/api/auth/discord/callback'
-          : 'http://localhost:3001/api/auth/discord/callback'
-      }),
-      {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded'
-        }
-      }
-    );
-
-    const { access_token } = tokenResponse.data;
-
-    // Get user info
-    const userResponse = await axios.get('https://discord.com/api/users/@me', {
-      headers: {
-        Authorization: `Bearer ${access_token}`
-      }
-    });
-
-    const { id: discord_id, username: discord_username, avatar } = userResponse.data;
-
-    // Store user data in session
-    const userData = {
-      discord_id,
-      discord_username,
-      avatar,
-      access_token
-    };
-
-    req.session.user = userData;
-    delete req.session.discord_state; // Clear state after use
-
-    // Save session before database operations
+    // Clear state from session
+    req.session.discord_state = null;
     await new Promise((resolve, reject) => {
       req.session.save(err => {
-        if (err) {
-          console.error('Failed to save session:', err);
-          reject(err);
-        } else {
-          resolve();
-        }
+        if (err) reject(err);
+        else resolve();
       });
     });
 
-    // Database operations
-    client = await pool.connect();
-    await client.query('BEGIN');
+    if (!code) {
+      return res.redirect(`${FRONTEND_URL}/verify?error=no_code`);
+    }
 
-    // Update user roles
-    const updateQuery = `
-      INSERT INTO user_roles (discord_id, discord_name, last_updated)
-      VALUES ($1, $2, CURRENT_TIMESTAMP)
-      ON CONFLICT (discord_id) 
-      DO UPDATE SET 
-        discord_name = $2,
-        last_updated = CURRENT_TIMESTAMP
-      RETURNING *;
-    `;
-
-    await client.query(updateQuery, [discord_id, discord_username]);
-    await client.query('COMMIT');
-
-    // Set auth cookies
-    res.cookie('discord_token', access_token, {
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-      path: '/',
-      domain: process.env.NODE_ENV === 'production' ? '.buxdao.com' : undefined
+    // Exchange code for token
+    const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: new URLSearchParams({
+        client_id: DISCORD_CLIENT_ID,
+        client_secret: DISCORD_CLIENT_SECRET,
+        grant_type: 'authorization_code',
+        code: code,
+        redirect_uri: CALLBACK_URL
+      })
     });
 
-    res.cookie('discord_user', JSON.stringify(userData), {
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-      path: '/',
-      domain: process.env.NODE_ENV === 'production' ? '.buxdao.com' : undefined
+    if (!tokenResponse.ok) {
+      const error = await tokenResponse.text();
+      throw new Error(`Token exchange failed: ${error}`);
+    }
+
+    const tokenData = await tokenResponse.json();
+
+    // Get user data
+    const userResponse = await fetch('https://discord.com/api/users/@me', {
+      headers: {
+        'Authorization': `Bearer ${tokenData.access_token}`
+      }
+    });
+
+    if (!userResponse.ok) {
+      throw new Error('Failed to get user data');
+    }
+
+    const userData = await userResponse.json();
+
+    // Start transaction
+    await client.query('BEGIN');
+
+    // Create or update user record
+    const result = await client.query(
+      `INSERT INTO user_roles (discord_id, discord_name) 
+       VALUES ($1, $2)
+       ON CONFLICT (discord_id) 
+       DO UPDATE SET discord_name = $2
+       RETURNING *`,
+      [userData.id, userData.username]
+    );
+
+    await client.query('COMMIT');
+
+    // Store user data in session
+    req.session.user = {
+      discord_id: userData.id,
+      discord_username: userData.username,
+      avatar: userData.avatar,
+      access_token: tokenData.access_token
+    };
+
+    // Save session
+    await new Promise((resolve, reject) => {
+      req.session.save(err => {
+        if (err) reject(err);
+        else resolve();
+      });
     });
 
     // Redirect to verify page
     res.redirect(`${FRONTEND_URL}/verify`);
+
   } catch (error) {
-    console.error('Discord callback error:', {
-      error: error.message,
-      stack: error.stack,
-      sessionID: req.sessionID
-    });
-
-    if (client) {
-      await client.query('ROLLBACK');
-    }
-
-    res.redirect(`${FRONTEND_URL}/verify?error=callback_failed`);
+    console.error('Discord callback error:', error);
+    await client.query('ROLLBACK');
+    res.redirect(`${FRONTEND_URL}/verify?error=${encodeURIComponent(error.message)}`);
   } finally {
-    if (client) {
-      client.release();
-    }
+    client.release();
   }
 });
 

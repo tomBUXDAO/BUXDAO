@@ -3,85 +3,58 @@ import crypto from 'crypto';
 
 const router = express.Router();
 
-const FRONTEND_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://buxdao.com'
-  : 'http://localhost:5173';
-
-const REDIRECT_URI = process.env.DISCORD_REDIRECT_URI || (
-  process.env.NODE_ENV === 'production'
-    ? 'https://buxdao.com/api/auth/discord/callback'
-    : 'http://localhost:3001/api/auth/discord/callback'
-);
+const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID;
+const CALLBACK_URL = process.env.NODE_ENV === 'production'
+  ? 'https://buxdao.com/api/auth/discord/callback'
+  : 'http://localhost:3001/api/auth/discord/callback';
 
 router.get('/', async (req, res) => {
   try {
-    console.log('Discord auth request:', {
-      sessionID: req.sessionID,
-      hasSession: !!req.session,
-      cookies: req.headers.cookie,
-      secure: req.secure,
-      protocol: req.protocol,
-      'x-forwarded-proto': req.headers['x-forwarded-proto']
-    });
-
-    // Generate random state
+    // Generate a random state
     const state = crypto.randomBytes(32).toString('hex');
     
     // Initialize session if it doesn't exist
     if (!req.session) {
-      console.error('No session found');
-      return res.redirect(`${FRONTEND_URL}/verify?error=no_session`);
+      req.session = {};
     }
 
-    // Clear any existing auth data
-    req.session.user = null;
-    req.session.discord_state = null;
-    
     // Store state in session
     req.session.discord_state = state;
     
-    // Force session save before redirect
+    // Save session explicitly
     await new Promise((resolve, reject) => {
       req.session.save((err) => {
         if (err) {
-          console.error('Failed to save session state:', {
-            error: err.message,
-            stack: err.stack,
-            sessionID: req.sessionID
-          });
+          console.error('Failed to save session:', err);
           reject(err);
         } else {
-          console.log('Session state saved successfully:', {
-            sessionID: req.sessionID,
-            state,
-            hasSession: !!req.session,
-            secure: req.secure,
-            protocol: req.protocol
-          });
           resolve();
         }
       });
     });
 
-    // Build Discord OAuth URL with state
-    const params = new URLSearchParams({
-      client_id: process.env.DISCORD_CLIENT_ID,
-      redirect_uri: REDIRECT_URI,
-      response_type: 'code',
-      scope: 'identify guilds.join',
-      state: state,
-      prompt: 'consent'
+    console.log('Session state saved:', {
+      sessionID: req.sessionID,
+      state,
+      hasSession: !!req.session,
+      secure: req.secure,
+      protocol: req.protocol
     });
 
-    // Redirect to Discord OAuth
-    res.redirect(`https://discord.com/api/oauth2/authorize?${params.toString()}`);
-  } catch (error) {
-    console.error('Discord auth error:', {
-      error: error.message,
-      stack: error.stack,
-      sessionID: req.sessionID
+    // Construct Discord OAuth URL
+    const params = new URLSearchParams({
+      client_id: DISCORD_CLIENT_ID,
+      redirect_uri: CALLBACK_URL,
+      response_type: 'code',
+      scope: 'identify guilds',
+      state: state
     });
-    res.redirect(`${FRONTEND_URL}/verify?error=auth_failed`);
+
+    const redirectUrl = `https://discord.com/api/oauth2/authorize?${params}`;
+    res.redirect(redirectUrl);
+  } catch (error) {
+    console.error('Discord auth error:', error);
+    res.redirect('/verify?error=' + encodeURIComponent(error.message));
   }
 });
 
