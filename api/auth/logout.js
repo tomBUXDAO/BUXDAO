@@ -14,7 +14,7 @@ router.post('/', async (req, res) => {
       cookies: req.headers.cookie
     });
 
-    // Clear session
+    // Destroy session in database first
     if (req.session) {
       await new Promise((resolve, reject) => {
         req.session.destroy((err) => {
@@ -28,60 +28,36 @@ router.post('/', async (req, res) => {
       });
     }
 
-    // Clear all auth cookies
+    // Clear session cookie with exact same settings as session config
     res.clearCookie('buxdao.sid', {
       path: '/',
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+      secure: false,
+      sameSite: 'lax'
     });
 
-    res.clearCookie('discord_token', {
+    // Clear other auth cookies
+    const cookieOptions = {
       path: '/',
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
-    });
+      secure: false,
+      sameSite: 'lax'
+    };
 
-    res.clearCookie('discord_user', {
-      path: '/',
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
-    });
+    res.clearCookie('discord_token', cookieOptions);
+    res.clearCookie('discord_user', cookieOptions);
+    res.clearCookie('discord_state', cookieOptions);
 
-    res.clearCookie('discord_state', {
-      path: '/',
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
-    });
-
-    // Attempt to revoke Discord token if available
-    const cookies = req.headers.cookie ? Object.fromEntries(
-      req.headers.cookie.split(';').map(c => {
-        const [key, value] = c.trim().split('=');
-        return [key, value];
-      })
-    ) : {};
-
-    if (cookies.discord_token) {
-      try {
-        await fetch('https://discord.com/api/oauth2/token/revoke', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
-          },
-          body: new URLSearchParams({
-            token: cookies.discord_token,
-            client_id: process.env.DISCORD_CLIENT_ID,
-            client_secret: process.env.DISCORD_CLIENT_SECRET
-          })
+    // Clear session from store
+    if (req.sessionStore) {
+      await new Promise((resolve) => {
+        req.sessionStore.destroy(req.sessionID, (err) => {
+          if (err) {
+            console.error('Session store destruction error:', err);
+          }
+          resolve();
         });
-      } catch (error) {
-        console.error('Failed to revoke Discord token:', error);
-        // Continue with logout even if token revocation fails
-      }
+      });
     }
 
     res.json({

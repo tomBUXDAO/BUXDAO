@@ -249,10 +249,9 @@ app.use((req, res, next) => {
       res.cookie('buxdao.sid', validSession, {
         maxAge: sessionConfig.cookie.maxAge,
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-        path: '/',
-        domain: process.env.NODE_ENV === 'production' ? '.buxdao.com' : undefined
+        secure: false,
+        sameSite: 'lax',
+        path: '/'
       });
     }
   }
