@@ -8,37 +8,39 @@ if (!process.env.POSTGRES_URL) {
   process.exit(1);
 }
 
-const poolConfig = {
-  connectionString: process.env.POSTGRES_URL,
-  ssl: {
-    rejectUnauthorized: false
+const dbConfig = {
+  development: {
+    connectionString: process.env.POSTGRES_URL,
+    ssl: {
+      rejectUnauthorized: false
+    },
+    max: 20,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 10000
   },
-  // Optimize connection pool settings
-  max: 10, // Maximum number of clients in the pool
-  idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
-  connectionTimeoutMillis: 10000, // Return an error after 10 seconds if connection could not be established
-  maxUses: 7500, // Close and replace a connection after it has been used 7500 times
-  keepAlive: true, // Keep connections alive
-  keepAliveInitialDelayMillis: 10000, // Start keep-alive after 10 seconds
-  allowExitOnIdle: true // Allow the process to exit even if there are idle connections
+  production: {
+    connectionString: process.env.POSTGRES_URL,
+    ssl: {
+      rejectUnauthorized: false
+    },
+    max: 20,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 10000
+  }
 };
 
-const pool = new pg.Pool(poolConfig);
+const pool = new pg.Pool(dbConfig[process.env.NODE_ENV || 'development']);
 
 // Add connection error handling with more detailed logging
-pool.on('error', (err, client) => {
+pool.on('error', (err) => {
   console.error('Unexpected error on idle client:', {
     message: err.message,
     code: err.code,
     stack: err.stack
   });
-  // Force release the client back to the pool with an error
-  if (client) {
-    client.release(true);
-  }
 });
 
-// Add connection success logging
+// Add connection success logging with connection details
 pool.on('connect', (client) => {
   console.log('PostgreSQL connected successfully', {
     database: client.database,
@@ -46,11 +48,6 @@ pool.on('connect', (client) => {
     port: client.port,
     ssl: !!client.ssl
   });
-});
-
-// Add connection removal logging
-pool.on('remove', () => {
-  console.log('Client removed from pool');
 });
 
 export default pool; 

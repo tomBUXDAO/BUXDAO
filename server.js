@@ -64,141 +64,139 @@ const initDatabase = async () => {
     console.log('Testing database connection...');
     client = await pool.connect();
     
-    // Begin transaction
-    await client.query('BEGIN');
-    
-    try {
-      // Create user_roles table if it doesn't exist
-      await client.query(`
-        CREATE TABLE IF NOT EXISTS user_roles (
-          discord_id VARCHAR(255) PRIMARY KEY,
-          discord_name VARCHAR(255),
-          wallet_address VARCHAR(255),
-          fcked_catz_holder BOOLEAN DEFAULT false,
-          money_monsters_holder BOOLEAN DEFAULT false,
-          moneymonsters3d_holder BOOLEAN DEFAULT false,
-          ai_bitbots_holder BOOLEAN DEFAULT false,
-          celebcatz_holder BOOLEAN DEFAULT false,
-          fcked_catz_whale BOOLEAN DEFAULT false,
-          money_monsters_whale BOOLEAN DEFAULT false,
-          moneymonsters3d_whale BOOLEAN DEFAULT false,
-          ai_bitbots_whale BOOLEAN DEFAULT false,
-          bux_beginner BOOLEAN DEFAULT false,
-          bux_builder BOOLEAN DEFAULT false,
-          bux_saver BOOLEAN DEFAULT false,
-          bux_banker BOOLEAN DEFAULT false,
-          buxdao_5 BOOLEAN DEFAULT false,
-          roles JSONB DEFAULT '[]'::jsonb,
-          last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-      `);
+    // Create user_roles table if it doesn't exist
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS user_roles (
+        discord_id VARCHAR(255) PRIMARY KEY,
+        discord_name VARCHAR(255),
+        wallet_address VARCHAR(255),
+        fcked_catz_holder BOOLEAN DEFAULT false,
+        money_monsters_holder BOOLEAN DEFAULT false,
+        moneymonsters3d_holder BOOLEAN DEFAULT false,
+        ai_bitbots_holder BOOLEAN DEFAULT false,
+        celebcatz_holder BOOLEAN DEFAULT false,
+        fcked_catz_whale BOOLEAN DEFAULT false,
+        money_monsters_whale BOOLEAN DEFAULT false,
+        moneymonsters3d_whale BOOLEAN DEFAULT false,
+        ai_bitbots_whale BOOLEAN DEFAULT false,
+        bux_beginner BOOLEAN DEFAULT false,
+        bux_builder BOOLEAN DEFAULT false,
+        bux_saver BOOLEAN DEFAULT false,
+        bux_banker BOOLEAN DEFAULT false,
+        buxdao_5 BOOLEAN DEFAULT false,
+        roles JSONB DEFAULT '[]'::jsonb,
+        last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
 
-      // Create roles table if it doesn't exist
-      await client.query(`
-        CREATE TABLE IF NOT EXISTS roles (
-          id SERIAL PRIMARY KEY,
-          name VARCHAR(255) NOT NULL,
-          type VARCHAR(50) NOT NULL CHECK (type IN ('holder', 'whale', 'token', 'special')),
-          collection VARCHAR(50) NOT NULL,
-          threshold INTEGER DEFAULT 1,
-          discord_role_id VARCHAR(255) NOT NULL,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          CONSTRAINT roles_discord_role_id_key UNIQUE (discord_role_id)
-        );
+    // Create roles table if it doesn't exist
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS roles (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        type VARCHAR(50) NOT NULL CHECK (type IN ('holder', 'whale', 'token', 'special')),
+        collection VARCHAR(50) NOT NULL,
+        threshold INTEGER DEFAULT 1,
+        discord_role_id VARCHAR(255) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT roles_discord_role_id_key UNIQUE (discord_role_id)
+      );
 
-        -- Create index on discord_role_id for faster lookups
-        CREATE INDEX IF NOT EXISTS idx_roles_discord_role_id ON roles(discord_role_id);
-        -- Create index for filtering on type and collection
-        CREATE INDEX IF NOT EXISTS idx_roles_type_collection ON roles(type, collection);
-      `);
+      -- Create index on discord_role_id for faster lookups
+      CREATE INDEX IF NOT EXISTS idx_roles_discord_role_id ON roles(discord_role_id);
+      -- Create index for filtering on type and collection
+      CREATE INDEX IF NOT EXISTS idx_roles_type_collection ON roles(type, collection);
+    `);
 
-      // Create bux_holders table if it doesn't exist
-      await client.query(`
-        CREATE TABLE IF NOT EXISTS bux_holders (
-          wallet_address VARCHAR(255) PRIMARY KEY,
-          owner_discord_id VARCHAR(255) REFERENCES user_roles(discord_id),
-          owner_name VARCHAR(255),
-          balance DECIMAL(20,8) DEFAULT 0,
-          unclaimed_rewards DECIMAL(20,8) DEFAULT 0,
-          last_claim_time TIMESTAMP,
-          last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          is_exempt BOOLEAN DEFAULT false
-        );
-      `);
+    // Add roles column if it doesn't exist
+    await client.query(`
+      DO $$ 
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 
+          FROM information_schema.columns 
+          WHERE table_name = 'user_roles' 
+          AND column_name = 'roles'
+        ) THEN
+          ALTER TABLE user_roles ADD COLUMN roles JSONB DEFAULT '[]'::jsonb;
+        END IF;
+      END $$;
+    `);
 
-      // Create session table if it doesn't exist
-      await client.query(`
-        CREATE TABLE IF NOT EXISTS "session" (
-          "sid" varchar NOT NULL COLLATE "default",
-          "sess" json NOT NULL,
-          "expire" timestamp(6) NOT NULL,
-          CONSTRAINT "session_pkey" PRIMARY KEY ("sid")
-        );
-      `);
+    // Create bux_holders table if it doesn't exist
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS bux_holders (
+        wallet_address VARCHAR(255) PRIMARY KEY,
+        owner_discord_id VARCHAR(255) REFERENCES user_roles(discord_id),
+        owner_name VARCHAR(255),
+        balance DECIMAL(20,8) DEFAULT 0,
+        unclaimed_rewards DECIMAL(20,8) DEFAULT 0,
+        last_claim_time TIMESTAMP,
+        last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        is_exempt BOOLEAN DEFAULT false
+      );
+    `);
 
-      // Add roles column if it doesn't exist
-      await client.query(`
-        DO $$ 
-        BEGIN
-          IF NOT EXISTS (
-            SELECT 1 
-            FROM information_schema.columns 
-            WHERE table_name = 'user_roles' 
-            AND column_name = 'roles'
-          ) THEN
-            ALTER TABLE user_roles ADD COLUMN roles JSONB DEFAULT '[]'::jsonb;
-          END IF;
-        END $$;
-      `);
+    // Create session table if it doesn't exist
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS "session" (
+        "sid" varchar NOT NULL COLLATE "default",
+        "sess" json NOT NULL,
+        "expire" timestamp(6) NOT NULL,
+        CONSTRAINT "session_pkey" PRIMARY KEY ("sid")
+      );
+    `);
 
-      // Commit transaction
-      await client.query('COMMIT');
-      console.log('Database initialized successfully');
+    // Insert default roles if they don't exist
+    await client.query(`
+      INSERT INTO roles (name, type, collection, threshold, discord_role_id) VALUES
+      -- Holder roles
+      ('FCKed Catz Holder', 'holder', 'fcked_catz', 1, '1095033759612547133'),
+      ('Money Monsters Holder', 'holder', 'money_monsters', 1, '1093607056696692828'),
+      ('AI BitBots Holder', 'holder', 'ai_bitbots', 1, '1095034117877399686'),
+      ('Money Monsters 3D Holder', 'holder', 'moneymonsters3d', 1, '1093607187454111825'),
+      ('Celebrity Catz Holder', 'holder', 'celebcatz', 1, '1095335098112561234'),
 
-    } catch (err) {
-      // Rollback transaction on error
-      await client.query('ROLLBACK');
-      throw err;
-    }
+      -- Whale roles
+      ('FCKed Catz Whale', 'whale', 'fcked_catz', 25, '1095033566070583457'),
+      ('Money Monsters Whale', 'whale', 'money_monsters', 25, '1093606438674382858'),
+      ('AI BitBots Whale', 'whale', 'ai_bitbots', 10, '1095033899492573274'),
+      ('Money Monsters 3D Whale', 'whale', 'moneymonsters3d', 25, '1093606579355525252'),
 
+      -- BUX token roles
+      ('BUX Beginner', 'token', 'bux', 2500, '1248416679504117861'),
+      ('BUX Builder', 'token', 'bux', 10000, '1248417674476916809'),
+      ('BUX Saver', 'token', 'bux', 25000, '1248417591215784019'),
+      ('BUX Banker', 'token', 'bux', 50000, '1095363984581984357'),
+
+      -- Special roles
+      ('BUXDAO 5', 'special', 'all', 5, '1248428373487784006')
+      ON CONFLICT ON CONSTRAINT roles_discord_role_id_key DO UPDATE SET
+        name = EXCLUDED.name,
+        type = EXCLUDED.type,
+        collection = EXCLUDED.collection,
+        threshold = EXCLUDED.threshold,
+        updated_at = CURRENT_TIMESTAMP;
+    `);
+
+    console.log('Database initialized successfully');
   } catch (err) {
     console.error('Database initialization failed:', {
       message: err.message,
       code: err.code,
       stack: err.stack
     });
-    // If we can't initialize the database, we should exit
     process.exit(1);
   } finally {
     if (client) {
-      client.release();
+      await client.release();
     }
   }
 };
 
-// Initialize database with retries
-const initDatabaseWithRetry = async (maxRetries = 5, delay = 5000) => {
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      await initDatabase();
-      return; // Success, exit the retry loop
-    } catch (err) {
-      if (i === maxRetries - 1) {
-        // Last attempt failed
-        console.error('All database initialization attempts failed');
-        process.exit(1);
-      }
-      console.log(`Database initialization attempt ${i + 1} failed, retrying in ${delay/1000} seconds...`);
-      await new Promise(resolve => setTimeout(resolve, delay));
-      // Increase delay for next attempt
-      delay *= 1.5;
-    }
-  }
-};
-
-// Initialize database with retry mechanism
-initDatabaseWithRetry().catch(err => {
+// Initialize database
+initDatabase().catch(err => {
   console.error('Failed to initialize database:', {
     message: err.message,
     code: err.code,
