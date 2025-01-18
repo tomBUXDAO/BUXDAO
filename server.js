@@ -222,19 +222,17 @@ const sessionConfig = {
   }),
   name: 'buxdao.sid',
   secret: process.env.SESSION_SECRET || 'your-secret-key',
-  resave: false,
-  saveUninitialized: false,
+  resave: true,
+  saveUninitialized: true,
   rolling: true,
   proxy: true,
   cookie: {
     maxAge: 30 * 24 * 60 * 60 * 1000,
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-    path: '/',
-    domain: process.env.NODE_ENV === 'production' ? '.buxdao.com' : undefined
-  },
-  unset: 'destroy'
+    secure: false,
+    sameSite: 'lax',
+    path: '/'
+  }
 };
 
 // Clean up duplicate sessions
