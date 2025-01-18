@@ -248,80 +248,52 @@ app.use((req, res, next) => {
       // Keep only the most recent session
       const validSession = sessionCookies[0].split('=')[1];
       res.cookie('buxdao.sid', validSession, {
-        maxAge: sessionConfig.cookie.maxAge,
-        httpOnly: true,
-        secure: false,
-        sameSite: 'lax',
-        path: '/'
+        ...sessionConfig.cookie
       });
     }
   }
   next();
 });
 
-// Initialize session middleware
+// Session middleware
 app.use(session(sessionConfig));
 
-// Add session debugging middleware
-app.use((req, res, next) => {
-  console.log('Session debug:', {
-    url: req.url,
-    method: req.method,
-    sessionID: req.sessionID,
-    hasSession: !!req.session,
-    discordState: req.session?.discord_state,
-    cookies: req.headers.cookie,
-    secure: req.secure,
-    protocol: req.protocol,
-    'x-forwarded-proto': req.headers['x-forwarded-proto']
-  });
-  next();
-});
-
-// Debug logging
-app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path} - Session Info:`, {
-    sessionID: req.sessionID,
-    hasSession: !!req.session,
-    discordState: req.session?.discord_state,
-    cookies: req.headers.cookie
-  });
-  next();
-});
-
-// Add security headers
+// Security middleware
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'", "fonts.googleapis.com"],
-      fontSrc: ["'self'", "fonts.gstatic.com"],
-      imgSrc: [
-        "'self'", 
-        "data:", 
-        "cdn.discordapp.com", 
-        "arweave.net", 
-        "*.arweave.net",
-        "gateway.pinata.cloud",
-        "*.ipfs.nftstorage.link",
-        "nftstorage.link"
-      ],
-      connectSrc: [
-        "'self'", 
-        "discord.com",
-        "http://localhost:3001",
-        "http://localhost:5173",
-        process.env.NODE_ENV === 'development' ? "ws://localhost:5173" : null,
-        process.env.NODE_ENV === 'production' ? "https://buxdao.com" : null,
-        "api.mainnet-beta.solana.com",
-        "solana-mainnet.g.alchemy.com",
-        "rpc.ankr.com",
-        "solana.getblock.io",
-        "mainnet.helius-rpc.com"
-      ].filter(Boolean),
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
-      frameSrc: ["'none'"],
-      objectSrc: ["'none'"]
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://fonts.googleapis.com"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      imgSrc: ["'self'", "data:", "https:", "http:"],
+      connectSrc: ["'self'", "wss:", "https:", "http:"],
+    }
+  },
+  crossOriginEmbedderPolicy: false,
+  crossOriginResourcePolicy: false
+}));
+
+// Serve static files with proper MIME types
+app.use(express.static('dist', {
+  maxAge: '1y',
+  etag: true,
+  lastModified: true,
+  setHeaders: (res, path) => {
+    // Set proper MIME types
+    if (path.endsWith('.js')) {
+      res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+    } else if (path.endsWith('.css')) {
+      res.setHeader('Content-Type', 'text/css; charset=utf-8');
+    } else if (path.endsWith('.html')) {
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    }
+
+    // Set caching headers
+    if (path.includes('/assets/')) {
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    } else {
+      res.setHeader('Cache-Control', 'no-cache');
     }
   }
 }));
@@ -424,9 +396,6 @@ app.use('/api/user', userRouter);
 app.use('/api/*', (req, res) => {
   res.status(404).json({ error: 'API endpoint not found' });
 });
-
-// Serve static files from the React app
-app.use(express.static(path.join(__dirname, 'dist')));
 
 // Handle client-side routing in development mode
 app.get('*', (req, res, next) => {
