@@ -50,31 +50,8 @@ router.get('/', async (req, res) => {
       'https://mainnet.helius-rpc.com/?api-key=15319bf4-5b40-4958-ac8d-6313aa55eb92'
     ];
 
-    let lpBalance = null;
-    const lpWalletAddress = new PublicKey('3WNHW6sr1sQdbRjovhPrxgEJdWASZ43egGWMMNrhgoRR');
-
-    for (const endpoint of RPC_ENDPOINTS) {
-      try {
-        console.log(`Trying RPC endpoint: ${endpoint}`);
-        const connection = new Connection(endpoint);
-        lpBalance = await connection.getBalance(lpWalletAddress);
-        if (lpBalance !== null) {
-          console.log(`Successfully got balance from ${endpoint}`);
-          break;
-        }
-      } catch (error) {
-        console.error(`Failed to fetch balance from ${endpoint}:`, error.message);
-        continue;
-      }
-    }
-
-    if (lpBalance === null) {
-      console.warn('Using fallback LP balance');
-      lpBalance = 32.380991533 * LAMPORTS_PER_SOL;
-    }
-
-    const lpBalanceInSol = (lpBalance / LAMPORTS_PER_SOL) + 20.2;
-    console.log('LP balance in SOL:', lpBalanceInSol);
+    let lpBalance = 32.0921 * LAMPORTS_PER_SOL;
+    const lpBalanceInSol = 32.0921;
 
     // Calculate token value (LP balance / public supply) with high precision
     const publicSupplyNum = Number(metrics.public_supply) || 1; // Prevent division by zero
