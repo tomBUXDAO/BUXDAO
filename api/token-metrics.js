@@ -68,7 +68,12 @@ router.get('/', async (req, res) => {
       lpUsdValue
     });
 
-    res.setHeader('Cache-Control', 'public, s-maxage=60');
+    // Set strict no-cache headers
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.setHeader('Surrogate-Control', 'no-store');
+    
     res.status(200).json({
       totalSupply: Number(metrics.total_supply) || 0,
       publicSupply: Number(metrics.public_supply) || 0,
