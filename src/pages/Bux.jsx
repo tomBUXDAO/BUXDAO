@@ -414,7 +414,7 @@ const Bux = () => {
                                 ) : viewType === 'nfts' ? (
                                   <>
                                     <td className="py-3 px-6 text-purple-400">{holder.address}</td>
-                                    <td className="py-3 px-6 text-right">{holder.amount}</td>
+                                    <td className="py-3 px-6 text-right">{holder.amount?.replace(' NFTs', '')}</td>
                                     <td className="py-3 px-6 text-right">{solValue.toFixed(2)} SOL</td>
                                     <td className="py-3 px-6 text-right">${usdValue}</td>
                                   </>
@@ -430,7 +430,7 @@ const Bux = () => {
                                     </td>
                                     <td className="py-3 px-6 text-purple-400">{holder.address}</td>
                                     <td className="py-3 px-6 text-right">{holder.bux}</td>
-                                    <td className="py-3 px-6 text-right">{holder.nfts}</td>
+                                    <td className="py-3 px-6 text-right">{holder.nfts?.replace(' NFTs', '')}</td>
                                     <td className="py-3 px-6 text-right">{solValue.toFixed(2)} SOL</td>
                                     <td className="py-3 px-6 text-right">${usdValue}</td>
                                   </>
