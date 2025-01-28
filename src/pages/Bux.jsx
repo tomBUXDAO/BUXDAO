@@ -30,7 +30,7 @@ const Bux = () => {
   
   const collections = [
     { id: 'all', name: 'All Collections' },
-    { id: 'fckedcatz', name: 'FCKed Catz' },
+    { id: 'fckedcatz', name: 'Fcked Catz' },
     { id: 'moneymonsters', name: 'Money Monsters' },
     { id: 'aibitbots', name: 'A.I. BitBots' },
     { id: 'moneymonsters3d', name: 'Money Monsters 3D' },
@@ -499,7 +499,7 @@ const Bux = () => {
                   <span className="text-purple-400 font-semibold ml-4">7 $BUX</span>
                 </div>
                 <div className="flex justify-between items-center border-b border-gray-700 pb-2">
-                  <span className="text-gray-200">FCKed Catz</span>
+                  <span className="text-gray-200">Fcked Catz</span>
                   <span className="text-purple-400 font-semibold ml-4">5 $BUX</span>
                 </div>
                 <div className="flex justify-between items-center border-b border-gray-700 pb-2">
