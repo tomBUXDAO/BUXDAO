@@ -40,6 +40,59 @@ const Bux = () => {
   // Get the base URL for API calls
   const baseUrl = import.meta.env.DEV ? 'http://localhost:3001' : 'https://buxdao.com';
 
+  // Add data validation helper
+  const validateHolderData = (holder) => {
+    if (!holder || typeof holder !== 'object') {
+      console.warn('Invalid holder data:', holder);
+      return false;
+    }
+
+    if (viewType === 'nfts') {
+      const isValid = holder.address && 
+                     holder.amount && 
+                     holder.value &&
+                     typeof holder.amount === 'string' &&
+                     holder.amount.includes('NFTs') &&
+                     typeof holder.value === 'string' &&
+                     holder.value.includes('SOL');
+      
+      if (!isValid) {
+        console.warn('Invalid NFT holder data:', holder);
+      }
+      
+      return isValid;
+    }
+
+    if (viewType === 'bux') {
+      const isValid = holder.address && 
+                     holder.amount && 
+                     holder.percentage &&
+                     holder.value &&
+                     typeof holder.value === 'string' &&
+                     holder.value.includes('SOL');
+      
+      if (!isValid) {
+        console.warn('Invalid BUX holder data:', holder);
+      }
+      
+      return isValid;
+    }
+
+    // Combined view (bux,nfts)
+    const isValid = holder.address && 
+                   holder.bux && 
+                   holder.nfts &&
+                   holder.value &&
+                   typeof holder.value === 'string' &&
+                   holder.value.includes('SOL');
+    
+    if (!isValid) {
+      console.warn('Invalid combined holder data:', holder);
+    }
+    
+    return isValid;
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -52,7 +105,8 @@ const Bux = () => {
         ]);
 
         if (!metricsResponse.ok || !holdersResponse.ok) {
-          throw new Error('Failed to fetch data');
+          const errorData = await holdersResponse.json().catch(() => ({}));
+          throw new Error(errorData.message || 'Failed to fetch data');
         }
 
         const [metricsData, holdersData] = await Promise.all([
@@ -60,13 +114,29 @@ const Bux = () => {
           holdersResponse.json()
         ]);
 
+        console.log('View Type:', viewType);
+        console.log('Selected Collection:', selectedCollection);
         console.log('Holders API Response:', holdersData);
+        console.log('Holders Data:', holdersData.holders);
+
+        if (!Array.isArray(holdersData.holders)) {
+          throw new Error('Invalid holders data received');
+        }
+
+        // Validate the data before setting state
+        const validHolders = holdersData.holders.filter(validateHolderData);
+        console.log('Valid holders:', validHolders.length, 'of', holdersData.holders.length);
+
+        if (validHolders.length === 0 && holdersData.holders.length > 0) {
+          throw new Error('No valid holder data found in response');
+        }
 
         setTokenData(metricsData);
-        setTopHolders(holdersData.holders || []);
+        setTopHolders(validHolders);
       } catch (err) {
         console.error('Error fetching data:', err);
         setError(err.message);
+        setTopHolders([]);
       } finally {
         setIsLoading(false);
       }
@@ -265,7 +335,28 @@ const Bux = () => {
 
                 <div className="overflow-x-auto">
                   {isLoading ? (
-                    <div className="text-gray-400 text-center py-4">Loading...</div>
+                    <div className="flex items-center justify-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-400"></div>
+                      <span className="ml-3 text-gray-400">Loading holders data...</span>
+                    </div>
+                  ) : error ? (
+                    <div className="text-red-500 bg-red-100/10 p-4 rounded-lg">
+                      <p className="font-semibold">Error loading holders data:</p>
+                      <p className="mt-1">{error}</p>
+                      <button 
+                        onClick={() => window.location.reload()}
+                        className="mt-4 px-4 py-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors"
+                      >
+                        Retry
+                      </button>
+                    </div>
+                  ) : topHolders.length === 0 ? (
+                    <div className="text-gray-400 text-center py-8">
+                      <p>No holders found for the selected criteria.</p>
+                      {viewType === 'nfts' && selectedCollection !== 'all' && (
+                        <p className="mt-2">Try selecting "All Collections" to see all NFT holders.</p>
+                      )}
+                    </div>
                   ) : (
                     <div className="max-h-[400px] overflow-y-auto relative border border-gray-700 rounded-lg">
                       <table className="w-full text-sm whitespace-nowrap">
@@ -299,44 +390,54 @@ const Bux = () => {
                           </tr>
                         </thead>
                         <tbody>
-                          {topHolders.map((holder, index) => (
-                            <tr key={index} className={`text-gray-200 border-b border-gray-800 ${index % 2 === 0 ? 'bg-gray-800/50' : 'bg-transparent'}`}>
-                              {viewType === 'bux,nfts' && (
-                                <td className="py-3 px-6 text-center font-semibold">
-                                  {index === 0 && <span title="1st Place" className="text-yellow-500">🥇 1</span>}
-                                  {index === 1 && <span title="2nd Place" className="text-gray-300">🥈 2</span>}
-                                  {index === 2 && <span title="3rd Place" className="text-amber-600">🥉 3</span>}
-                                  {index > 2 && index < 10 && <span title={`Top 10`} className="text-yellow-500">⭐ {index + 1}</span>}
-                                  {index >= 10 && index < 25 && <span title={`Top 25`} className="text-gray-300">⭐ {index + 1}</span>}
-                                  {index >= 25 && <span title={`Rank ${index + 1}`} className="text-amber-600">● {index + 1}</span>}
-                                </td>
-                              )}
-                              {viewType === 'bux' ? (
-                                <>
-                                  <td className="py-3 px-6 text-purple-400">{holder.address}</td>
-                                  <td className="py-3 px-6 text-right">{holder.amount}</td>
-                                  <td className="py-3 px-6 text-right">{holder.percentage}</td>
-                                  <td className="py-3 px-6 text-right">{holder.value.split(' ')[0]} SOL</td>
-                                  <td className="py-3 px-6 text-right">${holder.value.split('($')[1]?.replace(')', '')}</td>
-                                </>
-                              ) : viewType === 'nfts' ? (
-                                <>
-                                  <td className="py-3 px-6 text-purple-400">{holder.address}</td>
-                                  <td className="py-3 px-6 text-right">{holder.amount.split(' ')[0]}</td>
-                                  <td className="py-3 px-6 text-right">{holder.value.split(' ')[0]} SOL</td>
-                                  <td className="py-3 px-6 text-right">${holder.value.split('($')[1]?.replace(')', '')}</td>
-                                </>
-                              ) : (
-                                <>
-                                  <td className="py-3 px-6 text-purple-400">{holder.address}</td>
-                                  <td className="py-3 px-6 text-right">{holder.bux}</td>
-                                  <td className="py-3 px-6 text-right">{holder.nfts ? holder.nfts.split(' ')[0] : holder.nftCount}</td>
-                                  <td className="py-3 px-6 text-right">{holder.value.split(' ')[0]} SOL</td>
-                                  <td className="py-3 px-6 text-right">${holder.value.split('($')[1]?.replace(')', '')}</td>
-                                </>
-                              )}
-                            </tr>
-                          ))}
+                          {topHolders.filter(validateHolderData).map((holder, index) => {
+                            // Extract and validate value components
+                            const valueComponents = holder.value.split(' ');
+                            const solValue = parseFloat(valueComponents[0]);
+                            const usdValue = holder.value.split('($')[1]?.replace(')', '');
+                            
+                            if (isNaN(solValue)) {
+                              console.warn('Invalid SOL value:', holder.value);
+                              return null;
+                            }
+
+                            return (
+                              <tr key={index} className={`text-gray-200 border-b border-gray-800 ${index % 2 === 0 ? 'bg-gray-800/50' : 'bg-transparent'}`}>
+                                {viewType === 'bux' ? (
+                                  <>
+                                    <td className="py-3 px-6 text-purple-400">{holder.address}</td>
+                                    <td className="py-3 px-6 text-right">{holder.amount}</td>
+                                    <td className="py-3 px-6 text-right">{holder.percentage}</td>
+                                    <td className="py-3 px-6 text-right">{solValue.toFixed(2)} SOL</td>
+                                    <td className="py-3 px-6 text-right">${usdValue}</td>
+                                  </>
+                                ) : viewType === 'nfts' ? (
+                                  <>
+                                    <td className="py-3 px-6 text-purple-400">{holder.address}</td>
+                                    <td className="py-3 px-6 text-right">{holder.amount}</td>
+                                    <td className="py-3 px-6 text-right">{solValue.toFixed(2)} SOL</td>
+                                    <td className="py-3 px-6 text-right">${usdValue}</td>
+                                  </>
+                                ) : (
+                                  <>
+                                    <td className="py-3 px-6 text-center font-semibold">
+                                      {index === 0 && <span title="1st Place" className="text-yellow-500">🥇 1</span>}
+                                      {index === 1 && <span title="2nd Place" className="text-gray-300">🥈 2</span>}
+                                      {index === 2 && <span title="3rd Place" className="text-amber-600">🥉 3</span>}
+                                      {index > 2 && index < 10 && <span title={`Top 10`} className="text-yellow-500">⭐ {index + 1}</span>}
+                                      {index >= 10 && index < 25 && <span title={`Top 25`} className="text-gray-300">⭐ {index + 1}</span>}
+                                      {index >= 25 && <span title={`Rank ${index + 1}`} className="text-amber-600">● {index + 1}</span>}
+                                    </td>
+                                    <td className="py-3 px-6 text-purple-400">{holder.address}</td>
+                                    <td className="py-3 px-6 text-right">{holder.bux}</td>
+                                    <td className="py-3 px-6 text-right">{holder.nfts}</td>
+                                    <td className="py-3 px-6 text-right">{solValue.toFixed(2)} SOL</td>
+                                    <td className="py-3 px-6 text-right">${usdValue}</td>
+                                  </>
+                                )}
+                              </tr>
+                            );
+                          }).filter(Boolean)}
                         </tbody>
                       </table>
                     </div>

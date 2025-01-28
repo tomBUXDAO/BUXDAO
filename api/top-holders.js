@@ -135,6 +135,16 @@ export default async function handler(req, res) {
     }
 
     if (type === 'nfts') {
+      console.log('Processing NFT holders request:', { collection, type });
+      
+      // Validate collection parameter
+      if (collection !== 'all' && !['fckedcatz', 'moneymonsters', 'aibitbots', 'moneymonsters3d', 'celebcatz'].includes(collection)) {
+        return res.status(400).json({
+          error: 'Invalid collection parameter',
+          message: 'Collection must be one of: all, fckedcatz, moneymonsters, aibitbots, moneymonsters3d, celebcatz'
+        });
+      }
+      
       // Map frontend names to DB symbols
       const dbSymbols = {
         'fckedcatz': 'FCKEDCATZ',
@@ -153,53 +163,141 @@ export default async function handler(req, res) {
         'CelebCatz': 0.489
       };
 
-      // Get NFT counts
-      const dbSymbol = collection !== 'all' ? dbSymbols[collection] : null;
-      const nftResult = dbSymbol 
-        ? await client.query(`
-            SELECT owner_wallet, symbol, COUNT(*) as count
-            FROM nft_metadata 
-            WHERE owner_wallet NOT IN ($1, $2)
-            AND owner_wallet IS NOT NULL 
-            AND owner_wallet != ''
-            AND symbol = $3
-            GROUP BY owner_wallet, symbol
-          `, [PROJECT_WALLET, ME_ESCROW, dbSymbol])
-        : await client.query(`
-            SELECT owner_wallet, symbol, COUNT(*) as count
-            FROM nft_metadata 
-            WHERE owner_wallet NOT IN ($1, $2)
-            AND owner_wallet IS NOT NULL 
-            AND owner_wallet != ''
-            GROUP BY owner_wallet, symbol
-          `, [PROJECT_WALLET, ME_ESCROW]);
-
-      // Calculate totals
-      const totals = {};
-      for (const row of nftResult.rows) {
-        const { owner_wallet, symbol, count } = row;
-        if (!totals[owner_wallet]) {
-          totals[owner_wallet] = { nfts: 0, value: 0 };
+      try {
+        // Validate database connection
+        if (!client) {
+          throw new Error('Database connection not available');
         }
-        totals[owner_wallet].nfts += Number(count);
-        totals[owner_wallet].value += Number(count) * (floorPrices[symbol] || 0);
-      }
 
-      // Format response
-      const holders = Object.entries(totals)
-        .map(([wallet, data]) => ({
-          address: wallet.slice(0, 4) + '...' + wallet.slice(-4),
-          amount: `${data.nfts} NFTs`,
-          value: `${data.value.toFixed(2)} SOL ($${(data.value * solPrice).toFixed(2)})`
-        }))
-        .sort((a, b) => {
-          const valueA = parseFloat(a.value.split(' ')[0]);
-          const valueB = parseFloat(b.value.split(' ')[0]);
-          return valueB - valueA;
+        // Get NFT counts
+        const dbSymbol = collection !== 'all' ? dbSymbols[collection] : null;
+        console.log('Using DB symbol:', dbSymbol);
+        console.log('Project wallet:', PROJECT_WALLET);
+        console.log('ME escrow:', ME_ESCROW);
+        
+        const query = dbSymbol 
+          ? `
+              SELECT 
+                owner_wallet, 
+                symbol, 
+                COUNT(*) as count,
+                COUNT(*) FILTER (WHERE owner_wallet IS NOT NULL AND owner_wallet != '') as valid_count
+              FROM nft_metadata 
+              WHERE owner_wallet NOT IN ($1, $2)
+              AND owner_wallet IS NOT NULL 
+              AND owner_wallet != ''
+              AND symbol = $3
+              GROUP BY owner_wallet, symbol
+              HAVING COUNT(*) > 0
+            `
+          : `
+              SELECT 
+                owner_wallet, 
+                symbol, 
+                COUNT(*) as count,
+                COUNT(*) FILTER (WHERE owner_wallet IS NOT NULL AND owner_wallet != '') as valid_count
+              FROM nft_metadata 
+              WHERE owner_wallet NOT IN ($1, $2)
+              AND owner_wallet IS NOT NULL 
+              AND owner_wallet != ''
+              GROUP BY owner_wallet, symbol
+              HAVING COUNT(*) > 0
+            `;
+
+        console.log('Executing query:', {
+          query,
+          params: dbSymbol ? [PROJECT_WALLET, ME_ESCROW, dbSymbol] : [PROJECT_WALLET, ME_ESCROW]
         });
 
-      res.setHeader('Cache-Control', 'public, s-maxage=60');
-      return res.status(200).json({ holders });
+        const nftResult = dbSymbol 
+          ? await client.query(query, [PROJECT_WALLET, ME_ESCROW, dbSymbol])
+          : await client.query(query, [PROJECT_WALLET, ME_ESCROW]);
+
+        if (!nftResult || !Array.isArray(nftResult.rows)) {
+          throw new Error('Invalid query result structure');
+        }
+
+        console.log('NFT query result rows:', nftResult.rows.length);
+        console.log('Sample NFT data:', nftResult.rows.slice(0, 3));
+
+        // Calculate totals
+        const totals = {};
+        for (const row of nftResult.rows) {
+          const { owner_wallet, symbol, valid_count } = row;
+          
+          if (!owner_wallet || !symbol || valid_count === undefined) {
+            console.warn('Skipping invalid row:', row);
+            continue;
+          }
+
+          if (!totals[owner_wallet]) {
+            totals[owner_wallet] = { nfts: 0, value: 0 };
+          }
+
+          const count = Number(valid_count);
+          if (isNaN(count)) {
+            console.warn('Invalid count value:', valid_count);
+            continue;
+          }
+
+          const floorPrice = floorPrices[symbol] || 0;
+          totals[owner_wallet].nfts += count;
+          totals[owner_wallet].value += count * floorPrice;
+
+          console.log('Processing holder:', {
+            wallet: owner_wallet,
+            symbol,
+            count,
+            floorPrice,
+            totalNFTs: totals[owner_wallet].nfts,
+            totalValue: totals[owner_wallet].value
+          });
+        }
+
+        if (Object.keys(totals).length === 0) {
+          console.warn('No valid holders found');
+          return res.status(200).json({ holders: [] });
+        }
+
+        console.log('Processed totals:', {
+          totalHolders: Object.keys(totals).length,
+          sampleHolder: Object.entries(totals)[0]
+        });
+
+        // Format response
+        const holders = Object.entries(totals)
+          .filter(([wallet, data]) => wallet && data.nfts > 0)
+          .map(([wallet, data]) => ({
+            address: wallet.slice(0, 4) + '...' + wallet.slice(-4),
+            amount: `${data.nfts} NFTs`,
+            value: `${data.value.toFixed(2)} SOL ($${(data.value * solPrice).toFixed(2)})`
+          }))
+          .sort((a, b) => {
+            const valueA = parseFloat(a.value.split(' ')[0]);
+            const valueB = parseFloat(b.value.split(' ')[0]);
+            return valueB - valueA;
+          });
+
+        console.log('Formatted holders:', {
+          count: holders.length,
+          sample: holders.slice(0, 3)
+        });
+
+        if (holders.length === 0) {
+          console.warn('No holders after formatting');
+          return res.status(200).json({ holders: [] });
+        }
+
+        res.setHeader('Cache-Control', 'public, s-maxage=60');
+        return res.status(200).json({ holders });
+      } catch (error) {
+        console.error('Error processing NFT holders:', error);
+        return res.status(500).json({ 
+          error: 'Error processing NFT holders',
+          message: error.message,
+          stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        });
+      }
     }
 
     if (type === 'bux') {
