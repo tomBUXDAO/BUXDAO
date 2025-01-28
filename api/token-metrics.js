@@ -50,8 +50,8 @@ router.get('/', async (req, res) => {
       'https://mainnet.helius-rpc.com/?api-key=15319bf4-5b40-4958-ac8d-6313aa55eb92'
     ];
 
-    let lpBalance = 32.0921 * LAMPORTS_PER_SOL;
-    const lpBalanceInSol = 32.0921;
+    let lpBalance = 32.5921 * LAMPORTS_PER_SOL;
+    const lpBalanceInSol = 32.5921;
 
     // Calculate token value (LP balance / public supply) with high precision
     const publicSupplyNum = Number(metrics.public_supply) || 1; // Prevent division by zero
