@@ -25,6 +25,7 @@ import celebcatzRouter from './api/celebcatz/index.js';
 import topHoldersHandler from './api/top-holders.js';
 import tokenMetricsRouter from './api/token-metrics.js';
 import userRouter from './api/user/index.js';
+import collectionCountsRouter from './api/collection-counts/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -39,7 +40,7 @@ if (process.env.NODE_ENV === 'production') {
 
 // CORS configuration - must be first
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:3001'],
+  origin: ['http://localhost:5173', 'http://localhost:3001', 'https://buxdao.com'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
@@ -50,7 +51,7 @@ app.use(cors({
 
 // Add CORS preflight handler
 app.options('*', cors({
-  origin: ['http://localhost:5173', 'http://localhost:3001'],
+  origin: ['http://localhost:5173', 'http://localhost:3001', 'https://buxdao.com'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
@@ -391,6 +392,7 @@ app.use('/api/celebcatz', celebcatzRouter);
 app.use('/api/top-holders', topHoldersHandler);
 app.use('/api/token-metrics', tokenMetricsRouter);
 app.use('/api/user', userRouter);
+app.use('/api/collection-counts', collectionCountsRouter);
 
 // API 404 handler
 app.use('/api/*', (req, res) => {

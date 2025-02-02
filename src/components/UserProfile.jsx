@@ -1,9 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useUser } from '../contexts/UserContext';
-
-const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://buxdao.com'
-  : 'http://localhost:3001';
+import { API_BASE_URL } from '../config';
 
 // NFT reward allocations
 const DAILY_REWARDS = {
@@ -25,105 +22,65 @@ const SYMBOL_TO_NAME = {
 };
 
 const UserProfile = () => {
-  const { discordUser: user } = useUser();
-  const [userData, setUserData] = useState(null);
+  const { discordUser } = useUser();
+  const [userData, setUserData] = useState({
+    wallet_address: discordUser?.wallet_address || '',
+    balance: 0,
+    unclaimed_rewards: 0,
+    collections: {
+      'Celeb Catz': 0,
+      'Money Monsters 3D': 0,
+      'FCKed Catz': 0,
+      'Money Monsters': 0,
+      'A.I. BitBots': 0,
+      'Collab Collections': 0
+    },
+    totalCount: 0,
+    roles: []
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [cashoutAmount, setCashoutAmount] = useState('');
 
   useEffect(() => {
     const fetchUserData = async () => {
-      if (!user?.discord_id) {
+      if (!discordUser?.discord_id) {
         setIsLoading(false);
         return;
       }
       
       try {
-        // First fetch total holdings to get user's data
-        const totalResponse = await fetch(`${API_BASE_URL}/api/top-holders?collection=all&type=bux,nfts`, {
+        // Fetch collection counts
+        console.log('Fetching collection counts for discord_id:', discordUser.discord_id);
+        const collectionCountsResponse = await fetch(`${API_BASE_URL}/api/collection-counts/${discordUser.discord_id}`, {
           credentials: 'include',
           headers: { 'Accept': 'application/json' }
         });
-        
-        if (!totalResponse.ok) throw new Error('Failed to fetch holders data');
-        
-        const { holders } = await totalResponse.json();
-        console.log('All holders data:', holders);
-        console.log('Looking for Discord username:', user.discord_username);
-        
-        // Find user data by Discord username
-        const myData = holders.find(h => h.discord_username === user.discord_username || h.address === user.discord_username);
-        console.log('Found holder data:', myData);
 
-        if (!myData) {
-          console.log('No holder data found for user:', user);
-          setUserData({
-            wallet_address: user.wallet_address,
-            balance: 0,
-            unclaimed_rewards: 0,
-            collections: {},
-            totalCount: 0,
-            roles: []
-          });
-          return;
+        if (!collectionCountsResponse.ok) {
+          console.error('Failed to fetch collection counts:', await collectionCountsResponse.text());
+        } else {
+          const collectionData = await collectionCountsResponse.json();
+          console.log('Collection counts:', collectionData);
+
+          // Map collection counts to the expected format
+          const collectionCounts = {
+            'Celeb Catz': collectionData.celeb_catz_count || 0,
+            'Money Monsters 3D': collectionData.money_monsters_3d_count || 0,
+            'FCKed Catz': collectionData.fcked_catz_count || 0,
+            'Money Monsters': collectionData.money_monsters_count || 0,
+            'A.I. BitBots': collectionData.aibitbots_count || 0,
+            'Collab Collections': 0
+          };
+
+          // Update state with collection data
+          setUserData(prev => ({
+            ...prev,
+            collections: collectionCounts,
+            totalCount: collectionData.total_count || 0,
+            balance: collectionData.balance || 0,
+            unclaimed_rewards: collectionData.unclaimed_rewards || 0
+          }));
         }
-
-        // Now fetch all collections data
-        const collections = ['celebcatz', 'moneymonsters3d', 'fckedcatz', 'moneymonsters', 'aibitbots'];
-        const collectionResponses = await Promise.all(
-          collections.map(collection => 
-            fetch(`${API_BASE_URL}/api/top-holders?collection=${collection}&type=nfts`, {
-              credentials: 'include',
-              headers: { 'Accept': 'application/json' }
-            })
-          )
-        );
-
-        const collectionData = await Promise.all(
-          collectionResponses.map(response => response.json())
-        );
-
-        // Extract collection counts from individual responses
-        const collectionCounts = {
-          'Celeb Catz': 0,
-          'Money Monsters 3D': 0,
-          'FCKed Catz': 0,
-          'Money Monsters': 0,
-          'A.I. BitBots': 0,
-          'Collab Collections': 0
-        };
-
-        // Map collection data to counts by finding the user's data in each collection
-        collectionData.forEach((data, index) => {
-          // Find user holding by address (which is their discord username in the data)
-          const userHolding = data.holders?.find(h => h.address === user.discord_username);
-          
-          console.log(`${collections[index]} found holding:`, userHolding);
-
-          if (userHolding) {
-            const count = parseInt(userHolding.amount.split(' ')[0]) || 0;
-            switch(collections[index]) {
-              case 'celebcatz':
-                collectionCounts['Celeb Catz'] = count;
-                break;
-              case 'moneymonsters3d':
-                collectionCounts['Money Monsters 3D'] = count;
-                break;
-              case 'fckedcatz':
-                collectionCounts['FCKed Catz'] = count;
-                break;
-              case 'moneymonsters':
-                collectionCounts['Money Monsters'] = count;
-                break;
-              case 'aibitbots':
-                collectionCounts['A.I. BitBots'] = count;
-                break;
-            }
-          }
-        });
-
-        // Extract total NFTs count
-        const nftsMatch = myData.nfts.match(/(\d+)/);
-        const totalNFTs = nftsMatch ? parseInt(nftsMatch[1]) : 0;
 
         // Now fetch roles
         const rolesResponse = await fetch(`${API_BASE_URL}/api/auth/roles`, {
@@ -131,35 +88,27 @@ const UserProfile = () => {
           headers: { 'Accept': 'application/json' }
         });
 
-        if (!rolesResponse.ok) throw new Error('Failed to fetch roles');
-        const rolesData = await rolesResponse.json();
-        console.log('Fetched roles data:', rolesData);
+        if (!rolesResponse.ok) {
+          console.error('Failed to fetch roles:', await rolesResponse.text());
+        } else {
+          const rolesData = await rolesResponse.json();
+          console.log('Roles data:', rolesData);
 
-        // Set user data with roles and holdings directly from the response
-        setUserData({
-          wallet_address: user.wallet_address,
-          balance: parseInt(myData.bux.replace(/,/g, '')) || 0,
-          unclaimed_rewards: 0,
-          collections: {
-            'Celeb Catz': rolesData.holdings.celebCatz ? 1 : 0,
-            'Money Monsters 3D': rolesData.holdings.moneyMonsters3d ? 24 : 0,
-            'FCKed Catz': rolesData.holdings.fckedCatz ? 9 : 0,
-            'Money Monsters': rolesData.holdings.moneyMonsters ? 26 : 0,
-            'A.I. BitBots': rolesData.holdings.aiBitbots ? 7 : 0,
-            'Collab Collections': 0
-          },
-          totalCount: totalNFTs,
-          roles: rolesData.roles || []
-        });
+          // Update state with roles
+          setUserData(prev => ({
+            ...prev,
+            roles: rolesData.roles || []
+          }));
+        }
       } catch (error) {
         console.error('Failed to fetch user data:', error);
       } finally {
         setIsLoading(false);
       }
-    }
+    };
 
     fetchUserData();
-  }, [user]);
+  }, [discordUser]);
 
   // Calculate total daily yield from NFTs
   const calculateCollectionYield = (collection) => {
@@ -207,7 +156,7 @@ const UserProfile = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {userData && Object.entries(userData.collections).map(([collection, count]) => {
+                  {Object.entries(userData.collections).map(([collection, count]) => {
                     // Transform display names
                     const displayName = (() => {
                       switch(collection) {
@@ -218,17 +167,7 @@ const UserProfile = () => {
                       }
                     })();
 
-                    const dailyYield = (() => {
-                      switch(collection) {
-                        case 'Celeb Catz': return count * 20;
-                        case 'Money Monsters 3D': return count * 7;
-                        case 'FCKed Catz': return count * 5;
-                        case 'Money Monsters': return count * 5;
-                        case 'A.I. BitBots': return count * 3;
-                        case 'Collab Collections': return count * 0;
-                        default: return 0;
-                      }
-                    })();
+                    const dailyYield = calculateCollectionYield(collection);
 
                     return (
                       <tr key={collection} className="border-t">
@@ -240,7 +179,7 @@ const UserProfile = () => {
                   })}
                   <tr className="font-semibold">
                     <td className="py-2 text-fuchsia-300">Total</td>
-                    <td className="py-2 text-fuchsia-300 text-center">{userData?.totalCount || 0}</td>
+                    <td className="py-2 text-fuchsia-300 text-center">{userData.totalCount}</td>
                     <td className="py-2 text-fuchsia-300 text-center">{totalDailyYield}</td>
                   </tr>
                 </tbody>
@@ -305,7 +244,7 @@ const UserProfile = () => {
             <div>
               <p className="text-fuchsia-300 mb-2">BUX Balance</p>
               <p className="text-2xl font-bold text-white mb-3">
-                {userData?.balance || 0} $BUX
+                {Number(userData?.balance || 0).toFixed(2)} $BUX
               </p>
               <div className="space-y-3">
                 <input

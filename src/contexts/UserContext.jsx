@@ -107,40 +107,56 @@ export const UserProvider = ({ children }) => {
     try {
       console.log('Initiating logout...');
       
-      // Disconnect wallet first if connected
-      if (connected) {
-        await disconnect();
-      }
-
-      // Reset state before server call
+      // Reset state first
       setDiscordUser(null);
       setInitialized(false);
+      setLoading(true);
+
+      // Disconnect wallet if connected
+      if (connected) {
+        try {
+          await disconnect();
+        } catch (err) {
+          console.error('Wallet disconnect failed:', err);
+        }
+      }
 
       // Call server logout
       const response = await fetch(`${API_BASE}/api/auth/logout`, {
         method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        cache: 'no-store'
+        credentials: 'include'
       });
 
-      console.log('Logout response:', response.status);
-      
-      // Clear all cookies manually
-      document.cookie.split(';').forEach(cookie => {
-        const [name] = cookie.split('=');
-        document.cookie = `${name.trim()}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
-      });
+      if (!response.ok) {
+        throw new Error('Logout failed');
+      }
 
-      // Force a hard reload to clear everything
-      window.location.href = '/';
+      // Clear all storage
+      try {
+        localStorage.clear();
+        sessionStorage.clear();
+        
+        // Clear all cookies manually
+        const cookies = document.cookie.split(';');
+        for (let cookie of cookies) {
+          const cookieName = cookie.split('=')[0].trim();
+          if (cookieName) { // Only clear cookies with valid names
+            document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
+            if (window.location.hostname !== 'localhost') {
+              document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=.${window.location.hostname}`;
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Storage clear failed:', err);
+      }
+
+      // Force a clean reload with cache busting
+      window.location.replace('/?clear=' + Date.now());
     } catch (err) {
       console.error('Logout failed:', err);
-      // Force reload anyway
-      window.location.href = '/';
+      // Force reload even if logout fails
+      window.location.replace('/?clear=' + Date.now());
     }
   };
 

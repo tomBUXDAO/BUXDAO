@@ -1,4 +1,5 @@
 import express from 'express';
+import pool from '../../config/database.js';
 
 const router = express.Router();
 
@@ -11,50 +12,77 @@ const DOMAIN = process.env.NODE_ENV === 'production'
   : 'localhost';
 
 router.post('/', async (req, res) => {
-  try {
-    // Set CORS headers
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-    res.setHeader('Access-Control-Allow-Origin', FRONTEND_URL);
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  // Set CORS headers first
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Origin', FRONTEND_URL);
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cache-Control, Pragma');
 
-    // Clear all auth cookies with correct settings for both root and subdomain
+  const client = await pool.connect();
+  try {
+    // Delete session from database first
+    await client.query('DELETE FROM "session" WHERE sid = $1', [req.sessionID]);
+
+    // Destroy express session
+    await new Promise((resolve, reject) => {
+      req.session.destroy((err) => {
+        if (err) {
+          console.error('Session destruction failed:', err);
+          reject(err);
+        }
+        resolve();
+      });
+    });
+
+    // Clear all cookies with proper options for both secure and non-secure environments
     const cookieOptions = {
-      path: '/',
-      domain: DOMAIN,
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      path: '/',
+      domain: process.env.NODE_ENV === 'production' ? '.buxdao.com' : undefined,
       expires: new Date(0)
     };
 
-    // Clear cookies for root domain
-    res.clearCookie('discord_token', cookieOptions);
-    res.clearCookie('discord_user', cookieOptions);
-    res.clearCookie('discord_state', cookieOptions);
-    res.clearCookie('buxdao.sid', cookieOptions);
+    // List of known cookies to clear
+    const cookiesToClear = [
+      'discord_user',
+      'discord_token',
+      'discord_state',
+      'auth_status',
+      'buxdao.sid',
+      'connect.sid'
+    ];
 
-    // Also clear cookies without domain (for localhost)
-    const localCookieOptions = {
-      ...cookieOptions,
-      domain: undefined
-    };
-    res.clearCookie('discord_token', localCookieOptions);
-    res.clearCookie('discord_user', localCookieOptions);
-    res.clearCookie('discord_state', localCookieOptions);
-    res.clearCookie('buxdao.sid', localCookieOptions);
-
-    res.json({
-      success: true,
-      message: 'Logged out successfully'
+    // Clear specific cookies
+    cookiesToClear.forEach(cookieName => {
+      if (cookieName) { // Only clear cookies with valid names
+        res.clearCookie(cookieName, cookieOptions);
+      }
     });
+
+    // Also clear any other cookies present
+    if (req.cookies) {
+      for (const cookieName in req.cookies) {
+        if (cookieName && !cookiesToClear.includes(cookieName)) {
+          res.clearCookie(cookieName, cookieOptions);
+        }
+      }
+    }
+
+    // Send response with cache control headers
+    res.set({
+      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    });
+
+    res.status(200).json({ success: true });
   } catch (error) {
     console.error('Logout error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to logout',
-      error: error.message
-    });
+    res.status(500).json({ success: false, error: 'Logout failed' });
+  } finally {
+    client.release();
   }
 });
 
@@ -63,7 +91,7 @@ router.options('/', (req, res) => {
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', FRONTEND_URL);
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cache-Control, Pragma');
   res.status(200).end();
 });
 

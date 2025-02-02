@@ -2,6 +2,7 @@ import pkg from 'pg';
 const { Pool } = pkg;
 import axios from 'axios';
 import authHandler from './auth/index.js';
+import collectionCountsHandler from './collection-counts/[discord_id].js';
 
 const pool = new Pool({
   connectionString: process.env.POSTGRES_URL,
@@ -33,6 +34,16 @@ export default async function handler(req, res) {
   // Handle auth endpoints
   if (req.url.startsWith('/api/auth/')) {
     return authHandler(req, res);
+  }
+
+  // Handle collection-counts endpoint
+  if (req.url.startsWith('/api/collection-counts/')) {
+    const discordId = req.url.split('/')[3];
+    if (!discordId) {
+      return res.status(404).json({ error: 'API endpoint not found' });
+    }
+    req.params = { discord_id: discordId };
+    return collectionCountsHandler(req, res);
   }
 
   if (req.method === 'GET') {
@@ -89,6 +100,6 @@ export default async function handler(req, res) {
     }
   }
   
-  console.log('No matching route found');
-  return res.status(404).json({ error: 'Not found' });
+  // Handle 404 for unmatched routes
+  return res.status(404).json({ error: 'API endpoint not found' });
 } 
