@@ -4,12 +4,12 @@ import { API_BASE_URL } from '../config';
 
 // NFT reward allocations
 const DAILY_REWARDS = {
-  'Celeb Catz': 20,
-  'Money Monsters 3D': 7,
-  'FCKed Catz': 5,
-  'Money Monsters': 5,
-  'A.I. BitBots': 3,
-  'Collab Collections': 1
+  'celeb_catz_count': 20,
+  'money_monsters_3d_count': 7,
+  'fcked_catz_count': 5,
+  'money_monsters_count': 5,
+  'aibitbots_count': 3,
+  'ai_collabs_count': 1
 };
 
 // Map DB symbols to display names
@@ -28,12 +28,12 @@ const UserProfile = () => {
     balance: 0,
     unclaimed_rewards: 0,
     collections: {
-      'Celeb Catz': 0,
-      'Money Monsters 3D': 0,
-      'FCKed Catz': 0,
-      'Money Monsters': 0,
-      'A.I. BitBots': 0,
-      'Collab Collections': 0
+      'celeb_catz_count': 0,
+      'money_monsters_3d_count': 0,
+      'fcked_catz_count': 0,
+      'money_monsters_count': 0,
+      'aibitbots_count': 0,
+      'ai_collabs_count': 0
     },
     totalCount: 0,
     roles: []
@@ -64,12 +64,12 @@ const UserProfile = () => {
 
           // Map collection counts to the expected format
           const collectionCounts = {
-            'Celeb Catz': collectionData.celeb_catz_count || 0,
-            'Money Monsters 3D': collectionData.money_monsters_3d_count || 0,
-            'FCKed Catz': collectionData.fcked_catz_count || 0,
-            'Money Monsters': collectionData.money_monsters_count || 0,
-            'A.I. BitBots': collectionData.aibitbots_count || 0,
-            'Collab Collections': 0
+            'celeb_catz_count': collectionData.celeb_catz_count || 0,
+            'money_monsters_3d_count': collectionData.money_monsters_3d_count || 0,
+            'fcked_catz_count': collectionData.fcked_catz_count || 0,
+            'money_monsters_count': collectionData.money_monsters_count || 0,
+            'aibitbots_count': collectionData.aibitbots_count || 0,
+            'ai_collabs_count': collectionData.ai_collabs_count || 0
           };
 
           // Update state with collection data
@@ -160,9 +160,12 @@ const UserProfile = () => {
                     // Transform display names
                     const displayName = (() => {
                       switch(collection) {
-                        case 'Money Monsters 3D': return '3D Monsters';
-                        case 'FCKed Catz': return 'Fcked Catz';
-                        case 'Collab Collections': return 'A.I. Collabs';
+                        case 'money_monsters_3d_count': return '3D Monsters';
+                        case 'fcked_catz_count': return 'Fcked Catz';
+                        case 'celeb_catz_count': return 'Celeb Catz';
+                        case 'money_monsters_count': return 'Money Monsters';
+                        case 'aibitbots_count': return 'A.I. BitBots';
+                        case 'ai_collabs_count': return 'A.I. Collabs';
                         default: return collection;
                       }
                     })();

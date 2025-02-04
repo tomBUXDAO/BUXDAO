@@ -34,6 +34,7 @@ router.get('/:discord_id', async (req, res) => {
         fcked_catz_count: 0,
         money_monsters_count: 0,
         aibitbots_count: 0,
+        ai_collabs_count: 0,
         total_count: 0,
         balance: 0
       });
@@ -47,6 +48,7 @@ router.get('/:discord_id', async (req, res) => {
         COALESCE(fcked_catz_count, 0) as fcked_catz_count,
         COALESCE(money_monsters_count, 0) as money_monsters_count,
         COALESCE(aibitbots_count, 0) as aibitbots_count,
+        COALESCE(ai_collabs_count, 0) as ai_collabs_count,
         COALESCE(total_count, 0) as total_count
       FROM collection_counts 
       WHERE wallet_address = $1
@@ -65,6 +67,7 @@ router.get('/:discord_id', async (req, res) => {
         fcked_catz_count: 0,
         money_monsters_count: 0,
         aibitbots_count: 0,
+        ai_collabs_count: 0,
         total_count: 0,
         balance: 0
       });
