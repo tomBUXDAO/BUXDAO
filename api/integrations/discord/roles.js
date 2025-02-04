@@ -1,9 +1,12 @@
-import { Client, GatewayIntentBits } from 'discord.js';
+import { Client, GatewayIntentBits, Partials } from 'discord.js';
 import pg from 'pg';
 
 const pool = new pg.Pool({
   connectionString: process.env.POSTGRES_URL,
-  ssl: { rejectUnauthorized: false }
+  ssl: {
+    rejectUnauthorized: false,
+    sslmode: 'require'
+  }
 });
 
 // Cache roles data
@@ -22,7 +25,13 @@ async function getDiscordClient() {
         intents: [
           GatewayIntentBits.Guilds,
           GatewayIntentBits.GuildMembers,
-          GatewayIntentBits.GuildPresences
+          GatewayIntentBits.GuildPresences,
+          GatewayIntentBits.GuildMessages
+        ],
+        partials: [
+          Partials.User,
+          Partials.GuildMember,
+          Partials.Message
         ]
       });
 
@@ -116,6 +125,9 @@ export async function syncUserRoles(discordId, guildId) {
       const rolesToAdd = [];
       const rolesToRemove = [];
 
+      // Get the list of role IDs we manage from the roles table
+      const managedRoleIds = roles.map(r => r.discord_role_id);
+
       // Check each role
       for (const role of roles) {
         const shouldHaveRole = checkRoleEligibility(userRoles, role);
@@ -125,7 +137,10 @@ export async function syncUserRoles(discordId, guildId) {
         if (shouldHaveRole && !hasRole) {
           rolesToAdd.push(role.discord_role_id);
         } else if (!shouldHaveRole && hasRole) {
-          rolesToRemove.push(role.discord_role_id);
+          // Only remove roles that we manage
+          if (managedRoleIds.includes(role.discord_role_id)) {
+            rolesToRemove.push(role.discord_role_id);
+          }
         }
       }
 
@@ -228,6 +243,37 @@ function checkRoleEligibility(userRoles, role) {
     case 'special':
       if (role.name === 'BUXDAO 5') {
         isEligible = userRoles.buxdao_5;
+      }
+      break;
+
+    case 'collab':
+      switch (role.collection) {
+        case 'shxbb':
+          isEligible = userRoles.shxbb_holder;
+          break;
+        case 'ausqrl':
+          isEligible = userRoles.ausqrl_holder;
+          break;
+        case 'aelxaibb':
+          isEligible = userRoles.aelxaibb_holder;
+          break;
+        case 'airb':
+          isEligible = userRoles.airb_holder;
+          break;
+        case 'clb':
+          isEligible = userRoles.clb_holder;
+          break;
+        case 'ddbot':
+          isEligible = userRoles.ddbot_holder;
+          break;
+      }
+      break;
+
+    case 'top10':
+      if (role.collection === 'money_monsters') {
+        isEligible = userRoles.money_monsters_top_10 > 0;
+      } else if (role.collection === 'moneymonsters3d') {
+        isEligible = userRoles.money_monsters_3d_top_10 > 0;
       }
       break;
   }

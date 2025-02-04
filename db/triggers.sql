@@ -71,9 +71,25 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Create a function to notify role changes
+CREATE OR REPLACE FUNCTION notify_role_changes() RETURNS trigger AS $$
+BEGIN
+  -- Only notify if roles array has changed
+  IF OLD.roles IS DISTINCT FROM NEW.roles THEN
+    -- Call the sync endpoint
+    PERFORM pg_notify('role_changes', json_build_object(
+      'discord_id', NEW.discord_id,
+      'event', 'role_update'
+    )::text);
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
 -- Drop existing triggers if they exist
 DROP TRIGGER IF EXISTS update_ownership_trigger ON user_roles;
 DROP TRIGGER IF EXISTS update_roles_trigger ON user_roles;
+DROP TRIGGER IF EXISTS notify_role_changes_trigger ON user_roles;
 
 -- Create triggers
 CREATE TRIGGER update_ownership_trigger
@@ -84,4 +100,9 @@ EXECUTE FUNCTION update_ownership();
 CREATE TRIGGER update_roles_trigger
 AFTER INSERT OR UPDATE OF wallet_address ON user_roles
 FOR EACH ROW
-EXECUTE FUNCTION update_roles(); 
+EXECUTE FUNCTION update_roles();
+
+CREATE TRIGGER notify_role_changes_trigger
+AFTER UPDATE OF roles ON user_roles
+FOR EACH ROW
+EXECUTE FUNCTION notify_role_changes(); 
