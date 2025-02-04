@@ -141,7 +141,10 @@ const UserProfile = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* NFT Holdings */}
           <div className="bg-gradient-to-br from-gray-900/90 to-gray-800/90 rounded-lg p-6 shadow-lg backdrop-blur-sm border border-fuchsia-500/20">
-            <h3 className="text-xl font-semibold text-white mb-4">My NFTs</h3>
+            <h3 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+              <img src="/emojis/image.svg" alt="" className="w-6 h-6 text-white" />
+              My NFTs <span className="text-sm font-normal text-gray-400">(unlisted)</span>
+            </h3>
             <div className="overflow-x-auto">
               <table className="w-full text-left">
                 <thead>
@@ -192,7 +195,10 @@ const UserProfile = () => {
 
           {/* Roles Display */}
           <div className="bg-gradient-to-br from-gray-900/90 to-gray-800/90 rounded-lg p-6 shadow-lg backdrop-blur-sm border border-fuchsia-500/20">
-            <h3 className="text-xl font-semibold text-white mb-4">My Roles</h3>
+            <h3 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+              <img src="/emojis/discord.svg" alt="" className="w-6 h-6 text-white" />
+              My Roles
+            </h3>
             <div className="flex flex-wrap gap-2">
               {(!userData?.roles || userData.roles.length === 0) && (
                 <div className="text-gray-400 text-sm">
@@ -203,8 +209,7 @@ const UserProfile = () => {
               {userData?.roles?.map((role, index) => (
                 <div 
                   key={role.id || index} 
-                  className="inline-flex items-center rounded px-2 py-1"
-                  style={{ backgroundColor: `${role.color}20` }}
+                  className="inline-flex items-center rounded px-2 py-1 bg-gray-800/80 hover:bg-gray-800 transition-colors"
                 >
                   <div 
                     className="w-2 h-2 rounded-full mr-2"
@@ -217,7 +222,7 @@ const UserProfile = () => {
                       className="w-4 h-4 mr-1"
                     />
                   )}
-                  <span className="text-sm font-medium" style={{ color: role.color }}>
+                  <span className="text-sm font-medium text-white">
                     {role.display_name}
                   </span>
                 </div>
