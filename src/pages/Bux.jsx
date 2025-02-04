@@ -510,6 +510,14 @@ const Bux = () => {
                   <span className="text-gray-200">A.I. BitBots</span>
                   <span className="text-purple-400 font-semibold ml-4">3 $BUX</span>
                 </div>
+                <div className="flex justify-between items-center border-b border-gray-700 pb-2">
+                  <span className="text-gray-200">Monster - Top 10 ranks <span className="text-yellow-500">⭐</span></span>
+                  <span className="text-purple-400 font-semibold ml-4">x2</span>
+                </div>
+                <div className="flex justify-between items-center border-b border-gray-700 pb-2">
+                  <span className="text-gray-200">Cat - branded merch <span className="text-yellow-500">⭐</span></span>
+                  <span className="text-purple-400 font-semibold ml-4">x2</span>
+                </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-200">Collab Collections</span>
                   <span className="text-purple-400 font-semibold ml-4">1 $BUX</span>

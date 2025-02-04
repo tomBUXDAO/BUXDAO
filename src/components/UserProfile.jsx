@@ -33,7 +33,9 @@ const UserProfile = () => {
       'fcked_catz_count': 0,
       'money_monsters_count': 0,
       'aibitbots_count': 0,
-      'ai_collabs_count': 0
+      'ai_collabs_count': 0,
+      'money_monsters_top_10': 0,
+      'money_monsters_3d_top_10': 0
     },
     totalCount: 0,
     roles: []
@@ -69,7 +71,9 @@ const UserProfile = () => {
             'fcked_catz_count': collectionData.fcked_catz_count || 0,
             'money_monsters_count': collectionData.money_monsters_count || 0,
             'aibitbots_count': collectionData.aibitbots_count || 0,
-            'ai_collabs_count': collectionData.ai_collabs_count || 0
+            'ai_collabs_count': collectionData.ai_collabs_count || 0,
+            'money_monsters_top_10': collectionData.money_monsters_top_10 || 0,
+            'money_monsters_3d_top_10': collectionData.money_monsters_3d_top_10 || 0
           };
 
           // Update state with collection data
@@ -116,10 +120,17 @@ const UserProfile = () => {
     return count * (DAILY_REWARDS[collection] || 0);
   };
 
+  // Calculate top 10 yield
+  const calculateTop10Yield = () => {
+    const mm10Count = userData?.collections?.['money_monsters_top_10'] || 0;
+    const mm3d10Count = userData?.collections?.['money_monsters_3d_top_10'] || 0;
+    return (mm10Count * 5) + (mm3d10Count * 7); // 5 BUX for MM top 10, 7 BUX for MM3D top 10
+  };
+
   const totalDailyYield = Object.keys(DAILY_REWARDS).reduce(
     (total, collection) => total + calculateCollectionYield(collection),
     0
-  );
+  ) + calculateTop10Yield();
 
   if (isLoading) {
     return (
@@ -160,6 +171,11 @@ const UserProfile = () => {
                 </thead>
                 <tbody>
                   {Object.entries(userData.collections).map(([collection, count]) => {
+                    // Skip top 10 collections as they'll be handled separately
+                    if (collection === 'money_monsters_top_10' || collection === 'money_monsters_3d_top_10') {
+                      return null;
+                    }
+
                     // Transform display names
                     const displayName = (() => {
                       switch(collection) {
@@ -183,6 +199,16 @@ const UserProfile = () => {
                       </tr>
                     );
                   })}
+                  {/* Add Monster Top 10 row */}
+                  {(userData.collections.money_monsters_top_10 > 0 || userData.collections.money_monsters_3d_top_10 > 0) && (
+                    <tr className="border-t">
+                      <td className="py-2">Monster - Top 10 ranks <span className="text-yellow-500 ml-2">⭐</span></td>
+                      <td className="text-center py-2">
+                        {userData.collections.money_monsters_top_10 + userData.collections.money_monsters_3d_top_10}
+                      </td>
+                      <td className="text-center py-2">{calculateTop10Yield()}</td>
+                    </tr>
+                  )}
                   <tr className="font-semibold">
                     <td className="py-2 text-fuchsia-300">Total</td>
                     <td className="py-2 text-fuchsia-300 text-center">{userData.totalCount}</td>
