@@ -142,7 +142,7 @@ const UserProfile = () => {
           {/* NFT Holdings */}
           <div className="bg-gradient-to-br from-gray-900/90 to-gray-800/90 rounded-lg p-6 shadow-lg backdrop-blur-sm border border-fuchsia-500/20">
             <h3 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-              <img src="/emojis/image.svg" alt="" className="w-6 h-6 text-white" />
+              <img src="/emojis/image.svg" alt="" className="w-6 h-6" />
               My NFTs <span className="text-sm font-normal text-gray-400">(unlisted)</span>
             </h3>
             <div className="overflow-x-auto">
@@ -196,7 +196,7 @@ const UserProfile = () => {
           {/* Roles Display */}
           <div className="bg-gradient-to-br from-gray-900/90 to-gray-800/90 rounded-lg p-6 shadow-lg backdrop-blur-sm border border-fuchsia-500/20">
             <h3 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-              <img src="/emojis/discord.svg" alt="" className="w-6 h-6 text-white" />
+              <img src="/emojis/discord.svg" alt="" className="w-6 h-6" />
               My Roles
             </h3>
             <div className="flex flex-wrap gap-2">
