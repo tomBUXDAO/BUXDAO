@@ -35,7 +35,8 @@ const UserProfile = () => {
       'aibitbots_count': 0,
       'ai_collabs_count': 0,
       'money_monsters_top_10': 0,
-      'money_monsters_3d_top_10': 0
+      'money_monsters_3d_top_10': 0,
+      'branded_catz_count': 0
     },
     totalCount: 0,
     roles: []
@@ -73,7 +74,8 @@ const UserProfile = () => {
             'aibitbots_count': collectionData.aibitbots_count || 0,
             'ai_collabs_count': collectionData.ai_collabs_count || 0,
             'money_monsters_top_10': collectionData.money_monsters_top_10 || 0,
-            'money_monsters_3d_top_10': collectionData.money_monsters_3d_top_10 || 0
+            'money_monsters_3d_top_10': collectionData.money_monsters_3d_top_10 || 0,
+            'branded_catz_count': collectionData.branded_catz_count || 0
           };
 
           // Update state with collection data
@@ -127,10 +129,16 @@ const UserProfile = () => {
     return (mm10Count * 5) + (mm3d10Count * 7); // 5 BUX for MM top 10, 7 BUX for MM3D top 10
   };
 
+  // Calculate branded cats yield
+  const calculateBrandedCatzYield = () => {
+    const brandedCount = userData?.collections?.['branded_catz_count'] || 0;
+    return brandedCount * 5; // 5 BUX for each branded cat
+  };
+
   const totalDailyYield = Object.keys(DAILY_REWARDS).reduce(
     (total, collection) => total + calculateCollectionYield(collection),
     0
-  ) + calculateTop10Yield();
+  ) + calculateTop10Yield() + calculateBrandedCatzYield();
 
   if (isLoading) {
     return (
@@ -171,8 +179,10 @@ const UserProfile = () => {
                 </thead>
                 <tbody>
                   {Object.entries(userData.collections).map(([collection, count]) => {
-                    // Skip top 10 collections as they'll be handled separately
-                    if (collection === 'money_monsters_top_10' || collection === 'money_monsters_3d_top_10') {
+                    // Skip top 10 and branded collections as they'll be handled separately
+                    if (collection === 'money_monsters_top_10' || 
+                        collection === 'money_monsters_3d_top_10' ||
+                        collection === 'branded_catz_count') {
                       return null;
                     }
 
@@ -207,6 +217,14 @@ const UserProfile = () => {
                         {userData.collections.money_monsters_top_10 + userData.collections.money_monsters_3d_top_10}
                       </td>
                       <td className="text-center py-2">{calculateTop10Yield()}</td>
+                    </tr>
+                  )}
+                  {/* Add Branded Cats row */}
+                  {userData.collections.branded_catz_count > 0 && (
+                    <tr className="border-t">
+                      <td className="py-2">Cat - branded merch <span className="text-yellow-500 ml-2">⭐</span></td>
+                      <td className="text-center py-2">{userData.collections.branded_catz_count}</td>
+                      <td className="text-center py-2">{calculateBrandedCatzYield()}</td>
                     </tr>
                   )}
                   <tr className="font-semibold">

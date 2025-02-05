@@ -37,6 +37,7 @@ router.get('/:discord_id', async (req, res) => {
         ai_collabs_count: 0,
         money_monsters_top_10: 0,
         money_monsters_3d_top_10: 0,
+        branded_catz_count: 0,
         total_count: 0,
         balance: 0
       });
@@ -53,6 +54,7 @@ router.get('/:discord_id', async (req, res) => {
         COALESCE(ai_collabs_count, 0) as ai_collabs_count,
         COALESCE(money_monsters_top_10, 0) as money_monsters_top_10,
         COALESCE(money_monsters_3d_top_10, 0) as money_monsters_3d_top_10,
+        COALESCE(branded_catz_count, 0) as branded_catz_count,
         COALESCE(total_count, 0) as total_count
       FROM collection_counts 
       WHERE wallet_address = $1
@@ -74,6 +76,7 @@ router.get('/:discord_id', async (req, res) => {
         ai_collabs_count: 0,
         money_monsters_top_10: 0,
         money_monsters_3d_top_10: 0,
+        branded_catz_count: 0,
         total_count: 0,
         balance: 0
       });
