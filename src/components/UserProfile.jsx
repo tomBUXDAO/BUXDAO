@@ -212,7 +212,7 @@ const UserProfile = () => {
                   {/* Add Monster Top 10 row */}
                   {(userData.collections.money_monsters_top_10 > 0 || userData.collections.money_monsters_3d_top_10 > 0) && (
                     <tr className="border-t">
-                      <td className="py-2">Monster - Top 10 ranks <span className="text-yellow-500 ml-2">⭐</span></td>
+                      <td className="py-2">Monster - Top 10</td>
                       <td className="text-center py-2">
                         {userData.collections.money_monsters_top_10 + userData.collections.money_monsters_3d_top_10}
                       </td>
@@ -222,7 +222,7 @@ const UserProfile = () => {
                   {/* Add Branded Cats row */}
                   {userData.collections.branded_catz_count > 0 && (
                     <tr className="border-t">
-                      <td className="py-2">Cat - branded merch <span className="text-yellow-500 ml-2">⭐</span></td>
+                      <td className="py-2">Cat - branded merch</td>
                       <td className="text-center py-2">{userData.collections.branded_catz_count}</td>
                       <td className="text-center py-2">{calculateBrandedCatzYield()}</td>
                     </tr>
