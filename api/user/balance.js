@@ -1,10 +1,9 @@
+import express from 'express';
 import pool from '../../config/database.js';
 
-export default async function handler(req, res) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+const router = express.Router();
 
+router.get('/', async (req, res) => {
   if (!req.session?.user?.discord_id) {
     return res.status(401).json({ error: 'Not authenticated' });
   }
@@ -17,8 +16,9 @@ export default async function handler(req, res) {
     const query = `
       SELECT 
         bh.balance,
-        bh.unclaimed_rewards
+        ca.unclaimed_amount
       FROM bux_holders bh
+      LEFT JOIN claim_accounts ca ON ca.discord_id = bh.owner_discord_id
       WHERE bh.owner_discord_id = $1
     `;
 
@@ -27,13 +27,13 @@ export default async function handler(req, res) {
     if (!result.rows[0]) {
       return res.json({
         balance: 0,
-        unclaimed_rewards: 0
+        unclaimed_amount: 0
       });
     }
 
     res.json({
       balance: parseInt(result.rows[0].balance) || 0,
-      unclaimed_rewards: parseInt(result.rows[0].unclaimed_rewards) || 0
+      unclaimed_amount: parseInt(result.rows[0].unclaimed_amount) || 0
     });
   } catch (error) {
     console.error('Error fetching user balance:', error);
@@ -43,4 +43,6 @@ export default async function handler(req, res) {
       client.release();
     }
   }
-} 
+});
+
+export default router; 

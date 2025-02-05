@@ -25,6 +25,7 @@ import celebcatzRouter from './api/celebcatz/index.js';
 import topHoldersHandler from './api/top-holders.js';
 import tokenMetricsRouter from './api/token-metrics.js';
 import userRouter from './api/user/index.js';
+import balanceRouter from './api/user/balance.js';
 import collectionCountsRouter from './api/collection-counts/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -392,6 +393,7 @@ app.use('/api/celebcatz', celebcatzRouter);
 app.use('/api/top-holders', topHoldersHandler);
 app.use('/api/token-metrics', tokenMetricsRouter);
 app.use('/api/user', userRouter);
+app.use('/api/user/balance', balanceRouter);
 app.use('/api/collection-counts', collectionCountsRouter);
 
 // API 404 handler

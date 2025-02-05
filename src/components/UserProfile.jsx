@@ -43,6 +43,63 @@ const UserProfile = () => {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [cashoutAmount, setCashoutAmount] = useState('');
+  const [claimAmount, setClaimAmount] = useState('');
+  const [timeUntilUpdate, setTimeUntilUpdate] = useState(0);
+
+  // Format time remaining
+  const formatTimeRemaining = (milliseconds) => {
+    const hours = Math.floor(milliseconds / (1000 * 60 * 60));
+    const minutes = Math.floor((milliseconds % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((milliseconds % (1000 * 60)) / 1000);
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  // Update timer every second
+  useEffect(() => {
+    const calculateNextUpdate = () => {
+      const now = new Date();
+      const tomorrow = new Date(now);
+      tomorrow.setHours(24, 0, 0, 0);
+      return tomorrow - now;
+    };
+
+    const updateRewards = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/rewards/update`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to update rewards');
+        }
+
+        // Refresh user data after rewards update
+        fetchUserData();
+      } catch (error) {
+        console.error('Error updating rewards:', error);
+      }
+    };
+
+    // Initial calculation
+    setTimeUntilUpdate(calculateNextUpdate());
+
+    // Update every second
+    const timer = setInterval(() => {
+      const timeLeft = calculateNextUpdate();
+      setTimeUntilUpdate(timeLeft);
+
+      // If we've reached 0, trigger the reward update
+      if (timeLeft <= 0) {
+        updateRewards();
+      }
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -52,12 +109,17 @@ const UserProfile = () => {
       }
       
       try {
-        // Fetch collection counts
-        console.log('Fetching collection counts for discord_id:', discordUser.discord_id);
-        const collectionCountsResponse = await fetch(`${API_BASE_URL}/api/collection-counts/${discordUser.discord_id}`, {
-          credentials: 'include',
-          headers: { 'Accept': 'application/json' }
-        });
+        // Fetch collection counts and claim account data
+        const [collectionCountsResponse, claimAccountResponse] = await Promise.all([
+          fetch(`${API_BASE_URL}/api/collection-counts/${discordUser.discord_id}`, {
+            credentials: 'include',
+            headers: { 'Accept': 'application/json' }
+          }),
+          fetch(`${API_BASE_URL}/api/user/balance`, {
+            credentials: 'include',
+            headers: { 'Accept': 'application/json' }
+          })
+        ]);
 
         if (!collectionCountsResponse.ok) {
           console.error('Failed to fetch collection counts:', await collectionCountsResponse.text());
@@ -78,13 +140,17 @@ const UserProfile = () => {
             'branded_catz_count': collectionData.branded_catz_count || 0
           };
 
-          // Update state with collection data
+          // Get claim account data
+          const claimData = await claimAccountResponse.json();
+          console.log('Claim account data:', claimData);
+
+          // Update state with collection and claim data
           setUserData(prev => ({
             ...prev,
             collections: collectionCounts,
             totalCount: collectionData.total_count || 0,
             balance: collectionData.balance || 0,
-            unclaimed_rewards: collectionData.unclaimed_rewards || 0
+            unclaimed_rewards: claimData.unclaimed_amount || 0
           }));
         }
 
@@ -116,7 +182,7 @@ const UserProfile = () => {
     fetchUserData();
   }, [discordUser]);
 
-  // Calculate total daily yield from NFTs
+  // Calculate collection yield
   const calculateCollectionYield = (collection) => {
     const count = userData?.collections?.[collection] || 0;
     return count * (DAILY_REWARDS[collection] || 0);
@@ -135,10 +201,38 @@ const UserProfile = () => {
     return brandedCount * 5; // 5 BUX for each branded cat
   };
 
+  // Calculate total daily yield
   const totalDailyYield = Object.keys(DAILY_REWARDS).reduce(
     (total, collection) => total + calculateCollectionYield(collection),
     0
   ) + calculateTop10Yield() + calculateBrandedCatzYield();
+
+  const handleClaimRewards = async () => {
+    // TODO: Implement claim rewards functionality
+    console.log('Claiming rewards...');
+  };
+
+  const handleCashout = async () => {
+    // TODO: Implement cashout functionality
+    console.log('Processing cashout:', cashoutAmount);
+  };
+
+  // Add handlers for max and 50% buttons
+  const handleMaxClaim = () => {
+    setClaimAmount(userData?.unclaimed_rewards || 0);
+  };
+
+  const handle50Claim = () => {
+    setClaimAmount((userData?.unclaimed_rewards || 0) / 2);
+  };
+
+  const handleMaxCashout = () => {
+    setCashoutAmount(userData?.balance || 0);
+  };
+
+  const handle50Cashout = () => {
+    setCashoutAmount((userData?.balance || 0) / 2);
+  };
 
   if (isLoading) {
     return (
@@ -276,20 +370,67 @@ const UserProfile = () => {
 
           {/* Claim & Cashout */}
           <div className="bg-gradient-to-br from-gray-900/90 to-gray-800/90 rounded-lg p-6 shadow-lg backdrop-blur-sm border border-fuchsia-500/20">
-            <h3 className="text-xl font-semibold text-white mb-4">Claim & Cashout</h3>
+            <h3 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+              <svg className="w-6 h-6" fill="white" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+                <path d="M 21 4 C 19.207031 4 17.582031 4.335938 16.3125 4.96875 C 15.042969 5.601563 14 6.632813 14 8 L 14 12 C 14 12.128906 14.042969 12.253906 14.0625 12.375 C 13.132813 12.132813 12.101563 12 11 12 C 9.207031 12 7.582031 12.335938 6.3125 12.96875 C 5.042969 13.601563 4 14.632813 4 16 L 4 24 C 4 25.367188 5.042969 26.398438 6.3125 27.03125 C 7.582031 27.664063 9.207031 28 11 28 C 12.792969 28 14.417969 27.664063 15.6875 27.03125 C 16.957031 26.398438 18 25.367188 18 24 L 18 23.59375 C 18.917969 23.835938 19.921875 24 21 24 C 22.792969 24 24.417969 23.664063 25.6875 23.03125 C 26.957031 22.398438 28 21.367188 28 20 L 28 8 C 28 6.632813 26.957031 5.601563 25.6875 4.96875 C 24.417969 4.335938 22.792969 4 21 4 Z M 21 6 C 22.523438 6 23.878906 6.328125 24.78125 6.78125 C 25.683594 7.234375 26 7.710938 26 8 C 26 8.289063 25.683594 8.765625 24.78125 9.21875 C 23.878906 9.671875 22.523438 10 21 10 C 19.476563 10 18.121094 9.671875 17.21875 9.21875 C 16.316406 8.765625 16 8.289063 16 8 C 16 7.710938 16.316406 7.234375 17.21875 6.78125 C 18.121094 6.328125 19.476563 6 21 6 Z M 16 10.84375 C 16.105469 10.902344 16.203125 10.976563 16.3125 11.03125 C 17.582031 11.664063 19.207031 12 21 12 C 22.792969 12 24.417969 11.664063 25.6875 11.03125 C 25.796875 10.976563 25.894531 10.902344 26 10.84375 L 26 12 C 26 12.289063 25.683594 12.765625 24.78125 13.21875 C 23.878906 13.671875 22.523438 14 21 14 C 19.476563 14 18.121094 13.671875 17.21875 13.21875 C 16.316406 12.765625 16 12.289063 16 12 Z M 11 14 C 12.523438 14 13.878906 14.328125 14.78125 14.78125 C 15.683594 15.234375 16 15.710938 16 16 C 16 16.289063 15.683594 16.765625 14.78125 17.21875 C 13.878906 17.671875 12.523438 18 11 18 C 9.476563 18 8.121094 17.671875 7.21875 17.21875 C 6.316406 16.765625 6 16.289063 6 16 C 6 15.710938 6.316406 15.234375 7.21875 14.78125 C 8.121094 14.328125 9.476563 14 11 14 Z M 26 14.84375 L 26 16 C 26 16.289063 25.683594 16.765625 24.78125 17.21875 C 23.878906 17.671875 22.523438 18 21 18 C 19.863281 18 18.835938 17.8125 18 17.53125 L 18 16 C 18 15.871094 17.957031 15.746094 17.9375 15.625 C 18.867188 15.867188 19.898438 16 21 16 C 22.792969 16 24.417969 15.664063 25.6875 15.03125 C 25.796875 14.976563 25.894531 14.902344 26 14.84375 Z M 6 18.84375 C 6.105469 18.902344 6.203125 18.976563 6.3125 19.03125 C 7.582031 19.664063 9.207031 20 11 20 C 12.792969 20 14.417969 19.664063 15.6875 19.03125 C 15.796875 18.976563 15.894531 18.902344 16 18.84375 L 16 20 C 16 20.289063 15.683594 20.765625 14.78125 21.21875 C 13.878906 21.671875 12.523438 22 11 22 C 9.476563 22 8.121094 21.671875 7.21875 21.21875 C 6.316406 20.765625 6 20.289063 6 20 Z M 26 18.84375 L 26 20 C 26 20.289063 25.683594 20.765625 24.78125 21.21875 C 23.878906 21.671875 22.523438 22 21 22 C 19.863281 22 18.835938 21.839844 18 21.5625 L 18 19.625 C 18.917969 19.867188 19.917969 20 21 20 C 22.792969 20 24.417969 19.664063 25.6875 19.03125 C 25.796875 18.976563 25.894531 18.902344 26 18.84375 Z M 6 22.84375 C 6.105469 22.902344 6.203125 22.976563 6.3125 23.03125 C 7.582031 23.664063 9.207031 24 11 24 C 12.792969 24 14.417969 23.664063 15.6875 23.03125 C 15.796875 22.976563 15.894531 22.902344 16 22.84375 L 16 24 C 16 24.289063 15.683594 24.765625 14.78125 25.21875 C 13.878906 25.671875 12.523438 26 11 26 C 9.476563 26 8.121094 25.671875 7.21875 25.21875 C 6.316406 24.765625 6 24.289063 6 24 Z" />
+              </svg>
+              Claim & Cashout
+            </h3>
             
-            {/* Unclaimed Rewards */}
+            {/* Timer and Unclaimed Rewards */}
             <div className="mb-6">
-              <p className="text-fuchsia-300 mb-2">Unclaimed Rewards</p>
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-fuchsia-300">Unclaimed Rewards</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm text-gray-400">Updates in:</p>
+                  <div className="bg-gray-900 px-3 py-1 rounded font-mono text-lg text-white">
+                    {formatTimeRemaining(timeUntilUpdate)}
+                  </div>
+                </div>
+              </div>
+              
               <p className="text-2xl font-bold text-white mb-3">
-                {userData?.unclaimed_rewards || 0} $BUX
+                {Number(userData?.unclaimed_rewards || 0).toFixed(2)} $BUX
               </p>
-              <button
-                className="w-full py-2 px-4 rounded-lg font-medium bg-gradient-to-r from-fuchsia-500 to-violet-500 text-white transition-all hover:from-fuchsia-600 hover:to-violet-600 disabled:from-gray-700 disabled:to-gray-600 disabled:text-gray-400 disabled:cursor-not-allowed shadow-lg"
-                disabled={!userData?.unclaimed_rewards}
-              >
-                Claim Rewards
-              </button>
+              <div className="space-y-3">
+                <div className="relative">
+                  <input
+                    type="number"
+                    value={claimAmount}
+                    onChange={(e) => setClaimAmount(e.target.value)}
+                    placeholder="Enter amount to claim"
+                    className="w-full p-2 border-2 border-white/20 rounded-lg bg-gray-900/50 
+                             text-white placeholder-gray-400 focus:outline-none 
+                             focus:border-white/40 shadow-inner"
+                  />
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-2">
+                    <button 
+                      onClick={handle50Claim}
+                      className="px-2 py-1 text-xs bg-gray-800 text-white rounded hover:bg-gray-700"
+                    >
+                      50%
+                    </button>
+                    <button 
+                      onClick={handleMaxClaim}
+                      className="px-2 py-1 text-xs bg-gray-800 text-white rounded hover:bg-gray-700"
+                    >
+                      MAX
+                    </button>
+                  </div>
+                </div>
+                <button
+                  onClick={handleClaimRewards}
+                  className="w-full py-3 px-4 rounded-lg font-bold border-2 border-white/90 
+                            relative overflow-hidden
+                            transition-all duration-300"
+                >
+                  <div className="absolute inset-0 bg-[linear-gradient(to_right,#c0c0c0,#e0e0e0,#c0c0c0)]
+                                hover:bg-[linear-gradient(to_right,#b0b0b0,#d0d0d0,#b0b0b0)]" />
+                  <div className="relative z-10 text-white uppercase tracking-[0.15em] font-black [text-shadow:_-1px_-1px_0_#000,_1px_-1px_0_#000,_-1px_1px_0_#000,_1px_1px_0_#000]">
+                    CLAIM REWARDS
+                  </div>
+                </button>
+              </div>
             </div>
 
             {/* Cashout Section */}
@@ -299,22 +440,48 @@ const UserProfile = () => {
                 {Number(userData?.balance || 0).toFixed(2)} $BUX
               </p>
               <div className="space-y-3">
-                <input
-                  type="number"
-                  value={cashoutAmount}
-                  onChange={(e) => setCashoutAmount(e.target.value)}
-                  placeholder="Enter amount to cashout"
-                  className="w-full p-2 border border-fuchsia-500/30 rounded-lg bg-gray-900/50 text-white placeholder-fuchsia-300/50 focus:outline-none focus:border-fuchsia-400 shadow-inner"
-                />
+                <div className="relative">
+                  <input
+                    type="number"
+                    value={cashoutAmount}
+                    onChange={(e) => setCashoutAmount(e.target.value)}
+                    placeholder="Enter amount to cashout"
+                    className="w-full p-2 border-2 border-white/20 rounded-lg bg-gray-900/50 
+                             text-white placeholder-gray-400 focus:outline-none 
+                             focus:border-white/40 shadow-inner"
+                  />
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-2">
+                    <button 
+                      onClick={handle50Cashout}
+                      className="px-2 py-1 text-xs bg-gray-800 text-white rounded hover:bg-gray-700"
+                    >
+                      50%
+                    </button>
+                    <button 
+                      onClick={handleMaxCashout}
+                      className="px-2 py-1 text-xs bg-gray-800 text-white rounded hover:bg-gray-700"
+                    >
+                      MAX
+                    </button>
+                  </div>
+                </div>
                 <p className="text-sm text-fuchsia-300">
                   Value: {(cashoutAmount * 0.00001).toFixed(6)} SOL
                 </p>
-                <button
-                  className="w-full py-2 px-4 rounded-lg font-medium bg-gradient-to-r from-fuchsia-500 to-violet-500 text-white transition-all hover:from-fuchsia-600 hover:to-violet-600 disabled:from-gray-700 disabled:to-gray-600 disabled:text-gray-400 disabled:cursor-not-allowed shadow-lg"
-                  disabled={!cashoutAmount || cashoutAmount <= 0}
-                >
-                  Cashout
-                </button>
+                <div className="relative">
+                  <button
+                    onClick={handleCashout}
+                    className="w-full py-3 px-4 rounded-lg font-bold border-2 border-white/90
+                              relative overflow-hidden
+                              transition-all duration-300"
+                  >
+                    <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffd700,#faf0be,#ffd700)]
+                                  hover:bg-[linear-gradient(to_right,#ffed4a,#faf0be,#ffed4a)]" />
+                    <div className="relative z-10 text-white uppercase tracking-[0.15em] font-black [text-shadow:_-1px_-1px_0_#000,_1px_-1px_0_#000,_-1px_1px_0_#000,_1px_1px_0_#000]">
+                      CASHOUT
+                    </div>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
