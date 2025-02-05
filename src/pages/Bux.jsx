@@ -448,7 +448,7 @@ const Bux = () => {
           </div>
 
           {/* Rewards Section */}
-          <div className="mt-16 mb-16">
+          <div id="rewards" className="mt-16 mb-16">
             <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 text-center leading-relaxed mb-16 py-2">
               Daily Rewards
             </h2>
@@ -529,7 +529,7 @@ const Bux = () => {
       </section>
 
       {/* Add UserProfile section at the bottom */}
-      <section className="mt-12">
+      <section id="mybux" className="mt-12">
         <UserProfile />
       </section>
     </div>

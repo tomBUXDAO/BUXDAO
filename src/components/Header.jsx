@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Bars3Icon, XMarkIcon, ChevronDownIcon, LockClosedIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
 import Logo from './Logo';
@@ -14,14 +14,19 @@ const Header = () => {
   const { setVisible } = useWalletModal();
 
   const scrollToSection = (sectionId) => {
-    const section = document.querySelector(sectionId);
-    if (section) {
-      const offset = sectionId === '#collection' ? 40 : 0;
-      window.scrollTo({ 
-        top: section.offsetTop - offset, 
-        behavior: 'smooth' 
-      });
-    }
+    setTimeout(() => {
+      const section = document.querySelector(sectionId);
+      if (section) {
+        const headerOffset = 80; // Height of fixed header
+        const elementPosition = section.getBoundingClientRect().top;
+        const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+        
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: 'smooth'
+        });
+      }
+    }, 100); // Small delay to ensure DOM is ready
   };
 
   const sections = [
@@ -31,10 +36,27 @@ const Header = () => {
   ];
 
   const buxSections = [
-    { name: 'Rewards', href: '/rewards' },
+    { 
+      name: 'Rewards', 
+      href: '/bux',
+      onClick: () => {
+        if (window.location.pathname !== '/bux') {
+          window.location.href = '/bux?section=rewards';
+        } else {
+          scrollToSection('#rewards');
+        }
+      }
+    },
     { 
       name: 'Profile', 
-      href: '/profile',
+      href: '/bux',
+      onClick: () => {
+        if (window.location.pathname !== '/bux') {
+          window.location.href = '/bux?section=mybux';
+        } else {
+          scrollToSection('#mybux');
+        }
+      },
       locked: true
     }
   ];
@@ -43,6 +65,19 @@ const Header = () => {
     { name: 'Roadmap', href: '/roadmap' },
     { name: 'Merch', href: '/merch' }
   ];
+
+  // Add effect to handle URL parameters on BUX page load
+  useEffect(() => {
+    if (window.location.pathname === '/bux') {
+      const params = new URLSearchParams(window.location.search);
+      const section = params.get('section');
+      if (section === 'rewards') {
+        scrollToSection('#rewards');
+      } else if (section === 'mybux') {
+        scrollToSection('#mybux');
+      }
+    }
+  }, [window.location.search]);
 
   return (
     <header className="fixed w-full bg-black/80 backdrop-blur-sm z-50">
@@ -146,7 +181,13 @@ const Header = () => {
                         to={item.href}
                         className="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
                         role="menuitem"
-                        onClick={() => setIsBuxDropdownOpen(false)}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setIsBuxDropdownOpen(false);
+                          if (item.onClick) {
+                            item.onClick();
+                          }
+                        }}
                       >
                         <div className="flex items-center justify-between">
                           <span>{item.name}</span>
@@ -280,7 +321,13 @@ const Header = () => {
                     key={item.name}
                     to={item.href}
                     className="block text-gray-300 hover:text-white transition-colors pl-4 text-sm tracking-wide"
-                    onClick={() => setIsMenuOpen(false)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setIsMenuOpen(false);
+                      if (item.onClick) {
+                        item.onClick();
+                      }
+                    }}
                   >
                     <div className="flex items-center justify-between">
                       <span>{item.name}</span>
