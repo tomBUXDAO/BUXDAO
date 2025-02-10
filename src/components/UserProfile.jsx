@@ -63,27 +63,6 @@ const UserProfile = () => {
       return tomorrow - now;
     };
 
-    const updateRewards = async () => {
-      try {
-        const response = await fetch(`${API_BASE_URL}/api/rewards/update`, {
-          method: 'POST',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to update rewards');
-        }
-
-        // Refresh user data after rewards update
-        fetchUserData();
-      } catch (error) {
-        console.error('Error updating rewards:', error);
-      }
-    };
-
     // Initial calculation
     setTimeUntilUpdate(calculateNextUpdate());
 
@@ -91,11 +70,6 @@ const UserProfile = () => {
     const timer = setInterval(() => {
       const timeLeft = calculateNextUpdate();
       setTimeUntilUpdate(timeLeft);
-
-      // If we've reached 0, trigger the reward update
-      if (timeLeft <= 0) {
-        updateRewards();
-      }
     }, 1000);
 
     return () => clearInterval(timer);

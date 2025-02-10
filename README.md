@@ -1,6 +1,6 @@
 # BUXDAO NFT Website
 
-Community-owned NFT collections on Solana blockchain.
+Community-owned NFT collections on Solana blockchain with integrated merch store.
 
 ## Features
 - Real-time floor prices from Magic Eden
@@ -9,6 +9,10 @@ Community-owned NFT collections on Solana blockchain.
 - Direct links to marketplaces
 - Holder verification system
 - Discord role management
+- Printful merch store integration
+- Automated order fulfillment
+- Real-time inventory sync
+- Holder-exclusive products
 
 ## Holder Verification System
 The platform includes an automated holder verification system that:
@@ -16,6 +20,8 @@ The platform includes an automated holder verification system that:
 - Verifies NFT ownership through wallet connection
 - Assigns appropriate Discord roles based on holdings
 - Maintains user data in PostgreSQL database
+- Provides holder-exclusive benefits
+- Manages merch store discounts
 
 ### Database Schema
 ```sql
@@ -34,6 +40,7 @@ Table: holders
 3. System verifies NFT ownership
 4. Database entry created/updated
 5. Discord roles assigned based on holdings
+6. Merch store access granted
 
 ## Development
 - Frontend: React + Vite
@@ -41,6 +48,9 @@ Table: holders
 - Database: PostgreSQL (Neon)
 - Authentication: Discord OAuth2
 - Blockchain: Solana Web3.js
+- E-commerce: Printful API
+- Caching: Node-Cache
+- Session Management: Express Session
 
 ## Environment Setup
 Required environment variables:
@@ -50,10 +60,39 @@ DISCORD_CLIENT_SECRET=
 DISCORD_BOT_TOKEN=
 POSTGRES_URL=
 PRINTFUL_API_KEY=
+SOLANA_RPC_URL=
+SESSION_SECRET=
 ```
 
 ## Getting Started
 1. Clone repository
 2. Install dependencies: `npm install`
 3. Set up environment variables
-4. Run development server: `npm run start` 
+4. Run development server: `npm run start`
+
+## Available Commands
+- `npm start` - Start all services
+- `npm run dev:vite` - Frontend only
+- `npm run dev:server` - Backend only
+- `npm run build` - Production build
+
+## API Endpoints
+
+### Authentication
+- `/api/auth/discord` - Discord OAuth
+- `/api/auth/wallet` - Wallet verification
+
+### Collections
+- `/api/collections` - Collection data
+- `/api/collections/stats` - Real-time stats
+
+### Merch Store
+- `/api/printful/products` - Product catalog
+- `/api/printful/webhook` - Order processing
+- `/api/printful/sync` - Inventory sync
+
+## Deployment
+- Edge Functions via Vercel
+- Database on Neon
+- Static assets on CDN
+- Automated CI/CD pipeline 

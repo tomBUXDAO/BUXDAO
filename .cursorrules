@@ -9,6 +9,9 @@ BUXDAO is a community-owned NFT project on the Solana blockchain, focused on pro
 - `/src/components/` - React components
 - `/src/pages/` - Page components
 - `/src/styles/` - CSS and styling files
+- `/src/hooks/` - Custom React hooks
+- `/src/contexts/` - React context providers
+- `/src/config/` - Frontend configuration
 - `/public/` - Static assets (images, gifs)
 
 ### Backend (Edge Functions)
@@ -18,6 +21,8 @@ BUXDAO is a community-owned NFT project on the Solana blockchain, focused on pro
   - `/celebcatz/` - Celebrity Catz specific endpoints
   - `/auth/` - Discord OAuth and wallet verification
   - `/holders/` - Holder verification and role management
+  - `/utils/` - Shared utility functions
+  - `/integrations/` - Additional third-party services
 
 ### Collections
 1. FCKed Catz
@@ -43,6 +48,8 @@ Table: holders
 - `DISCORD_CLIENT_ID` - Discord OAuth app ID
 - `DISCORD_CLIENT_SECRET` - Discord OAuth secret
 - `DISCORD_BOT_TOKEN` - Discord bot token for role management
+- `SOLANA_RPC_URL` - Custom Solana RPC endpoint (optional)
+- `SESSION_SECRET` - Express session secret
 
 ### Authentication Flow
 1. User initiates Discord login
@@ -56,6 +63,9 @@ Table: holders
 - `npm run dev` - Start development server
 - `npm run build` - Build for production
 - `npm run start` - Run development server with API
+- `npm start` - Start both servers concurrently
+- `npm run dev:vite` - Start Vite server only
+- `npm run dev:server` - Start API server only
 
 ### Important Notes
 - All API requests should be rate-limited
@@ -67,12 +77,19 @@ Table: holders
 - Implement proper error handling for auth flows
 - Cache NFT ownership data to reduce RPC calls
 - Regular revalidation of holder status
+- Optimize Printful webhook handling
+- Implement proper session management
+- Use connection pooling for database
+- Monitor Edge Function execution times
+- Regular backup of holder data
 
 ### Git Rules
 - Keep commits atomic and descriptive
 - Don't commit environment files
 - Don't commit large binary files
 - Use feature branches for major changes
+- Maintain clean commit history
+- Use meaningful commit messages
 
 ### Dependencies
 - React 18.3+
@@ -81,4 +98,8 @@ Table: holders
 - Express 4.21+
 - PostgreSQL (via Neon)
 - Discord.js
-- @solana/web3.js 
+- @solana/web3.js
+- Node.js 18+
+- concurrently
+- express-session
+- node-cache 
