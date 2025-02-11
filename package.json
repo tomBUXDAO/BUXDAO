@@ -16,9 +16,11 @@
     "@solana/wallet-adapter-phantom": "^0.9.24",
     "@solana/wallet-adapter-react": "^0.15.35",
     "@solana/wallet-adapter-react-ui": "^0.9.35",
+    "@solana/wallet-adapter-solflare": "^0.6.28",
     "@solana/wallet-adapter-wallets": "^0.19.32",
     "@solana/web3.js": "^1.98.0",
     "@vercel/postgres": "^0.10.0",
+    "@wallet-standard/react": "^1.0.0",
     "axios": "^1.7.9",
     "buffer": "^6.0.3",
     "connect-pg-simple": "^10.0.0",
@@ -34,6 +36,7 @@
     "pg": "^8.13.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-hot-toast": "^2.5.1",
     "react-router-dom": "^7.1.1"
   },
   "devDependencies": {

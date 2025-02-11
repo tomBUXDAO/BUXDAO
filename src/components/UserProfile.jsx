@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useUser } from '../contexts/UserContext';
+import { useWallet } from '@solana/wallet-adapter-react';
 import { API_BASE_URL } from '../config';
+import { toast } from 'react-hot-toast';
+import { Connection, Transaction } from '@solana/web3.js';
 
 // NFT reward allocations
 const DAILY_REWARDS = {
@@ -23,6 +26,7 @@ const SYMBOL_TO_NAME = {
 
 const UserProfile = () => {
   const { discordUser } = useUser();
+  const wallet = useWallet();
   const [userData, setUserData] = useState({
     wallet_address: discordUser?.wallet_address || '',
     balance: 0,
@@ -45,6 +49,7 @@ const UserProfile = () => {
   const [cashoutAmount, setCashoutAmount] = useState('');
   const [claimAmount, setClaimAmount] = useState('');
   const [timeUntilUpdate, setTimeUntilUpdate] = useState(0);
+  const [isClaimLoading, setIsClaimLoading] = useState(false);
 
   // Format time remaining
   const formatTimeRemaining = (milliseconds) => {
@@ -182,8 +187,104 @@ const UserProfile = () => {
   ) + calculateTop10Yield() + calculateBrandedCatzYield();
 
   const handleClaimRewards = async () => {
-    // TODO: Implement claim rewards functionality
-    console.log('Claiming rewards...');
+    if (!wallet.connected) {
+      toast.error('Please connect your wallet first');
+      return;
+    }
+
+    if (!claimAmount || claimAmount <= 0) {
+      toast.error('Please enter a valid amount to claim');
+      return;
+    }
+
+    if (claimAmount > userData.unclaimed_rewards) {
+      toast.error('Insufficient unclaimed balance');
+      return;
+    }
+
+    setIsClaimLoading(true);
+    try {
+      // Start claim process
+      const claimResponse = await fetch(`${API_BASE_URL}/api/user/claim`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({ amount: parseInt(claimAmount) })
+      });
+
+      if (!claimResponse.ok) {
+        const error = await claimResponse.json();
+        toast.error(error.error || 'Failed to initiate claim');
+        return;
+      }
+
+      const { transaction: serializedTx, txId } = await claimResponse.json();
+
+      // Request wallet signature
+      try {
+        const tx = Transaction.from(Buffer.from(serializedTx, 'base64'));
+        
+        // Sign transaction
+        const signedTx = await wallet.signTransaction(tx);
+        if (!signedTx) {
+          throw new Error('Failed to sign transaction');
+        }
+
+        // Send transaction
+        const connection = new Connection(process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com');
+        const signature = await connection.sendRawTransaction(
+          signedTx.serialize()
+        );
+
+        // Wait for confirmation
+        toast.loading('Confirming transaction...', { id: 'confirm-tx' });
+        const confirmation = await connection.confirmTransaction(signature, 'confirmed');
+        
+        if (confirmation.value.err) {
+          throw new Error('Transaction failed');
+        }
+
+        // Confirm with backend
+        const confirmResponse = await fetch(`${API_BASE_URL}/api/user/claim/confirm`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          credentials: 'include',
+          body: JSON.stringify({ txId, signature })
+        });
+
+        if (!confirmResponse.ok) {
+          const error = await confirmResponse.json();
+          toast.error(error.error || 'Failed to confirm claim');
+          return;
+        }
+
+        // Success! Update UI
+        setUserData(prev => ({
+          ...prev,
+          unclaimed_rewards: prev.unclaimed_rewards - parseInt(claimAmount),
+          balance: prev.balance + parseInt(claimAmount)
+        }));
+
+        toast.success('Successfully claimed rewards!');
+        setClaimAmount(''); // Reset input
+        toast.dismiss('confirm-tx');
+
+      } catch (error) {
+        console.error('Transaction error:', error);
+        toast.error(error.message || 'Failed to process transaction');
+        toast.dismiss('confirm-tx');
+      }
+
+    } catch (error) {
+      console.error('Claim error:', error);
+      toast.error('Failed to process claim');
+    } finally {
+      setIsClaimLoading(false);
+    }
   };
 
   const handleCashout = async () => {
@@ -366,6 +467,7 @@ const UserProfile = () => {
               <p className="text-2xl font-bold text-white mb-3">
                 {Number(userData?.unclaimed_rewards || 0).toFixed(2)} $BUX
               </p>
+
               <div className="space-y-3">
                 <div className="relative">
                   <input
@@ -373,20 +475,25 @@ const UserProfile = () => {
                     value={claimAmount}
                     onChange={(e) => setClaimAmount(e.target.value)}
                     placeholder="Enter amount to claim"
+                    disabled={isClaimLoading || !wallet.connected}
                     className="w-full p-2 border-2 border-white/20 rounded-lg bg-gray-900/50 
                              text-white placeholder-gray-400 focus:outline-none 
-                             focus:border-white/40 shadow-inner"
+                             focus:border-white/40 shadow-inner disabled:opacity-50"
                   />
                   <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-2">
                     <button 
                       onClick={handle50Claim}
-                      className="px-2 py-1 text-xs bg-gray-800 text-white rounded hover:bg-gray-700"
+                      disabled={isClaimLoading || !wallet.connected}
+                      className="px-2 py-1 text-xs bg-gray-800 text-white rounded hover:bg-gray-700 
+                               disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       50%
                     </button>
                     <button 
                       onClick={handleMaxClaim}
-                      className="px-2 py-1 text-xs bg-gray-800 text-white rounded hover:bg-gray-700"
+                      disabled={isClaimLoading || !wallet.connected}
+                      className="px-2 py-1 text-xs bg-gray-800 text-white rounded hover:bg-gray-700
+                               disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       MAX
                     </button>
@@ -394,14 +501,16 @@ const UserProfile = () => {
                 </div>
                 <button
                   onClick={handleClaimRewards}
+                  disabled={isClaimLoading || !claimAmount || claimAmount <= 0 || !wallet.connected}
                   className="w-full py-3 px-4 rounded-lg font-bold border-2 border-white/90 
-                            relative overflow-hidden
-                            transition-all duration-300"
+                            relative overflow-hidden transition-all duration-300
+                            disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <div className="absolute inset-0 bg-[linear-gradient(to_right,#c0c0c0,#e0e0e0,#c0c0c0)]
                                 hover:bg-[linear-gradient(to_right,#b0b0b0,#d0d0d0,#b0b0b0)]" />
-                  <div className="relative z-10 text-white uppercase tracking-[0.15em] font-black [text-shadow:_-1px_-1px_0_#000,_1px_-1px_0_#000,_-1px_1px_0_#000,_1px_1px_0_#000]">
-                    CLAIM REWARDS
+                  <div className="relative z-10 text-white uppercase tracking-[0.15em] font-black 
+                                [text-shadow:_-1px_-1px_0_#000,_1px_-1px_0_#000,_-1px_1px_0_#000,_1px_1px_0_#000]">
+                    {isClaimLoading ? 'Processing...' : 'CLAIM REWARDS'}
                   </div>
                 </button>
               </div>

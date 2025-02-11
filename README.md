@@ -1,6 +1,6 @@
 # BUXDAO NFT Website
 
-Community-owned NFT collections on Solana blockchain with integrated merch store.
+Community-owned NFT collections on Solana blockchain with integrated merch store and token exchange system.
 
 ## Features
 - Real-time floor prices from Magic Eden
@@ -13,6 +13,22 @@ Community-owned NFT collections on Solana blockchain with integrated merch store
 - Automated order fulfillment
 - Real-time inventory sync
 - Holder-exclusive products
+- BUX token exchange system
+
+## BUX Exchange Program
+The platform includes an on-chain BUX token exchange program that:
+- Handles token claims for NFT holders
+- Manages treasury transfers
+- Uses Program Derived Addresses (PDAs)
+- Implements secure token transfers
+- Program ID: 5FmuPcTCJSxB4gJhYpKMZDMgbZAhNezHVWML6htJNXrX
+
+### Current Development Status
+- Basic program structure implemented
+- Claim functionality coded
+- Build environment setup pending
+- Requires macOS Monterey for toolchain
+- Testing and deployment to follow
 
 ## Holder Verification System
 The platform includes an automated holder verification system that:
@@ -48,6 +64,7 @@ Table: holders
 - Database: PostgreSQL (Neon)
 - Authentication: Discord OAuth2
 - Blockchain: Solana Web3.js
+- Smart Contracts: Anchor Framework
 - E-commerce: Printful API
 - Caching: Node-Cache
 - Session Management: Express Session
@@ -68,13 +85,17 @@ SESSION_SECRET=
 1. Clone repository
 2. Install dependencies: `npm install`
 3. Set up environment variables
-4. Run development server: `npm run start`
+4. Install Solana CLI v1.16.21
+5. Install Anchor Framework v0.28.0
+6. Run development server: `npm run start`
 
 ## Available Commands
 - `npm start` - Start all services
 - `npm run dev:vite` - Frontend only
 - `npm run dev:server` - Backend only
 - `npm run build` - Production build
+- `anchor build` - Build Solana program
+- `anchor deploy` - Deploy Solana program
 
 ## API Endpoints
 
@@ -91,8 +112,14 @@ SESSION_SECRET=
 - `/api/printful/webhook` - Order processing
 - `/api/printful/sync` - Inventory sync
 
+### Token Exchange
+- `/api/user/claim` - Token claim requests
+- `/api/user/balance` - User BUX balance
+- `/api/user/claim/confirm` - Confirm token claims
+
 ## Deployment
 - Edge Functions via Vercel
 - Database on Neon
 - Static assets on CDN
-- Automated CI/CD pipeline 
+- Automated CI/CD pipeline
+- Solana program on Mainnet 
