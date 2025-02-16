@@ -3,6 +3,12 @@
   "env": {
     "DEPLOY_TIME": "2024-01-21-3"
   },
+  "crons": [
+    {
+      "path": "/api/rewards/process-daily",
+      "schedule": "0 0 * * *"
+    }
+  ],
   "builds": [
     {
       "src": "package.json",

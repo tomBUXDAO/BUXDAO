@@ -4,6 +4,7 @@ import { useWallet } from '@solana/wallet-adapter-react';
 import { API_BASE_URL } from '../config';
 import { toast } from 'react-hot-toast';
 import { Connection, Transaction } from '@solana/web3.js';
+import BuxClaimButton from './BuxClaimButton';
 
 // NFT reward allocations
 const DAILY_REWARDS = {
@@ -91,12 +92,22 @@ const UserProfile = () => {
         // Fetch collection counts and claim account data
         const [collectionCountsResponse, claimAccountResponse] = await Promise.all([
           fetch(`${API_BASE_URL}/api/collection-counts/${discordUser.discord_id}`, {
+            method: 'GET',
             credentials: 'include',
-            headers: { 'Accept': 'application/json' }
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
+              'Origin': window.location.origin
+            }
           }),
           fetch(`${API_BASE_URL}/api/user/balance`, {
+            method: 'GET',
             credentials: 'include',
-            headers: { 'Accept': 'application/json' }
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
+              'Origin': window.location.origin
+            }
           })
         ]);
 
@@ -136,7 +147,11 @@ const UserProfile = () => {
         // Now fetch roles
         const rolesResponse = await fetch(`${API_BASE_URL}/api/auth/roles`, {
           credentials: 'include',
-          headers: { 'Accept': 'application/json' }
+          headers: { 
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'Origin': window.location.origin
+          }
         });
 
         if (!rolesResponse.ok) {
@@ -160,6 +175,20 @@ const UserProfile = () => {
 
     fetchUserData();
   }, [discordUser]);
+
+  // Listen for balance updates
+  useEffect(() => {
+    const handleBalanceUpdate = (event) => {
+      setUserData(prev => ({
+        ...prev,
+        balance: parseFloat(event.detail.newBalance),
+        unclaimed_rewards: parseFloat(event.detail.unclaimedAmount)
+      }));
+    };
+
+    window.addEventListener('bux:balanceUpdated', handleBalanceUpdate);
+    return () => window.removeEventListener('bux:balanceUpdated', handleBalanceUpdate);
+  }, []);
 
   // Calculate collection yield
   const calculateCollectionYield = (collection) => {
@@ -475,7 +504,7 @@ const UserProfile = () => {
                     value={claimAmount}
                     onChange={(e) => setClaimAmount(e.target.value)}
                     placeholder="Enter amount to claim"
-                    disabled={isClaimLoading || !wallet.connected}
+                    disabled={true}
                     className="w-full p-2 border-2 border-white/20 rounded-lg bg-gray-900/50 
                              text-white placeholder-gray-400 focus:outline-none 
                              focus:border-white/40 shadow-inner disabled:opacity-50"
@@ -483,7 +512,7 @@ const UserProfile = () => {
                   <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-2">
                     <button 
                       onClick={handle50Claim}
-                      disabled={isClaimLoading || !wallet.connected}
+                      disabled={true}
                       className="px-2 py-1 text-xs bg-gray-800 text-white rounded hover:bg-gray-700 
                                disabled:opacity-50 disabled:cursor-not-allowed"
                     >
@@ -491,7 +520,7 @@ const UserProfile = () => {
                     </button>
                     <button 
                       onClick={handleMaxClaim}
-                      disabled={isClaimLoading || !wallet.connected}
+                      disabled={true}
                       className="px-2 py-1 text-xs bg-gray-800 text-white rounded hover:bg-gray-700
                                disabled:opacity-50 disabled:cursor-not-allowed"
                     >
@@ -500,19 +529,20 @@ const UserProfile = () => {
                   </div>
                 </div>
                 <button
-                  onClick={handleClaimRewards}
-                  disabled={isClaimLoading || !claimAmount || claimAmount <= 0 || !wallet.connected}
+                  disabled={true}
                   className="w-full py-3 px-4 rounded-lg font-bold border-2 border-white/90 
                             relative overflow-hidden transition-all duration-300
                             disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <div className="absolute inset-0 bg-[linear-gradient(to_right,#c0c0c0,#e0e0e0,#c0c0c0)]
-                                hover:bg-[linear-gradient(to_right,#b0b0b0,#d0d0d0,#b0b0b0)]" />
+                  <div className="absolute inset-0 bg-[linear-gradient(to_right,#c0c0c0,#e0e0e0,#c0c0c0)]" />
                   <div className="relative z-10 text-white uppercase tracking-[0.15em] font-black 
                                 [text-shadow:_-1px_-1px_0_#000,_1px_-1px_0_#000,_-1px_1px_0_#000,_1px_1px_0_#000]">
-                    {isClaimLoading ? 'Processing...' : 'CLAIM REWARDS'}
+                    CLAIM FUNCTION COMING SOON
                   </div>
                 </button>
+                <p className="text-sm text-center text-fuchsia-300">
+                  The claim function is currently being tested and will be available soon!
+                </p>
               </div>
             </div>
 

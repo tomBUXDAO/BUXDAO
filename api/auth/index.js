@@ -1,6 +1,7 @@
 import { parse, serialize } from 'cookie';
 import crypto from 'crypto';
 import pkg from 'pg';
+import fetch from 'node-fetch';
 const { Pool } = pkg;
 
 const pool = new Pool({
@@ -11,10 +12,9 @@ const pool = new Pool({
 });
 
 // Constants
-const ORIGIN = process.env.NODE_ENV === 'production' ? 'https://buxdao.com' : 'http://localhost:3001';
-const CALLBACK_URL = process.env.NODE_ENV === 'production'
-  ? 'https://buxdao.com/api/auth/discord/callback'
-  : 'http://localhost:3001/api/auth/discord/callback';
+const FRONTEND_URL = process.env.NODE_ENV === 'production' ? 'https://buxdao.com' : 'http://localhost:5173';
+const API_URL = process.env.NODE_ENV === 'production' ? 'https://buxdao.com' : 'http://localhost:3001';
+const CALLBACK_URL = `${API_URL}/api/auth/discord/callback`;
 const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID;
 const DISCORD_CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
 
@@ -30,36 +30,25 @@ if (!DISCORD_CLIENT_SECRET || DISCORD_CLIENT_SECRET === 'undefined') {
 const COOKIE_OPTIONS = {
   path: '/',
   httpOnly: true,
-  secure: true,
-  sameSite: 'lax'
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'lax',
+  domain: process.env.NODE_ENV === 'production' ? 'buxdao.com' : 'localhost'
 };
 
 export default async function handler(req, res) {
-  // Set CORS headers
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Origin', ORIGIN);
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept');
-  res.setHeader('Content-Type', 'application/json');
-  // Disable caching
-  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-  res.setHeader('Pragma', 'no-cache');
-  res.setHeader('Expires', '0');
-
-  // Handle preflight
-  if (req.method === 'OPTIONS') {
-    res.status(200).json({});
-    return;
-  }
-
   try {
     // Get the endpoint from the URL path
-    const pathParts = req.url.split('/').filter(Boolean);
-    const authIndex = pathParts.indexOf('auth');
-    const endpoint = pathParts[authIndex + 1]?.split('?')[0];
-    
+    const parts = req.url.split('?')[0].split('/').filter(Boolean);
     console.log('[Auth Debug] URL:', req.url);
-    console.log('[Auth Debug] Path parts:', pathParts);
+    console.log('[Auth Debug] Path parts:', parts);
+    
+    // Special case for discord callback
+    if (parts.length >= 2 && parts[0] === 'discord' && parts[1] === 'callback') {
+      console.log('[Auth Debug] Handling Discord callback');
+      return handleDiscordCallback(req, res);
+    }
+
+    const endpoint = parts[0];
     console.log('[Auth Debug] Endpoint:', endpoint);
 
     if (!endpoint) {
@@ -73,8 +62,6 @@ export default async function handler(req, res) {
         return handleProcess(req, res);
       case 'discord':
         return handleDiscordAuth(req, res);
-      case 'callback':
-        return handleDiscordCallback(req, res);
       case 'wallet':
       case 'update-wallet':
         return handleWallet(req, res);
@@ -107,6 +94,17 @@ async function handleCheck(req, res) {
       return res.status(200).json({ authenticated: false });
     }
 
+    // Initialize session if not already set
+    if (!req.session.user && discordUser) {
+      req.session.user = {
+        discord_id: discordUser.discord_id,
+        discord_username: discordUser.discord_username,
+        avatar: discordUser.avatar,
+        access_token: cookies.discord_token
+      };
+      await req.session.save();
+    }
+
     // Fetch wallet address from database
     const client = await pool.connect();
     try {
@@ -116,6 +114,12 @@ async function handleCheck(req, res) {
       );
       
       const walletAddress = result.rows[0]?.wallet_address;
+      
+      // Update session with wallet address
+      if (walletAddress && req.session.user) {
+        req.session.user.wallet_address = walletAddress;
+        await req.session.save();
+      }
 
       return res.status(200).json({ 
         authenticated: true,
@@ -156,7 +160,7 @@ async function handleProcess(req, res) {
         client_secret: DISCORD_CLIENT_SECRET,
         grant_type: 'authorization_code',
         code,
-        redirect_uri: ORIGIN + '/verify',
+        redirect_uri: FRONTEND_URL + '/verify',
       }),
     });
 
@@ -176,7 +180,7 @@ async function handleProcess(req, res) {
     }
 
     const userData = await userResponse.json();
-    setAuthCookies(res, tokenData.access_token, userData);
+    await setAuthCookies(req, res, tokenData.access_token, userData);
     return res.status(200).json({ success: true });
   } catch (error) {
     console.error('Auth process error:', error);
@@ -189,11 +193,14 @@ async function handleDiscordAuth(req, res) {
   try {
     // Generate state for security
     const state = crypto.randomBytes(16).toString('hex');
+    console.log('[Discord Auth] Generated state:', state);
     
     // Set state cookie first
-    const stateCookie = `discord_state=${state}; Path=/; Max-Age=300; Secure; HttpOnly`;
-    res.setHeader('Set-Cookie', stateCookie);
-
+    const stateCookie = serialize('discord_state', state, {
+      ...COOKIE_OPTIONS,
+      maxAge: 300000 // 5 minutes
+    });
+    
     // Build Discord OAuth URL with required parameters
     const params = new URLSearchParams({
       client_id: DISCORD_CLIENT_ID,
@@ -205,62 +212,96 @@ async function handleDiscordAuth(req, res) {
     });
     
     const discordUrl = `https://discord.com/oauth2/authorize?${params.toString()}`;
-    console.log('[Discord Auth] Redirecting to:', discordUrl);
+    console.log('[Discord Auth] Full auth URL:', discordUrl);
 
+    res.setHeader('Set-Cookie', stateCookie);
     res.setHeader('Location', discordUrl);
     return res.status(302).end();
   } catch (error) {
     console.error('[Discord Auth] Error:', error);
-    res.setHeader('Location', `${ORIGIN}/verify?error=${encodeURIComponent(error.message)}`);
+    res.setHeader('Location', `${FRONTEND_URL}/verify?error=${encodeURIComponent(error.message)}`);
     return res.status(302).end();
   }
 }
 
 // Handle Discord callback
 async function handleDiscordCallback(req, res) {
+  console.log('[Discord Callback] Received callback with query:', req.query);
+  console.log('[Discord Callback] Cookies:', req.headers.cookie);
+
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    const { code } = req.query;
-    console.log('[Discord Callback] Processing code');
-    
-    if (!code) {
-      console.error('[Discord Callback] No code provided');
-      res.setHeader('Location', ORIGIN + '/verify?error=' + encodeURIComponent('No code provided'));
+    const { code, state } = req.query;
+    const cookies = parse(req.headers.cookie || '');
+    const storedState = cookies.discord_state;
+
+    console.log('[Discord Callback] Verifying state:', { 
+      received: state,
+      stored: storedState
+    });
+
+    if (!storedState || storedState !== state) {
+      console.error('[Discord Callback] State mismatch or missing');
+      res.setHeader('Location', `${FRONTEND_URL}/verify?error=${encodeURIComponent('Invalid state parameter')}`);
       return res.status(302).end();
     }
 
     // Exchange code for token
+    console.log('[Discord Callback] Exchanging code for token...');
+    console.log('[Discord Callback] Using callback URL:', CALLBACK_URL);
+    
+    const tokenParams = new URLSearchParams({
+      client_id: DISCORD_CLIENT_ID,
+      client_secret: DISCORD_CLIENT_SECRET,
+      grant_type: 'authorization_code',
+      code: code,
+      redirect_uri: CALLBACK_URL
+    });
+    
+    console.log('[Discord Callback] Token request params:', tokenParams.toString());
+    
     const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
         'Accept': 'application/json'
       },
-      body: new URLSearchParams({
-        client_id: DISCORD_CLIENT_ID,
-        client_secret: DISCORD_CLIENT_SECRET,
-        grant_type: 'authorization_code',
-        code: code,
-        redirect_uri: CALLBACK_URL
-      }).toString()
+      body: tokenParams.toString()
     });
 
     const tokenText = await tokenResponse.text();
-    console.log('[Discord Callback] Token response:', tokenText);
+    console.log('[Discord Callback] Token response status:', tokenResponse.status);
+    console.log('[Discord Callback] Token response headers:', tokenResponse.headers.raw());
+    console.log('[Discord Callback] Token response body:', tokenText);
 
     if (!tokenResponse.ok) {
-      throw new Error(`Token exchange failed: ${tokenText}`);
+      console.error('[Discord Callback] Token error:', tokenText);
+      res.setHeader('Location', `${FRONTEND_URL}/verify?error=${encodeURIComponent('Failed to get token: ' + tokenText)}`);
+      return res.status(302).end();
     }
 
-    const tokenData = JSON.parse(tokenText);
-    if (!tokenData.access_token) {
-      throw new Error('No access token in response');
+    let tokenData;
+    try {
+      tokenData = JSON.parse(tokenText);
+    } catch (e) {
+      console.error('[Discord Callback] Failed to parse token response:', e);
+      res.setHeader('Location', `${FRONTEND_URL}/verify?error=${encodeURIComponent('Invalid token response')}`);
+      return res.status(302).end();
     }
+
+    if (!tokenData.access_token) {
+      console.error('[Discord Callback] No access token in response');
+      res.setHeader('Location', `${FRONTEND_URL}/verify?error=${encodeURIComponent('No access token received')}`);
+      return res.status(302).end();
+    }
+
+    console.log('[Discord Callback] Successfully got access token');
 
     // Get user data
+    console.log('[Discord Callback] Fetching user data...');
     const userResponse = await fetch('https://discord.com/api/users/@me', {
       headers: {
         'Authorization': `Bearer ${tokenData.access_token}`,
@@ -268,22 +309,61 @@ async function handleDiscordCallback(req, res) {
       }
     });
 
+    const userText = await userResponse.text();
+    console.log('[Discord Callback] User response status:', userResponse.status);
+    console.log('[Discord Callback] User response headers:', userResponse.headers.raw());
+    console.log('[Discord Callback] User response body:', userText);
+
     if (!userResponse.ok) {
-      const userError = await userResponse.text();
-      throw new Error(`Failed to get user data: ${userError}`);
+      console.error('[Discord Callback] User data error:', userText);
+      res.setHeader('Location', `${FRONTEND_URL}/verify?error=${encodeURIComponent('Failed to get user data: ' + userText)}`);
+      return res.status(302).end();
     }
 
-    const userData = await userResponse.json();
+    let userData;
+    try {
+      userData = JSON.parse(userText);
+    } catch (e) {
+      console.error('[Discord Callback] Failed to parse user data:', e);
+      res.setHeader('Location', `${FRONTEND_URL}/verify?error=${encodeURIComponent('Invalid user data response')}`);
+      return res.status(302).end();
+    }
+
+    if (!userData.id || !userData.username) {
+      console.error('[Discord Callback] Invalid user data:', userData);
+      res.setHeader('Location', `${FRONTEND_URL}/verify?error=${encodeURIComponent('Invalid user data received')}`);
+      return res.status(302).end();
+    }
+
     console.log('[Discord Callback] Got user data for:', userData.username);
 
-    // Set auth cookies and redirect
-    setAuthCookies(res, tokenData.access_token, userData);
-    res.setHeader('Location', ORIGIN + '/verify');
-    return res.status(302).end();
+    // Set auth cookies
+    const oneWeek = 7 * 24 * 60 * 60 * 1000;
+    const responseCookies = [
+      serialize('discord_token', tokenData.access_token, {
+        ...COOKIE_OPTIONS,
+        maxAge: oneWeek,
+      }),
+      serialize('discord_user', JSON.stringify({
+        discord_id: userData.id,
+        discord_username: userData.username,
+        avatar: userData.avatar
+      }), {
+        ...COOKIE_OPTIONS,
+        maxAge: oneWeek,
+      })
+    ];
 
+    console.log('[Discord Callback] Setting cookies:', responseCookies);
+    res.setHeader('Set-Cookie', responseCookies);
+
+    // Redirect to verify page
+    console.log('[Discord Callback] Redirecting to verify page');
+    res.setHeader('Location', `${FRONTEND_URL}/verify`);
+    return res.status(302).end();
   } catch (error) {
     console.error('[Discord Callback] Error:', error);
-    res.setHeader('Location', ORIGIN + '/verify?error=' + encodeURIComponent(error.message));
+    res.setHeader('Location', `${FRONTEND_URL}/verify?error=${encodeURIComponent(error.message)}`);
     return res.status(302).end();
   }
 }
@@ -391,7 +471,7 @@ async function handleLogout(req, res) {
 }
 
 // Helper functions
-function setAuthCookies(res, token, user) {
+async function setAuthCookies(req, res, token, user) {
   const oneWeek = 7 * 24 * 60 * 60;
   const cookieOptions = 'Path=/; Max-Age=' + oneWeek + '; Secure; SameSite=Lax';
 
@@ -400,6 +480,17 @@ function setAuthCookies(res, token, user) {
 
   console.log('[Auth] Setting cookies with options:', cookieOptions);
   res.setHeader('Set-Cookie', [tokenCookie, userCookie]);
+
+  // Set session data
+  if (req.session) {
+    req.session.user = {
+      discord_id: user.discord_id,
+      discord_username: user.discord_username,
+      avatar: user.avatar,
+      access_token: token
+    };
+    await req.session.save();
+  }
 }
 
 function clearAuthCookies(res) {

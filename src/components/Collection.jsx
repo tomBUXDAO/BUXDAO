@@ -1,5 +1,6 @@
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import { useState, useEffect, useRef } from 'react';
+import { API_BASE_URL } from '../config';
 
 const COLLECTION_SUPPLIES = {
   fcked_catz: 1184,
@@ -8,9 +9,6 @@ const COLLECTION_SUPPLIES = {
   moneymonsters3d: 647,
   ai_bitbots: 205
 };
-
-// Get the base API URL based on environment
-const API_BASE_URL = '/api';  // Use Vite proxy
 
 const collections = [
   { 
@@ -101,7 +99,8 @@ const Collection = () => {
         const results = await Promise.allSettled(
           collections.map(async (collection) => {
             try {
-              const response = await fetch(`${API_BASE_URL}/collections/${collection.symbol}/stats`, {
+              const response = await fetch(`${API_BASE_URL}/api/collections/${collection.symbol}/stats`, {
+                credentials: 'include',
                 headers: {
                   'Accept': 'application/json'
                 }

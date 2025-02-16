@@ -21,6 +21,11 @@ router.get('/:collection/stats', async (req, res) => {
         });
       }
       const data = await response.json();
+
+      // Set CORS headers
+      res.set('Access-Control-Allow-Credentials', 'true');
+      res.set('Access-Control-Allow-Origin', process.env.NODE_ENV === 'production' ? 'https://buxdao.com' : 'http://localhost:5173');
+      
       return res.status(200).json(data);
     } catch (error) {
       console.error('[Collections] Error fetching stats:', error);

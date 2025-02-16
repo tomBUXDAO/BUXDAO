@@ -23,12 +23,23 @@ The platform includes an on-chain BUX token exchange program that:
 - Implements secure token transfers
 - Program ID: 5FmuPcTCJSxB4gJhYpKMZDMgbZAhNezHVWML6htJNXrX
 
-### Current Development Status
-- Basic program structure implemented
-- Claim functionality coded
-- Build environment setup pending
-- Requires macOS Monterey for toolchain
-- Testing and deployment to follow
+## Current Development Status
+- Implementing BUX token exchange program using Anchor.
+- Program ID generated and saved.
+- Basic claim functionality implemented.
+- Build environment pending macOS Monterey upgrade.
+- Next steps: Complete program build and testing.
+
+## Troubleshooting Setup Issues
+### Solana BPF SDK Issues
+- Initially encountered issues with the Solana BPF SDK due to Rust toolchain version incompatibilities.
+- Recommended upgrading to Solana version 1.16 for better toolchain support.
+
+### Anchor Installation
+- Attempted to install Anchor directly from the source but faced dependency issues with the `cargo_toml` package version.
+- Identified that Xcode Command Line Tools were not installed, which is necessary for building Rust programs on macOS.
+- After installing the Command Line Tools, successfully installed Anchor using the Anchor Version Manager (avm).
+- Confirmed installation of Anchor CLI version 0.26.0 and advised adding the installation path to the system's PATH variable for future use.
 
 ## Holder Verification System
 The platform includes an automated holder verification system that:

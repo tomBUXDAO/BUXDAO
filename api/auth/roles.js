@@ -1,18 +1,22 @@
-import pool from '../../config/database.js';
+import { pool } from '../config/database.js';
+import { parse } from 'cookie';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  if (!req.session?.user?.discord_id) {
+  const cookies = parse(req.headers.cookie || '');
+  const discordUser = cookies.discord_user ? JSON.parse(cookies.discord_user) : null;
+
+  if (!discordUser?.discord_id) {
     return res.status(401).json({ error: 'Not authenticated' });
   }
 
   let client;
   try {
     client = await pool.connect();
-    console.log('Fetching roles for discord_id:', req.session.user.discord_id);
+    console.log('Fetching roles for discord_id:', discordUser.discord_id);
 
     // Get user's roles from user_roles table
     const query = `
@@ -21,7 +25,7 @@ export default async function handler(req, res) {
       WHERE discord_id = $1
     `;
 
-    const result = await client.query(query, [req.session.user.discord_id]);
+    const result = await client.query(query, [discordUser.discord_id]);
     console.log('User roles result:', result.rows[0]);
 
     if (!result.rows[0]) {
