@@ -24,9 +24,9 @@ router.get('/', async (req, res) => {
     console.log('Querying supply metrics...');
     const result = await client.query(`
       SELECT 
-        SUM(balance) as total_supply,
-        SUM(CASE WHEN is_exempt = FALSE THEN balance ELSE 0 END) as public_supply,
-        SUM(CASE WHEN is_exempt = TRUE THEN balance ELSE 0 END) as exempt_supply
+        ROUND(SUM(balance)::numeric, 2) as total_supply,
+        ROUND(SUM(CASE WHEN is_exempt = FALSE THEN balance ELSE 0 END)::numeric, 2) as public_supply,
+        ROUND(SUM(CASE WHEN is_exempt = TRUE THEN balance ELSE 0 END)::numeric, 2) as exempt_supply
       FROM bux_holders
     `);
 
