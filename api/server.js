@@ -12,8 +12,7 @@ import collectionCountsRouter from './collection-counts/index.js';
 import tokenMetricsRouter from './token-metrics/index.js';
 import { connectDB } from './config/database.js';
 import axios from 'axios';
-import rawBodyMiddleware from './middleware/rawBody.js';
-import discordInteractions from './discord/interactions/index.js';
+import webhookRouter from './discord/webhook.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -21,11 +20,11 @@ const PORT = process.env.PORT || 3001;
 // CORS configuration
 const corsOptions = {
   origin: process.env.NODE_ENV === 'production' 
-    ? ['https://buxdao.com', 'https://www.buxdao.com'] 
-    : ['http://localhost:5173', 'http://localhost:3001'],
+    ? ['https://buxdao.com', 'https://www.buxdao.com', 'https://discord.com'] 
+    : ['http://localhost:5173', 'http://localhost:3001', 'https://discord.com'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'Cache-Control', 'Pragma'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'Cache-Control', 'Pragma', 'X-Signature-Ed25519', 'X-Signature-Timestamp'],
   exposedHeaders: ['Set-Cookie'],
   preflightContinue: false,
   optionsSuccessStatus: 204
@@ -33,7 +32,7 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
-// Middleware
+// Regular body parsing middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -51,7 +50,7 @@ app.use(session({
   cookie: {
     secure: process.env.NODE_ENV === 'production',
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    maxAge: 24 * 60 * 60 * 1000,
     httpOnly: true,
     domain: process.env.NODE_ENV === 'production' ? '.buxdao.com' : undefined
   }
@@ -123,9 +122,6 @@ app.get('/api/printful/products/:id', async (req, res) => {
   }
 });
 
-// Add raw body middleware before routes
-app.post('/api/discord/interactions', rawBodyMiddleware(), discordInteractions);
-
 // Routes
 app.use('/api/auth', authRouter);
 app.use('/api/user/balance', balanceRouter);
@@ -135,6 +131,7 @@ app.use('/api/celebcatz', celebcatzRouter);
 app.use('/api/top-holders', topHoldersRouter);
 app.use('/api/collection-counts', collectionCountsRouter);
 app.use('/api/token-metrics', tokenMetricsRouter);
+app.use('/api/discord/webhook', webhookRouter);
 
 // Add a test route
 app.get('/api/test', (req, res) => {

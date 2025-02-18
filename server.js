@@ -32,6 +32,7 @@ import rewardsEventsRouter from './api/rewards/events.js';
 import rawBodyMiddleware from './api/middleware/rawBody.js';
 import discordInteractionsRouter from './api/discord/interactions/index.js';
 import nftLookupRouter from './api/nft-lookup.js';
+import webhookRouter from './api/discord/webhook.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -344,6 +345,9 @@ app.use('/api/rewards', rewardsRouter);
 
 // Replace with new NFT lookup endpoint
 app.use('/api/nft-lookup', nftLookupRouter);
+
+// Add webhook routes
+app.use('/api/discord/webhook', webhookRouter);
 
 // API 404 handler
 app.use('/api/*', (req, res) => {
