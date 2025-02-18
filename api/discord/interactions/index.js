@@ -8,6 +8,12 @@ const router = express.Router();
 // Middleware to verify requests are coming from Discord
 function verifyDiscordRequest(clientKey) {
   return function (req, res, next) {
+    console.log('Verifying Discord request headers:', {
+      signature: !!req.get('X-Signature-Ed25519'),
+      timestamp: !!req.get('X-Signature-Timestamp'),
+      hasBody: !!req.rawBody
+    });
+
     const signature = req.get('X-Signature-Ed25519');
     const timestamp = req.get('X-Signature-Timestamp');
     const body = req.rawBody;
@@ -23,6 +29,7 @@ function verifyDiscordRequest(clientKey) {
         console.error('Invalid request signature');
         return res.status(401).json({ error: 'Invalid request signature' });
       }
+      console.log('Request signature verified successfully');
       next();
     } catch (err) {
       console.error('Error verifying request:', err);
@@ -33,31 +40,39 @@ function verifyDiscordRequest(clientKey) {
 
 // Function to send followup message with improved error handling
 async function sendFollowup(token, data, retries = 3) {
-  console.log('Sending followup message:', { token: token?.slice(0, 8), data });
+  console.log('Starting followup message:', { 
+    token: token?.slice(0, 8), 
+    type: data?.type,
+    content: data?.content?.slice(0, 50),
+    hasEmbed: !!data?.embeds
+  });
   
   for (let i = 0; i < retries; i++) {
     try {
-      const response = await fetch(
-        `https://discord.com/api/v10/webhooks/${process.env.DISCORD_CLIENT_ID}/${token}`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(data)
-        }
-      );
+      console.log(`Followup attempt ${i + 1}/${retries}`);
+      
+      const webhookUrl = `https://discord.com/api/v10/webhooks/${process.env.DISCORD_CLIENT_ID}/${token}`;
+      console.log('Using webhook URL:', webhookUrl.replace(token, '[REDACTED]'));
+      
+      const response = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+      });
 
       const responseText = await response.text();
       console.log('Followup response:', { 
-        status: response.status, 
-        text: responseText.slice(0, 100) 
+        status: response.status,
+        headers: Object.fromEntries(response.headers),
+        text: responseText.slice(0, 100)
       });
 
       if (!response.ok) {
         if (response.status === 429) {
-          // Handle rate limiting
           const retryAfter = response.headers.get('retry-after');
+          console.log('Rate limited, waiting:', retryAfter);
           await new Promise(resolve => setTimeout(resolve, (parseInt(retryAfter) || 5) * 1000));
           continue;
         }
@@ -66,11 +81,13 @@ async function sendFollowup(token, data, retries = 3) {
           throw new Error(`Failed to send followup: ${responseText}`);
         }
         
-        // Exponential backoff for other errors
-        await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
+        const backoff = Math.pow(2, i) * 1000;
+        console.log(`Backing off for ${backoff}ms before retry`);
+        await new Promise(resolve => setTimeout(resolve, backoff));
         continue;
       }
       
+      console.log('Followup sent successfully');
       return;
     } catch (error) {
       console.error(`Followup attempt ${i + 1}/${retries} failed:`, error);
@@ -85,7 +102,12 @@ router.use(verifyDiscordRequest(process.env.DISCORD_PUBLIC_KEY));
 // Handle interactions
 router.post('/', async (req, res) => {
   const { type, data, token } = req.body;
-  console.log('Received interaction:', { type, command: data?.name });
+  console.log('Received interaction:', { 
+    type,
+    command: data?.name,
+    options: data?.options,
+    hasToken: !!token
+  });
 
   try {
     // Handle verification requests immediately
@@ -95,6 +117,7 @@ router.post('/', async (req, res) => {
     }
 
     // For all other requests, acknowledge immediately
+    console.log('Sending initial acknowledgment');
     res.json({
       type: 5,
       data: {
@@ -114,7 +137,11 @@ router.post('/', async (req, res) => {
           const tokenId = subcommand.options[0].value;
           console.log('NFT lookup:', { collection: subcommand.name, tokenId });
 
+          console.log('Calling handleNFTLookup');
           const result = await handleNFTLookup(`${subcommand.name}.${tokenId}`);
+          console.log('NFT lookup result:', result);
+
+          console.log('Sending NFT lookup response');
           await sendFollowup(token, result.data);
         } else {
           console.log('Unknown command:', name);
@@ -124,7 +151,10 @@ router.post('/', async (req, res) => {
           });
         }
       } catch (cmdError) {
-        console.error('Command processing error:', cmdError);
+        console.error('Command processing error:', {
+          message: cmdError.message,
+          stack: cmdError.stack
+        });
         await sendFollowup(token, {
           content: cmdError.message || 'An error occurred while processing your command',
           flags: 64
@@ -132,7 +162,10 @@ router.post('/', async (req, res) => {
       }
     }
   } catch (error) {
-    console.error('Interaction error:', error);
+    console.error('Interaction error:', {
+      message: error.message,
+      stack: error.stack
+    });
     try {
       if (token) {
         await sendFollowup(token, {
