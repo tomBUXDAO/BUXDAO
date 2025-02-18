@@ -30,7 +30,13 @@ import collectionCountsRouter from './api/collection-counts/index.js';
 import processRewardsRouter from './api/rewards/process-daily.js';
 import rewardsEventsRouter from './api/rewards/events.js';
 import rawBodyMiddleware from './api/middleware/rawBody.js';
-import discordInteractions from './api/discord/interactions/index.js';
+let discordInteractions;
+try {
+  discordInteractions = await import('./api/discord/interactions/index.js');
+} catch (error) {
+  console.error('Failed to load Discord interactions:', error);
+  discordInteractions = null;
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -421,7 +427,14 @@ rewardsRouter.use('/events', rewardsEventsRouter);
 app.use('/api/rewards', rewardsRouter);
 
 // Add raw body middleware before routes
-app.post('/api/discord-interactions', rawBodyMiddleware(), discordInteractions);
+if (discordInteractions) {
+  app.post('/api/discord-interactions', rawBodyMiddleware(), discordInteractions.default);
+} else {
+  app.post('/api/discord-interactions', (req, res) => {
+    console.error('Discord interactions module not loaded');
+    res.status(500).json({ error: 'Discord interactions unavailable' });
+  });
+}
 
 // API 404 handler
 app.use('/api/*', (req, res) => {
