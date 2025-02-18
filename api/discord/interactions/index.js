@@ -5,27 +5,32 @@ import fetch from 'node-fetch';
 
 const router = express.Router();
 
-// Verify Discord requests
-function verifyDiscordRequest(clientKey) {
-  return function (req, res, next) {
-    const signature = req.get('X-Signature-Ed25519');
-    const timestamp = req.get('X-Signature-Timestamp');
-    
-    try {
-      const isValidRequest = verifyKey(req.rawBody, signature, timestamp, clientKey);
-      if (!isValidRequest) {
-        return res.status(401).end();
-      }
-      next();
-    } catch (err) {
+// Handle interactions
+router.post('/', express.raw({ type: 'application/json' }), (req, res) => {
+  // Get verification headers
+  const signature = req.get('X-Signature-Ed25519');
+  const timestamp = req.get('X-Signature-Timestamp');
+  const rawBody = req.body; // Express.raw provides this directly as a Buffer
+
+  // Verify the request
+  try {
+    const isValidRequest = verifyKey(rawBody, signature, timestamp, process.env.DISCORD_PUBLIC_KEY);
+    if (!isValidRequest) {
       return res.status(401).end();
     }
-  };
-}
+  } catch (err) {
+    return res.status(401).end();
+  }
 
-// Handle interactions
-router.post('/', verifyDiscordRequest(process.env.DISCORD_PUBLIC_KEY), (req, res) => {
-  const { type, data } = req.body;
+  // Parse the body
+  let body;
+  try {
+    body = JSON.parse(rawBody);
+  } catch (err) {
+    return res.status(400).end();
+  }
+
+  const { type, data } = body;
 
   // Handle ping
   if (type === 1) {
@@ -45,18 +50,8 @@ router.post('/', verifyDiscordRequest(process.env.DISCORD_PUBLIC_KEY), (req, res
 
     // Process command in background
     try {
-      const webhookToken = req.body.token;
+      const webhookToken = body.token;
       const webhookUrl = `https://discord.com/api/v10/webhooks/${process.env.DISCORD_CLIENT_ID}/${webhookToken}`;
-
-      // Send followup immediately
-      fetch(webhookUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          content: "Processing your request...",
-          flags: 64
-        })
-      }).catch(console.error);
 
       // Process command
       if (data.name === 'nft') {
