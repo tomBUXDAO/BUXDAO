@@ -103,10 +103,29 @@ async function sendFollowup(token, data, retries = 3) {
 }
 
 // Verify all requests using your client's public key
-router.use(verifyDiscordRequest(process.env.DISCORD_PUBLIC_KEY));
+router.use((req, res, next) => {
+  console.log('Discord router received request:', {
+    method: req.method,
+    url: req.url,
+    path: req.path,
+    hasRawBody: !!req.rawBody,
+    bodyLength: req.rawBody?.length,
+    contentType: req.headers['content-type'],
+    signature: !!req.get('X-Signature-Ed25519'),
+    timestamp: !!req.get('X-Signature-Timestamp')
+  });
+  next();
+}, verifyDiscordRequest(process.env.DISCORD_PUBLIC_KEY));
 
 // Handle interactions
 router.post('/', async (req, res) => {
+  console.log('Discord interaction handler:', {
+    hasBody: !!req.body,
+    bodyType: typeof req.body,
+    rawBody: req.rawBody?.toString(),
+    headers: req.headers
+  });
+
   console.log('Raw request body:', req.rawBody?.toString());
   console.log('Parsed request body:', req.body);
   

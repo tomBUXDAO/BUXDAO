@@ -121,8 +121,35 @@ app.options('*', cors({
   exposedHeaders: ['Set-Cookie']
 }));
 
+// Add request logging middleware
+app.use((req, res, next) => {
+  console.log('Incoming request:', {
+    method: req.method,
+    url: req.url,
+    path: req.path,
+    headers: req.headers,
+    body: req.body,
+    rawBody: req.rawBody ? 'present' : 'missing'
+  });
+  next();
+});
+
 // Add raw body middleware before routes
-app.post(['/api/discord-interactions', '/api/discord-interactions/'], rawBodyMiddleware(), discordInteractionsRouter);
+app.post(['/api/discord-interactions', '/api/discord-interactions/'], (req, res, next) => {
+  console.log('Before rawBodyMiddleware:', {
+    url: req.url,
+    hasRawBody: !!req.rawBody,
+    contentType: req.headers['content-type']
+  });
+  next();
+}, rawBodyMiddleware(), (req, res, next) => {
+  console.log('After rawBodyMiddleware:', {
+    url: req.url,
+    hasRawBody: !!req.rawBody,
+    bodyLength: req.rawBody?.length
+  });
+  next();
+}, discordInteractionsRouter);
 
 // Parse cookies before anything else
 app.use(cookieParser());
