@@ -263,58 +263,45 @@ app.use(cookieParser());
 // Add Discord interactions route before body parsing middleware
 if (discordInteractions) {
   const discordRoute = express.Router();
+  
+  // Add raw body middleware
   discordRoute.use(rawBodyMiddleware());
+  
+  // Handle Discord interactions
   discordRoute.post('/', async (req, res) => {
-    // Set a shorter timeout to ensure we respond within Discord's limit
-    const DISCORD_TIMEOUT = 2500; // 2.5 seconds
-    let hasResponded = false;
-
-    // Set a timeout to ensure we respond within Discord's limit
-    const timeoutId = setTimeout(() => {
-      if (!hasResponded) {
-        console.error('Discord interaction timed out');
-        hasResponded = true;
-        res.json({
-          type: 5, // DEFERRED_CHANNEL_MESSAGE
-          data: {
-            flags: 64 // Make response ephemeral
-          }
-        });
+    // Immediately acknowledge the interaction
+    res.json({
+      type: 5, // DEFERRED_CHANNEL_MESSAGE
+      data: {
+        flags: 64 // Make response ephemeral
       }
-    }, DISCORD_TIMEOUT);
+    });
 
     try {
       // Ensure rawBody is available for verification
       if (!req.rawBody) {
         console.error('Raw body not available for Discord verification');
-        hasResponded = true;
-        clearTimeout(timeoutId);
-        return res.status(401).json({
-          type: 4,
-          data: {
-            content: 'Invalid request',
-            flags: 64
-          }
+        await sendFollowupMessage(req.body.token, {
+          content: 'Invalid request signature',
+          flags: 64
         });
+        return;
       }
 
-      // Process the interaction
-      await discordInteractions.default(req, res);
-      hasResponded = true;
+      // Process the interaction in the background
+      discordInteractions.default(req, req.body.token).catch(err => {
+        console.error('Discord interaction error:', err);
+        sendFollowupMessage(req.body.token, {
+          content: 'An error occurred while processing your command.',
+          flags: 64
+        });
+      });
     } catch (err) {
       console.error('Discord interaction error:', err);
-      if (!hasResponded) {
-        hasResponded = true;
-        res.json({
-          type: 4,
-          data: {
-            content: 'An error occurred while processing your command.',
-            flags: 64
-          }
-        });
-      }
-    } finally {
-      clearTimeout(timeoutId);
+      sendFollowupMessage(req.body.token, {
+        content: 'An error occurred while processing your command.',
+        flags: 64
+      });
     }
   });
   
@@ -330,6 +317,28 @@ if (discordInteractions) {
       }
     });
   });
+}
+
+// Helper function to send followup messages
+async function sendFollowupMessage(token, data) {
+  try {
+    const response = await fetch(
+      `https://discord.com/api/v10/webhooks/${process.env.DISCORD_CLIENT_ID}/${token}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+      }
+    );
+
+    if (!response.ok) {
+      console.error('Error sending followup:', await response.text());
+    }
+  } catch (error) {
+    console.error('Failed to send followup:', error);
+  }
 }
 
 // Body parsing middleware for all other routes

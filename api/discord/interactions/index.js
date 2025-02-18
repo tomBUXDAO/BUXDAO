@@ -8,48 +8,39 @@ const router = express.Router();
 // Middleware to verify requests are coming from Discord
 function verifyDiscordRequest(clientKey) {
   return function (req, res, next) {
-    console.log('Received Discord request:', {
-      headers: {
-        signature: req.get('X-Signature-Ed25519') ? 'present' : 'missing',
-        timestamp: req.get('X-Signature-Timestamp') ? 'present' : 'missing'
-      },
-      hasBody: !!req.rawBody
-    });
+    console.log('Verifying Discord request...');
 
     const signature = req.get('X-Signature-Ed25519');
     const timestamp = req.get('X-Signature-Timestamp');
     const body = req.rawBody;
 
     if (!signature || !timestamp || !body) {
-      console.error('Missing required headers or body:', { signature: !!signature, timestamp: !!timestamp, body: !!body });
-      return res.status(401).end('Invalid request signature');
+      console.error('Missing required headers or body');
+      throw new Error('Invalid request signature');
     }
 
     try {
       const isValidRequest = verifyKey(body, signature, timestamp, clientKey);
       if (!isValidRequest) {
         console.error('Invalid request signature');
-        return res.status(401).end('Invalid request signature');
+        throw new Error('Invalid request signature');
       }
       console.log('Request signature verified successfully');
       next();
     } catch (err) {
       console.error('Error verifying request:', err);
-      res.status(401).end('Invalid request signature');
+      throw new Error('Invalid request signature');
     }
   };
 }
 
 // Function to send followup message
-async function sendFollowup(interaction_token, data) {
+async function sendFollowup(token, data) {
   try {
-    console.log('Sending followup message:', {
-      webhook_url: `https://discord.com/api/v10/webhooks/${process.env.DISCORD_CLIENT_ID}/${interaction_token}`,
-      data: data
-    });
-
+    console.log('Sending followup message');
+    
     const response = await fetch(
-      `https://discord.com/api/v10/webhooks/${process.env.DISCORD_CLIENT_ID}/${interaction_token}`,
+      `https://discord.com/api/v10/webhooks/${process.env.DISCORD_CLIENT_ID}/${token}`,
       {
         method: 'POST',
         headers: {
@@ -61,11 +52,13 @@ async function sendFollowup(interaction_token, data) {
 
     if (!response.ok) {
       console.error('Error sending followup:', await response.text());
-    } else {
-      console.log('Followup message sent successfully');
+      throw new Error('Failed to send followup message');
     }
+    
+    console.log('Followup message sent successfully');
   } catch (error) {
     console.error('Failed to send followup:', error);
+    throw error;
   }
 }
 
@@ -97,17 +90,12 @@ router.post('/', async (req, res) => {
       // Check if command is used in the correct channel
       if (process.env.DISCORD_COMMANDS_CHANNEL_ID && 
           channel_id !== process.env.DISCORD_COMMANDS_CHANNEL_ID) {
-        console.log('Command used in wrong channel:', {
-          used_in: channel_id,
-          should_be_in: process.env.DISCORD_COMMANDS_CHANNEL_ID
+        console.log('Command used in wrong channel');
+        await sendFollowup(token, {
+          content: `Please use this command in <#${process.env.DISCORD_COMMANDS_CHANNEL_ID}>`,
+          flags: 64
         });
-        return res.json({
-          type: 4,
-          data: {
-            content: `Please use this command in <#${process.env.DISCORD_COMMANDS_CHANNEL_ID}>`,
-            flags: 64
-          }
-        });
+        return;
       }
 
       if (name === 'nft') {
@@ -143,19 +131,18 @@ router.post('/', async (req, res) => {
 
       // Default response for unknown commands
       console.log('Unknown command:', name);
-      return res.json({
-        type: 4,
-        data: {
-          content: 'Unknown command',
-          flags: 64
-        }
+      await sendFollowup(token, {
+        content: 'Unknown command',
+        flags: 64
       });
+      return;
     }
 
     // For other interaction types
     console.log('Unhandled interaction type:', type);
-    res.json({
-      type: 6 // Deferred response
+    await sendFollowup(token, {
+      content: 'Unsupported interaction type',
+      flags: 64
     });
   } catch (error) {
     console.error('Error processing Discord interaction:', error);
