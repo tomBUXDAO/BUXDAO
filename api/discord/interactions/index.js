@@ -74,88 +74,100 @@ router.use(verifyDiscordRequest(process.env.DISCORD_PUBLIC_KEY));
 
 // Handle interactions
 router.post('/', async (req, res) => {
-  console.log('Processing interaction:', {
-    type: req.body.type,
-    command: req.body.data?.name,
-    channel_id: req.body.channel_id
-  });
+  try {
+    console.log('Processing interaction:', {
+      type: req.body.type,
+      command: req.body.data?.name,
+      channel_id: req.body.channel_id
+    });
 
-  const { type, data, channel_id, token } = req.body;
+    const { type, data, channel_id, token } = req.body;
 
-  // Handle verification requests
-  if (type === 1) {
-    console.log('Handling PING request');
-    return res.json({ type: 1 }); // Return PONG
-  }
+    // Handle verification requests
+    if (type === 1) {
+      console.log('Handling PING request');
+      return res.json({ type: 1 }); // Return PONG
+    }
 
-  // Handle commands
-  if (type === 2) { // APPLICATION_COMMAND
-    console.log('Handling command:', data.name);
-    const { name, options } = data;
+    // Handle commands
+    if (type === 2) { // APPLICATION_COMMAND
+      console.log('Handling command:', data.name);
+      const { name, options } = data;
 
-    // Check if command is used in the correct channel
-    if (process.env.DISCORD_COMMANDS_CHANNEL_ID && 
-        channel_id !== process.env.DISCORD_COMMANDS_CHANNEL_ID) {
-      console.log('Command used in wrong channel:', {
-        used_in: channel_id,
-        should_be_in: process.env.DISCORD_COMMANDS_CHANNEL_ID
-      });
+      // Check if command is used in the correct channel
+      if (process.env.DISCORD_COMMANDS_CHANNEL_ID && 
+          channel_id !== process.env.DISCORD_COMMANDS_CHANNEL_ID) {
+        console.log('Command used in wrong channel:', {
+          used_in: channel_id,
+          should_be_in: process.env.DISCORD_COMMANDS_CHANNEL_ID
+        });
+        return res.json({
+          type: 4,
+          data: {
+            content: `Please use this command in <#${process.env.DISCORD_COMMANDS_CHANNEL_ID}>`,
+            flags: 64
+          }
+        });
+      }
+
+      if (name === 'nft') {
+        console.log('Processing NFT lookup command');
+        // Acknowledge the interaction immediately
+        res.json({
+          type: 5, // DEFERRED_CHANNEL_MESSAGE
+          data: {
+            flags: 0 // Make response visible to everyone
+          }
+        });
+
+        try {
+          const subcommand = options[0];
+          const tokenId = subcommand.options[0].value;
+          console.log('Looking up NFT:', {
+            collection: subcommand.name,
+            tokenId: tokenId
+          });
+          const response = await handleNFTLookup(`${subcommand.name}.${tokenId}`);
+          
+          // Send the actual response as a followup
+          await sendFollowup(token, response.data);
+        } catch (error) {
+          console.error('NFT lookup error:', error);
+          await sendFollowup(token, {
+            content: error.message || 'An error occurred while looking up the NFT',
+            flags: 64
+          });
+        }
+        return;
+      }
+
+      // Default response for unknown commands
+      console.log('Unknown command:', name);
       return res.json({
         type: 4,
         data: {
-          content: `Please use this command in <#${process.env.DISCORD_COMMANDS_CHANNEL_ID}>`,
-          flags: 64 // Ephemeral message
+          content: 'Unknown command',
+          flags: 64
         }
       });
     }
 
-    if (name === 'nft') {
-      console.log('Processing NFT lookup command');
-      // Acknowledge the interaction immediately
-      res.json({
-        type: 5, // DEFERRED_CHANNEL_MESSAGE
-        data: {
-          flags: 0 // Make response visible to everyone
-        }
-      });
-
-      try {
-        const subcommand = options[0];
-        const tokenId = subcommand.options[0].value;
-        console.log('Looking up NFT:', {
-          collection: subcommand.name,
-          tokenId: tokenId
-        });
-        const response = await handleNFTLookup(`${subcommand.name}.${tokenId}`);
-        
-        // Send the actual response as a followup
-        await sendFollowup(token, response.data);
-      } catch (error) {
-        console.error('NFT lookup error:', error);
-        await sendFollowup(token, {
-          content: error.message || 'An error occurred while looking up the NFT',
-          flags: 64 // Ephemeral message
-        });
-      }
-      return;
-    }
-
-    // Default response for unknown commands
-    console.log('Unknown command:', name);
-    return res.json({
+    // For other interaction types
+    console.log('Unhandled interaction type:', type);
+    res.json({
+      type: 6 // Deferred response
+    });
+  } catch (error) {
+    console.error('Error processing Discord interaction:', error);
+    // Send a proper error response
+    res.json({
       type: 4,
       data: {
-        content: 'Unknown command',
-        flags: 64 // Ephemeral message
+        content: 'An error occurred while processing your command.',
+        flags: 64
       }
     });
   }
-
-  // For other interaction types
-  console.log('Unhandled interaction type:', type);
-  res.json({
-    type: 6 // Deferred response
-  });
 });
 
 export default router; 

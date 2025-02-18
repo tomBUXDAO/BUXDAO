@@ -428,11 +428,34 @@ app.use('/api/rewards', rewardsRouter);
 
 // Add raw body middleware before routes
 if (discordInteractions) {
-  app.post('/api/discord-interactions', rawBodyMiddleware(), discordInteractions.default);
+  app.post('/api/discord-interactions', 
+    rawBodyMiddleware(),
+    (req, res, next) => {
+      // Ensure rawBody is available for verification
+      if (!req.rawBody) {
+        console.error('Raw body not available for Discord verification');
+        return res.status(401).json({
+          type: 4,
+          data: {
+            content: 'Invalid request',
+            flags: 64
+          }
+        });
+      }
+      next();
+    },
+    discordInteractions.default
+  );
 } else {
   app.post('/api/discord-interactions', (req, res) => {
     console.error('Discord interactions module not loaded');
-    res.status(500).json({ error: 'Discord interactions unavailable' });
+    res.json({
+      type: 4,
+      data: {
+        content: 'Discord interactions are currently unavailable.',
+        flags: 64
+      }
+    });
   });
 }
 
