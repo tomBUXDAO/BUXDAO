@@ -12,6 +12,8 @@ import collectionCountsRouter from './collection-counts/index.js';
 import tokenMetricsRouter from './token-metrics/index.js';
 import { connectDB } from './config/database.js';
 import axios from 'axios';
+import rawBodyMiddleware from './middleware/rawBody.js';
+import discordInteractions from './discord/interactions/index.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -120,6 +122,9 @@ app.get('/api/printful/products/:id', async (req, res) => {
     return res.status(500).json({ error: 'Failed to fetch product details' });
   }
 });
+
+// Add raw body middleware before routes
+app.post('/api/discord/interactions', rawBodyMiddleware(), discordInteractions);
 
 // Routes
 app.use('/api/auth', authRouter);
