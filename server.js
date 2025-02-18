@@ -41,10 +41,21 @@ if (process.env.NODE_ENV === 'production') {
 
 // CORS configuration - must be first
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:3001', 'https://buxdao.com'],
+  origin: function(origin, callback) {
+    const allowedOrigins = process.env.NODE_ENV === 'production'
+      ? ['https://buxdao.com', 'https://www.buxdao.com']
+      : ['http://localhost:5173', 'http://localhost:3001'];
+    
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.log('CORS blocked origin:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With', 'Cache-Control', 'Pragma'],
   exposedHeaders: ['Set-Cookie'],
   preflightContinue: false,
   optionsSuccessStatus: 204
@@ -52,10 +63,21 @@ app.use(cors({
 
 // Add CORS preflight handler
 app.options('*', cors({
-  origin: ['http://localhost:5173', 'http://localhost:3001', 'https://buxdao.com'],
+  origin: function(origin, callback) {
+    const allowedOrigins = process.env.NODE_ENV === 'production'
+      ? ['https://buxdao.com', 'https://www.buxdao.com']
+      : ['http://localhost:5173', 'http://localhost:3001'];
+    
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.log('CORS blocked origin:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With', 'Cache-Control', 'Pragma'],
   exposedHeaders: ['Set-Cookie']
 }));
 
