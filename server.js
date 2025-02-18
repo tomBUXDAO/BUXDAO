@@ -27,6 +27,8 @@ import tokenMetricsRouter from './api/token-metrics.js';
 import userRouter from './api/user/index.js';
 import balanceRouter from './api/user/balance.js';
 import collectionCountsRouter from './api/collection-counts/index.js';
+import processRewardsRouter from './api/rewards/process-daily.js';
+import rewardsEventsRouter from './api/rewards/events.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -409,6 +411,12 @@ app.use('/api/token-metrics', tokenMetricsRouter);
 app.use('/api/user', userRouter);
 app.use('/api/user/balance', balanceRouter);
 app.use('/api/collection-counts', collectionCountsRouter);
+
+// Mount rewards routes
+const rewardsRouter = express.Router();
+rewardsRouter.use('/process-daily', processRewardsRouter);
+rewardsRouter.use('/events', rewardsEventsRouter);
+app.use('/api/rewards', rewardsRouter);
 
 // API 404 handler
 app.use('/api/*', (req, res) => {
