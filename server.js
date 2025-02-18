@@ -335,6 +335,9 @@ app.use('/api/user', userRouter);
 app.use('/api/user/balance', balanceRouter);
 app.use('/api/collection-counts', collectionCountsRouter);
 
+// Discord interactions route
+app.post(['/api/discord-interactions', '/api/discord-interactions/'], rawBodyMiddleware(), discordInteractionsRouter);
+
 // Mount rewards routes
 const rewardsRouter = express.Router();
 rewardsRouter.use('/process-daily', processRewardsRouter);
