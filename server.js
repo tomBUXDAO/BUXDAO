@@ -121,11 +121,8 @@ app.options('*', cors({
   exposedHeaders: ['Set-Cookie']
 }));
 
-// Add Discord interactions route before body parsing middleware
-app.post('/api/discord-interactions', 
-  rawBodyMiddleware(),
-  discordInteractionsRouter
-);
+// Add raw body middleware before routes
+app.post(['/api/discord-interactions', '/api/discord-interactions/'], rawBodyMiddleware(), discordInteractionsRouter);
 
 // Parse cookies before anything else
 app.use(cookieParser());
