@@ -29,8 +29,8 @@ import balanceRouter from './api/user/balance.js';
 import collectionCountsRouter from './api/collection-counts/index.js';
 import processRewardsRouter from './api/rewards/process-daily.js';
 import rewardsEventsRouter from './api/rewards/events.js';
-import rawBodyMiddleware from './api/middleware/rawBody';
-import discordInteractions from './api/discord/interactions';
+import rawBodyMiddleware from './api/middleware/rawBody.js';
+import discordInteractions from './api/discord/interactions/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -421,10 +421,7 @@ rewardsRouter.use('/events', rewardsEventsRouter);
 app.use('/api/rewards', rewardsRouter);
 
 // Add raw body middleware before routes
-app.use(rawBodyMiddleware());
-
-// Add Discord interactions endpoint
-app.use('/api/discord/interactions', discordInteractions);
+app.post('/api/discord-interactions', rawBodyMiddleware(), discordInteractions);
 
 // API 404 handler
 app.use('/api/*', (req, res) => {
