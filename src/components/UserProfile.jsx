@@ -60,25 +60,74 @@ const UserProfile = () => {
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  // Update timer every second
+  // Calculate time until next update
   useEffect(() => {
-    const calculateNextUpdate = () => {
+    const calculateTimeUntilUpdate = () => {
       const now = new Date();
       const tomorrow = new Date(now);
-      tomorrow.setHours(24, 0, 0, 0);
-      return tomorrow - now;
+      tomorrow.setUTCHours(0, 0, 0, 0);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      return tomorrow.getTime() - now.getTime();
+    };
+
+    const updateTimer = () => {
+      const timeLeft = calculateTimeUntilUpdate();
+      setTimeUntilUpdate(timeLeft);
+
+      // If timer reaches 0, trigger rewards update
+      if (timeLeft <= 0 && discordUser?.discord_id) {
+        handleRewardsUpdate();
+      }
     };
 
     // Initial calculation
-    setTimeUntilUpdate(calculateNextUpdate());
+    updateTimer();
 
     // Update every second
-    const timer = setInterval(() => {
-      const timeLeft = calculateNextUpdate();
-      setTimeUntilUpdate(timeLeft);
-    }, 1000);
-
+    const timer = setInterval(updateTimer, 1000);
     return () => clearInterval(timer);
+  }, [discordUser]);
+
+  // Handle rewards update
+  const handleRewardsUpdate = async () => {
+    if (!discordUser?.discord_id) return;
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/rewards/process-daily`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        console.error('Failed to process rewards:', error);
+        return;
+      }
+
+      // Refresh user data after rewards are processed
+      await fetchUserData();
+      toast.success('Daily rewards have been processed!');
+    } catch (error) {
+      console.error('Error processing rewards:', error);
+    }
+  };
+
+  // Listen for rewards processed event
+  useEffect(() => {
+    const eventSource = new EventSource(`${API_BASE_URL}/api/rewards/events`);
+    
+    eventSource.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.type === 'rewards_processed') {
+        fetchUserData();
+        toast.success(`Daily rewards processed: ${data.total_rewards} BUX distributed!`);
+      }
+    };
+
+    return () => eventSource.close();
   }, []);
 
   useEffect(() => {
