@@ -264,38 +264,47 @@ app.use(cookieParser());
 if (discordInteractions) {
   const discordRoute = express.Router();
   discordRoute.use(rawBodyMiddleware());
-  discordRoute.post('/', async (req, res, next) => {
-    // Set a timeout for the response
-    res.setTimeout(2900, () => {
-      console.error('Discord interaction timed out');
-      if (!res.headersSent) {
+  discordRoute.post('/', async (req, res) => {
+    // Set a shorter timeout to ensure we respond within Discord's limit
+    const DISCORD_TIMEOUT = 2500; // 2.5 seconds
+    let hasResponded = false;
+
+    // Set a timeout to ensure we respond within Discord's limit
+    const timeoutId = setTimeout(() => {
+      if (!hasResponded) {
+        console.error('Discord interaction timed out');
+        hasResponded = true;
         res.json({
+          type: 5, // DEFERRED_CHANNEL_MESSAGE
+          data: {
+            flags: 64 // Make response ephemeral
+          }
+        });
+      }
+    }, DISCORD_TIMEOUT);
+
+    try {
+      // Ensure rawBody is available for verification
+      if (!req.rawBody) {
+        console.error('Raw body not available for Discord verification');
+        hasResponded = true;
+        clearTimeout(timeoutId);
+        return res.status(401).json({
           type: 4,
           data: {
-            content: 'The request timed out. Please try again.',
+            content: 'Invalid request',
             flags: 64
           }
         });
       }
-    });
 
-    // Ensure rawBody is available for verification
-    if (!req.rawBody) {
-      console.error('Raw body not available for Discord verification');
-      return res.status(401).json({
-        type: 4,
-        data: {
-          content: 'Invalid request',
-          flags: 64
-        }
-      });
-    }
-
-    try {
-      await discordInteractions.default(req, res, next);
+      // Process the interaction
+      await discordInteractions.default(req, res);
+      hasResponded = true;
     } catch (err) {
       console.error('Discord interaction error:', err);
-      if (!res.headersSent) {
+      if (!hasResponded) {
+        hasResponded = true;
         res.json({
           type: 4,
           data: {
@@ -304,6 +313,8 @@ if (discordInteractions) {
           }
         });
       }
+    } finally {
+      clearTimeout(timeoutId);
     }
   });
   

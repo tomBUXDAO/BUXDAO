@@ -1,12 +1,13 @@
 import express from 'express';
 
 function rawBodyMiddleware() {
-  return express.json({
+  return express.raw({
+    type: '*/*',
+    limit: '100kb',
     verify: (req, res, buf) => {
       // Store the raw body buffer
       req.rawBody = buf;
-    },
-    type: '*/*' // Accept all content types
+    }
   });
 }
 
