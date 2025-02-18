@@ -35,30 +35,32 @@ function verifyDiscordRequest(clientKey) {
 }
 
 // Function to send followup message
-async function sendFollowup(token, data) {
-  try {
-    console.log('Sending followup message');
-    
-    const response = await fetch(
-      `https://discord.com/api/v10/webhooks/${process.env.DISCORD_CLIENT_ID}/${token}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data)
-      }
-    );
+async function sendFollowup(token, data, retries = 3) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const response = await fetch(
+        `https://discord.com/api/v10/webhooks/${process.env.DISCORD_CLIENT_ID}/${token}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data)
+        }
+      );
 
-    if (!response.ok) {
-      console.error('Error sending followup:', await response.text());
-      throw new Error('Failed to send followup message');
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Error sending followup:', errorText);
+        if (i === retries - 1) throw new Error(errorText);
+      } else {
+        return;
+      }
+    } catch (error) {
+      console.error(`Failed to send followup (attempt ${i + 1}/${retries}):`, error);
+      if (i === retries - 1) throw error;
+      await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
     }
-    
-    console.log('Followup message sent successfully');
-  } catch (error) {
-    console.error('Failed to send followup:', error);
-    throw error;
   }
 }
 
@@ -115,14 +117,27 @@ router.post('/', async (req, res) => {
             collection: subcommand.name,
             tokenId: tokenId
           });
-          const response = await handleNFTLookup(`${subcommand.name}.${tokenId}`);
+
+          // Set a timeout for the NFT lookup
+          const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('NFT lookup timed out')), 2500);
+          });
+
+          // Process the NFT lookup with timeout
+          const response = await Promise.race([
+            handleNFTLookup(`${subcommand.name}.${tokenId}`),
+            timeoutPromise
+          ]);
           
           // Send the actual response as a followup
           await sendFollowup(token, response.data);
         } catch (error) {
-          console.error('NFT lookup error:', error);
+          console.error('NFT lookup error:', {
+            message: error.message,
+            stack: error.stack
+          });
           await sendFollowup(token, {
-            content: error.message || 'An error occurred while looking up the NFT',
+            content: error.message || 'An error occurred while looking up the NFT. Please try again.',
             flags: 64
           });
         }
@@ -145,15 +160,21 @@ router.post('/', async (req, res) => {
       flags: 64
     });
   } catch (error) {
-    console.error('Error processing Discord interaction:', error);
-    // Send a proper error response
-    res.json({
-      type: 4,
-      data: {
-        content: 'An error occurred while processing your command.',
-        flags: 64
-      }
+    console.error('Error processing Discord interaction:', {
+      message: error.message,
+      stack: error.stack,
+      type: error.type
     });
+    
+    try {
+      // Send a proper error response
+      await sendFollowup(req.body.token, {
+        content: 'An error occurred while processing your command. Please try again.',
+        flags: 64
+      });
+    } catch (followupErr) {
+      console.error('Failed to send error followup:', followupErr);
+    }
   }
 });
 
