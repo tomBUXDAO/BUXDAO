@@ -2,111 +2,87 @@ import { verifyKey } from 'discord-interactions';
 
 export const config = {
   runtime: 'edge',
-  regions: ['iad1']
 };
 
-export default async function handler(request) {
-  // Only allow POST
-  if (request.method !== 'POST') {
-    return new Response(
-      JSON.stringify({ error: 'Method not allowed' }), 
-      { status: 405, headers: { 'Content-Type': 'application/json' }}
-    );
+export default async function handler(req) {
+  // Only handle POST requests
+  if (req.method !== 'POST') {
+    return new Response('Method not allowed', { status: 405 });
   }
 
-  try {
-    // Get Discord headers
-    const signature = request.headers.get('x-signature-ed25519');
-    const timestamp = request.headers.get('x-signature-timestamp');
-    
-    // Get raw body
-    const rawBody = await request.text();
+  // Get Discord headers
+  const signature = req.headers.get('x-signature-ed25519');
+  const timestamp = req.headers.get('x-signature-timestamp');
+  
+  // Get raw body
+  const body = await req.text();
 
-    // Verify the signature
-    const isValid = verifyKey(
-      Buffer.from(rawBody),
-      signature,
-      timestamp,
-      process.env.DISCORD_PUBLIC_KEY
-    );
+  // Verify the request
+  const isValidRequest = verifyKey(
+    body,
+    signature,
+    timestamp,
+    process.env.DISCORD_PUBLIC_KEY
+  );
 
-    if (!isValid) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid signature' }), 
-        { status: 401, headers: { 'Content-Type': 'application/json' }}
-      );
-    }
+  if (!isValidRequest) {
+    return new Response('Invalid request signature', { status: 401 });
+  }
 
-    // Parse the interaction
-    const interaction = JSON.parse(rawBody);
+  // Parse the request body
+  const interaction = JSON.parse(body);
 
-    // Handle PING
-    if (interaction.type === 1) {
-      return new Response(
-        JSON.stringify({ type: 1 }), 
-        { status: 200, headers: { 'Content-Type': 'application/json' }}
-      );
-    }
+  // Handle ping
+  if (interaction.type === 1) {
+    return new Response(JSON.stringify({ type: 1 }), {
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
 
-    // Handle commands
-    if (interaction.type === 2) {
-      // For NFT lookup, call our API endpoint
-      if (interaction.data.name === 'nft') {
-        const subcommand = interaction.data.options[0];
-        const tokenId = subcommand.options[0].value;
-        
-        // Immediately acknowledge
-        const response = new Response(
+  // Handle slash commands
+  if (interaction.type === 2) {
+    const { name } = interaction.data;
+
+    switch (name) {
+      case 'nft':
+        // Acknowledge the command immediately
+        return new Response(
           JSON.stringify({
-            type: 5,
+            type: 5, // DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE
             data: {
-              content: "Processing command...",
-              flags: 64
-            }
+              content: 'Looking up NFT information...',
+            },
           }),
-          { status: 200, headers: { 'Content-Type': 'application/json' }}
+          { headers: { 'Content-Type': 'application/json' } }
         );
 
-        // Call our API endpoint in the background
-        fetch(`${process.env.VITE_API_URL}/api/nft-lookup`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            collection: subcommand.name,
-            tokenId: tokenId,
-            webhookUrl: `https://discord.com/api/v10/webhooks/${process.env.DISCORD_CLIENT_ID}/${interaction.token}`
-          })
-        }).catch(console.error); // Log any errors but don't wait
-
-        return response;
-      }
-
-      // Default command response
-      return new Response(
-        JSON.stringify({
-          type: 4,
-          data: {
-            content: "Unknown command",
-            flags: 64
-          }
-        }),
-        { status: 200, headers: { 'Content-Type': 'application/json' }}
-      );
+      default:
+        return new Response(
+          JSON.stringify({
+            type: 4,
+            data: {
+              content: 'Unknown command',
+              embeds: [{
+                title: 'Error',
+                description: 'This command is not recognized',
+                color: 0xFF0000,
+                timestamp: new Date().toISOString()
+              }]
+            },
+          }),
+          { headers: { 'Content-Type': 'application/json' } }
+        );
     }
-
-    // Handle unknown types
-    return new Response(
-      JSON.stringify({ error: 'Unknown interaction type' }), 
-      { status: 400, headers: { 'Content-Type': 'application/json' }}
-    );
-
-  } catch (error) {
-    console.error('Discord interaction error:', error);
-    return new Response(
-      JSON.stringify({ error: 'Internal server error' }), 
-      { status: 500, headers: { 'Content-Type': 'application/json' }}
-    );
   }
+
+  // Handle unknown interaction type
+  return new Response(
+    JSON.stringify({
+      type: 4,
+      data: {
+        content: 'Unknown interaction type',
+      },
+    }),
+    { headers: { 'Content-Type': 'application/json' } }
+  );
 } 
