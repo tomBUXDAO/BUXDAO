@@ -1,11 +1,10 @@
+import express from 'express';
 import { handleNFTLookup } from './discord/interactions/commands/nft-lookup.js';
 import fetch from 'node-fetch';
 
-export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+const router = express.Router();
 
+router.post('/', async (req, res) => {
   try {
     const { collection, tokenId, webhookUrl } = req.body;
 
@@ -45,4 +44,6 @@ export default async function handler(req, res) {
 
     return res.status(500).json({ error: 'Internal server error' });
   }
-} 
+});
+
+export default router; 
