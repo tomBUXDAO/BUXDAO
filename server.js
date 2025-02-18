@@ -53,10 +53,11 @@ if (process.env.NODE_ENV === 'production') {
 app.use(cors({
   origin: function(origin, callback) {
     const allowedOrigins = process.env.NODE_ENV === 'production'
-      ? ['https://buxdao.com', 'https://www.buxdao.com']
-      : ['http://localhost:5173', 'http://localhost:3001'];
+      ? ['https://buxdao.com', 'https://www.buxdao.com', 'https://discord.com']
+      : ['http://localhost:5173', 'http://localhost:3001', 'https://discord.com'];
     
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+    // Allow requests with no origin (like mobile apps, curl, Discord interactions)
+    if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
       console.log('CORS blocked origin:', origin);
@@ -65,7 +66,7 @@ app.use(cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With', 'Cache-Control', 'Pragma'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With', 'X-Signature-Ed25519', 'X-Signature-Timestamp'],
   exposedHeaders: ['Set-Cookie'],
   preflightContinue: false,
   optionsSuccessStatus: 204
@@ -75,10 +76,10 @@ app.use(cors({
 app.options('*', cors({
   origin: function(origin, callback) {
     const allowedOrigins = process.env.NODE_ENV === 'production'
-      ? ['https://buxdao.com', 'https://www.buxdao.com']
-      : ['http://localhost:5173', 'http://localhost:3001'];
+      ? ['https://buxdao.com', 'https://www.buxdao.com', 'https://discord.com']
+      : ['http://localhost:5173', 'http://localhost:3001', 'https://discord.com'];
     
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+    if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
       console.log('CORS blocked origin:', origin);
@@ -87,156 +88,173 @@ app.options('*', cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With', 'Cache-Control', 'Pragma'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With', 'X-Signature-Ed25519', 'X-Signature-Timestamp'],
   exposedHeaders: ['Set-Cookie']
 }));
 
 // Test database connection and create tables if needed
 const initDatabase = async () => {
+  let retries = 5;
   let client;
-  try {
-    console.log('Testing database connection...');
-    client = await pool.connect();
-    
-    // Create user_roles table if it doesn't exist
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS user_roles (
-        discord_id VARCHAR(255) PRIMARY KEY,
-        discord_name VARCHAR(255),
-        wallet_address VARCHAR(255),
-        fcked_catz_holder BOOLEAN DEFAULT false,
-        money_monsters_holder BOOLEAN DEFAULT false,
-        moneymonsters3d_holder BOOLEAN DEFAULT false,
-        ai_bitbots_holder BOOLEAN DEFAULT false,
-        celebcatz_holder BOOLEAN DEFAULT false,
-        fcked_catz_whale BOOLEAN DEFAULT false,
-        money_monsters_whale BOOLEAN DEFAULT false,
-        moneymonsters3d_whale BOOLEAN DEFAULT false,
-        ai_bitbots_whale BOOLEAN DEFAULT false,
-        bux_beginner BOOLEAN DEFAULT false,
-        bux_builder BOOLEAN DEFAULT false,
-        bux_saver BOOLEAN DEFAULT false,
-        bux_banker BOOLEAN DEFAULT false,
-        buxdao_5 BOOLEAN DEFAULT false,
-        roles JSONB DEFAULT '[]'::jsonb,
-        last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
 
-    // Create roles table if it doesn't exist
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS roles (
-        id SERIAL PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
-        type VARCHAR(50) NOT NULL CHECK (type IN ('holder', 'whale', 'token', 'special')),
-        collection VARCHAR(50) NOT NULL,
-        threshold INTEGER DEFAULT 1,
-        discord_role_id VARCHAR(255) NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        CONSTRAINT roles_discord_role_id_key UNIQUE (discord_role_id)
-      );
+  while (retries > 0) {
+    try {
+      console.log(`Testing database connection (${retries} retries left)...`);
+      client = await pool.connect();
+      
+      // Set statement timeout to prevent long-running queries
+      await client.query('SET statement_timeout = 30000');
+      
+      // Create user_roles table if it doesn't exist
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS user_roles (
+          discord_id VARCHAR(255) PRIMARY KEY,
+          discord_name VARCHAR(255),
+          wallet_address VARCHAR(255),
+          fcked_catz_holder BOOLEAN DEFAULT false,
+          money_monsters_holder BOOLEAN DEFAULT false,
+          moneymonsters3d_holder BOOLEAN DEFAULT false,
+          ai_bitbots_holder BOOLEAN DEFAULT false,
+          celebcatz_holder BOOLEAN DEFAULT false,
+          fcked_catz_whale BOOLEAN DEFAULT false,
+          money_monsters_whale BOOLEAN DEFAULT false,
+          moneymonsters3d_whale BOOLEAN DEFAULT false,
+          ai_bitbots_whale BOOLEAN DEFAULT false,
+          bux_beginner BOOLEAN DEFAULT false,
+          bux_builder BOOLEAN DEFAULT false,
+          bux_saver BOOLEAN DEFAULT false,
+          bux_banker BOOLEAN DEFAULT false,
+          buxdao_5 BOOLEAN DEFAULT false,
+          roles JSONB DEFAULT '[]'::jsonb,
+          last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
 
-      -- Create index on discord_role_id for faster lookups
-      CREATE INDEX IF NOT EXISTS idx_roles_discord_role_id ON roles(discord_role_id);
-      -- Create index for filtering on type and collection
-      CREATE INDEX IF NOT EXISTS idx_roles_type_collection ON roles(type, collection);
-    `);
+      // Create roles table if it doesn't exist
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS roles (
+          id SERIAL PRIMARY KEY,
+          name VARCHAR(255) NOT NULL,
+          type VARCHAR(50) NOT NULL CHECK (type IN ('holder', 'whale', 'token', 'special')),
+          collection VARCHAR(50) NOT NULL,
+          threshold INTEGER DEFAULT 1,
+          discord_role_id VARCHAR(255) NOT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          CONSTRAINT roles_discord_role_id_key UNIQUE (discord_role_id)
+        );
 
-    // Add roles column if it doesn't exist
-    await client.query(`
-      DO $$ 
-      BEGIN
-        IF NOT EXISTS (
-          SELECT 1 
-          FROM information_schema.columns 
-          WHERE table_name = 'user_roles' 
-          AND column_name = 'roles'
-        ) THEN
-          ALTER TABLE user_roles ADD COLUMN roles JSONB DEFAULT '[]'::jsonb;
-        END IF;
-      END $$;
-    `);
+        -- Create index on discord_role_id for faster lookups
+        CREATE INDEX IF NOT EXISTS idx_roles_discord_role_id ON roles(discord_role_id);
+        -- Create index for filtering on type and collection
+        CREATE INDEX IF NOT EXISTS idx_roles_type_collection ON roles(type, collection);
+      `);
 
-    // Create bux_holders table if it doesn't exist
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS bux_holders (
-        wallet_address VARCHAR(255) PRIMARY KEY,
-        owner_discord_id VARCHAR(255) REFERENCES user_roles(discord_id),
-        owner_name VARCHAR(255),
-        balance DECIMAL(20,8) DEFAULT 0,
-        unclaimed_rewards DECIMAL(20,8) DEFAULT 0,
-        last_claim_time TIMESTAMP,
-        last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        is_exempt BOOLEAN DEFAULT false
-      );
-    `);
+      // Add roles column if it doesn't exist
+      await client.query(`
+        DO $$ 
+        BEGIN
+          IF NOT EXISTS (
+            SELECT 1 
+            FROM information_schema.columns 
+            WHERE table_name = 'user_roles' 
+            AND column_name = 'roles'
+          ) THEN
+            ALTER TABLE user_roles ADD COLUMN roles JSONB DEFAULT '[]'::jsonb;
+          END IF;
+        END $$;
+      `);
 
-    // Create session table if it doesn't exist
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS "session" (
-        "sid" varchar NOT NULL COLLATE "default",
-        "sess" json NOT NULL,
-        "expire" timestamp(6) NOT NULL,
-        CONSTRAINT "session_pkey" PRIMARY KEY ("sid")
-      );
-    `);
+      // Create bux_holders table if it doesn't exist
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS bux_holders (
+          wallet_address VARCHAR(255) PRIMARY KEY,
+          owner_discord_id VARCHAR(255) REFERENCES user_roles(discord_id),
+          owner_name VARCHAR(255),
+          balance DECIMAL(20,8) DEFAULT 0,
+          unclaimed_rewards DECIMAL(20,8) DEFAULT 0,
+          last_claim_time TIMESTAMP,
+          last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          is_exempt BOOLEAN DEFAULT false
+        );
+      `);
 
-    // Insert default roles if they don't exist
-    await client.query(`
-      INSERT INTO roles (name, type, collection, threshold, discord_role_id) VALUES
-      -- Holder roles
-      ('FCKed Catz Holder', 'holder', 'fcked_catz', 1, '1095033759612547133'),
-      ('Money Monsters Holder', 'holder', 'money_monsters', 1, '1093607056696692828'),
-      ('AI BitBots Holder', 'holder', 'ai_bitbots', 1, '1095034117877399686'),
-      ('Money Monsters 3D Holder', 'holder', 'moneymonsters3d', 1, '1093607187454111825'),
-      ('Celebrity Catz Holder', 'holder', 'celebcatz', 1, '1095335098112561234'),
+      // Create session table if it doesn't exist
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS "session" (
+          "sid" varchar NOT NULL COLLATE "default",
+          "sess" json NOT NULL,
+          "expire" timestamp(6) NOT NULL,
+          CONSTRAINT "session_pkey" PRIMARY KEY ("sid")
+        );
+      `);
 
-      -- Whale roles
-      ('FCKed Catz Whale', 'whale', 'fcked_catz', 25, '1095033566070583457'),
-      ('Money Monsters Whale', 'whale', 'money_monsters', 25, '1093606438674382858'),
-      ('AI BitBots Whale', 'whale', 'ai_bitbots', 10, '1095033899492573274'),
-      ('Money Monsters 3D Whale', 'whale', 'moneymonsters3d', 25, '1093606579355525252'),
+      // Insert default roles if they don't exist
+      await client.query(`
+        INSERT INTO roles (name, type, collection, threshold, discord_role_id) VALUES
+        -- Holder roles
+        ('FCKed Catz Holder', 'holder', 'fcked_catz', 1, '1095033759612547133'),
+        ('Money Monsters Holder', 'holder', 'money_monsters', 1, '1093607056696692828'),
+        ('AI BitBots Holder', 'holder', 'ai_bitbots', 1, '1095034117877399686'),
+        ('Money Monsters 3D Holder', 'holder', 'moneymonsters3d', 1, '1093607187454111825'),
+        ('Celebrity Catz Holder', 'holder', 'celebcatz', 1, '1095335098112561234'),
 
-      -- BUX token roles
-      ('BUX Beginner', 'token', 'bux', 2500, '1248416679504117861'),
-      ('BUX Builder', 'token', 'bux', 10000, '1248417674476916809'),
-      ('BUX Saver', 'token', 'bux', 25000, '1248417591215784019'),
-      ('BUX Banker', 'token', 'bux', 50000, '1095363984581984357'),
+        -- Whale roles
+        ('FCKed Catz Whale', 'whale', 'fcked_catz', 25, '1095033566070583457'),
+        ('Money Monsters Whale', 'whale', 'money_monsters', 25, '1093606438674382858'),
+        ('AI BitBots Whale', 'whale', 'ai_bitbots', 10, '1095033899492573274'),
+        ('Money Monsters 3D Whale', 'whale', 'moneymonsters3d', 25, '1093606579355525252'),
 
-      -- Special roles
-      ('BUXDAO 5', 'special', 'all', 5, '1248428373487784006')
-      ON CONFLICT ON CONSTRAINT roles_discord_role_id_key DO UPDATE SET
-        name = EXCLUDED.name,
-        type = EXCLUDED.type,
-        collection = EXCLUDED.collection,
-        threshold = EXCLUDED.threshold,
-        updated_at = CURRENT_TIMESTAMP;
-    `);
+        -- BUX token roles
+        ('BUX Beginner', 'token', 'bux', 2500, '1248416679504117861'),
+        ('BUX Builder', 'token', 'bux', 10000, '1248417674476916809'),
+        ('BUX Saver', 'token', 'bux', 25000, '1248417591215784019'),
+        ('BUX Banker', 'token', 'bux', 50000, '1095363984581984357'),
 
-    console.log('Database initialized successfully');
-  } catch (err) {
-    console.error('Database initialization failed:', {
-      message: err.message,
-      code: err.code,
-      stack: err.stack
-    });
-    process.exit(1);
-  } finally {
-    if (client) {
-      await client.release();
+        -- Special roles
+        ('BUXDAO 5', 'special', 'all', 5, '1248428373487784006')
+        ON CONFLICT ON CONSTRAINT roles_discord_role_id_key DO UPDATE SET
+          name = EXCLUDED.name,
+          type = EXCLUDED.type,
+          collection = EXCLUDED.collection,
+          threshold = EXCLUDED.threshold,
+          updated_at = CURRENT_TIMESTAMP;
+      `);
+
+      console.log('Database initialized successfully');
+      return;
+    } catch (err) {
+      console.error('Database initialization attempt failed:', {
+        message: err.message,
+        code: err.code,
+        retries: retries - 1
+      });
+      
+      retries--;
+      if (retries === 0) {
+        console.error('All database connection attempts failed');
+        // Don't exit process, continue with limited functionality
+        return;
+      }
+      
+      // Wait 5 seconds before retrying
+      await new Promise(resolve => setTimeout(resolve, 5000));
+    } finally {
+      if (client) {
+        await client.release();
+      }
     }
   }
 };
 
-// Initialize database
+// Initialize database but don't exit on failure
 initDatabase().catch(err => {
   console.error('Failed to initialize database:', {
     message: err.message,
     code: err.code,
     stack: err.stack
   });
-  process.exit(1);
+  // Continue running the server with limited functionality
 });
 
 // Parse cookies and JSON body - before session middleware
@@ -431,6 +449,20 @@ if (discordInteractions) {
   app.post('/api/discord-interactions', 
     rawBodyMiddleware(),
     (req, res, next) => {
+      // Set a timeout for the response
+      res.setTimeout(2900, () => {
+        console.error('Discord interaction timed out');
+        if (!res.headersSent) {
+          res.json({
+            type: 4,
+            data: {
+              content: 'The request timed out. Please try again.',
+              flags: 64
+            }
+          });
+        }
+      });
+
       // Ensure rawBody is available for verification
       if (!req.rawBody) {
         console.error('Raw body not available for Discord verification');
@@ -443,6 +475,22 @@ if (discordInteractions) {
         });
       }
       next();
+    },
+    async (err, req, res, next) => {
+      if (err) {
+        console.error('Discord interaction error:', err);
+        if (!res.headersSent) {
+          res.json({
+            type: 4,
+            data: {
+              content: 'An error occurred while processing your command.',
+              flags: 64
+            }
+          });
+        }
+      } else {
+        next();
+      }
     },
     discordInteractions.default
   );
