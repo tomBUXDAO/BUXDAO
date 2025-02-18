@@ -257,9 +257,73 @@ initDatabase().catch(err => {
   // Continue running the server with limited functionality
 });
 
-// Parse cookies and JSON body - before session middleware
+// Parse cookies before anything else
 app.use(cookieParser());
+
+// Add Discord interactions route before body parsing middleware
+if (discordInteractions) {
+  const discordRoute = express.Router();
+  discordRoute.use(rawBodyMiddleware());
+  discordRoute.post('/', async (req, res, next) => {
+    // Set a timeout for the response
+    res.setTimeout(2900, () => {
+      console.error('Discord interaction timed out');
+      if (!res.headersSent) {
+        res.json({
+          type: 4,
+          data: {
+            content: 'The request timed out. Please try again.',
+            flags: 64
+          }
+        });
+      }
+    });
+
+    // Ensure rawBody is available for verification
+    if (!req.rawBody) {
+      console.error('Raw body not available for Discord verification');
+      return res.status(401).json({
+        type: 4,
+        data: {
+          content: 'Invalid request',
+          flags: 64
+        }
+      });
+    }
+
+    try {
+      await discordInteractions.default(req, res, next);
+    } catch (err) {
+      console.error('Discord interaction error:', err);
+      if (!res.headersSent) {
+        res.json({
+          type: 4,
+          data: {
+            content: 'An error occurred while processing your command.',
+            flags: 64
+          }
+        });
+      }
+    }
+  });
+  
+  app.use('/api/discord-interactions', discordRoute);
+} else {
+  app.post('/api/discord-interactions', (req, res) => {
+    console.error('Discord interactions module not loaded');
+    res.json({
+      type: 4,
+      data: {
+        content: 'Discord interactions are currently unavailable.',
+        flags: 64
+      }
+    });
+  });
+}
+
+// Body parsing middleware for all other routes
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Session configuration with PostgreSQL store
 const pgSession = PostgresqlStore(session);
@@ -443,69 +507,6 @@ const rewardsRouter = express.Router();
 rewardsRouter.use('/process-daily', processRewardsRouter);
 rewardsRouter.use('/events', rewardsEventsRouter);
 app.use('/api/rewards', rewardsRouter);
-
-// Add raw body middleware before routes
-if (discordInteractions) {
-  app.post('/api/discord-interactions', 
-    rawBodyMiddleware(),
-    (req, res, next) => {
-      // Set a timeout for the response
-      res.setTimeout(2900, () => {
-        console.error('Discord interaction timed out');
-        if (!res.headersSent) {
-          res.json({
-            type: 4,
-            data: {
-              content: 'The request timed out. Please try again.',
-              flags: 64
-            }
-          });
-        }
-      });
-
-      // Ensure rawBody is available for verification
-      if (!req.rawBody) {
-        console.error('Raw body not available for Discord verification');
-        return res.status(401).json({
-          type: 4,
-          data: {
-            content: 'Invalid request',
-            flags: 64
-          }
-        });
-      }
-      next();
-    },
-    async (err, req, res, next) => {
-      if (err) {
-        console.error('Discord interaction error:', err);
-        if (!res.headersSent) {
-          res.json({
-            type: 4,
-            data: {
-              content: 'An error occurred while processing your command.',
-              flags: 64
-            }
-          });
-        }
-      } else {
-        next();
-      }
-    },
-    discordInteractions.default
-  );
-} else {
-  app.post('/api/discord-interactions', (req, res) => {
-    console.error('Discord interactions module not loaded');
-    res.json({
-      type: 4,
-      data: {
-        content: 'Discord interactions are currently unavailable.',
-        flags: 64
-      }
-    });
-  });
-}
 
 // API 404 handler
 app.use('/api/*', (req, res) => {
