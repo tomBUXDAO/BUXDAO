@@ -52,9 +52,14 @@ export default async function handler(req) {
   });
 
   try {
-    // Get raw body
-    const rawBody = await req.text();
-    console.log('Raw body length:', rawBody.length);
+    // Get raw body as ArrayBuffer first
+    const arrayBuffer = await req.arrayBuffer();
+    const rawBody = new TextDecoder().decode(arrayBuffer);
+    
+    console.log('Raw body received:', {
+      length: rawBody.length,
+      preview: rawBody.slice(0, 100) + '...'
+    });
 
     // Verify the request
     const isValidRequest = verifyKey(
@@ -73,7 +78,8 @@ export default async function handler(req) {
     const interaction = JSON.parse(rawBody);
     console.log('Processing interaction:', {
       type: interaction.type,
-      command: interaction.data?.name
+      command: interaction.data?.name,
+      options: interaction.data?.options
     });
 
     // Handle ping
@@ -119,45 +125,16 @@ export default async function handler(req) {
           );
         }
 
-        // Acknowledge the command immediately
-        const response = {
-          type: 5, // DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE
-          data: {
-            flags: 64 // EPHEMERAL
-          }
-        };
-
-        // Get the webhook URL for follow-up
-        const webhookUrl = `https://discord.com/api/webhooks/${process.env.DISCORD_CLIENT_ID}/${interaction.token}`;
-
-        // Send the initial response
-        const initialResponse = await fetch(webhookUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            content: 'Looking up NFT information...',
-            flags: 64
-          })
-        });
-
-        if (!initialResponse.ok) {
-          console.error('Failed to send initial response:', await initialResponse.text());
-        }
-
-        // Trigger the NFT lookup in the background
-        fetch('https://buxdao.com/api/nft-lookup', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            collection,
-            tokenId,
-            webhookUrl
-          })
-        }).catch(console.error);
-
-        return new Response(JSON.stringify(response), {
-          headers: { 'Content-Type': 'application/json' }
-        });
+        // Return immediate acknowledgment
+        return new Response(
+          JSON.stringify({
+            type: 5, // DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE
+            data: {
+              flags: 64 // EPHEMERAL
+            }
+          }),
+          { headers: { 'Content-Type': 'application/json' } }
+        );
       }
 
       // Handle unknown commands
