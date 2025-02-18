@@ -8,10 +8,12 @@ const router = express.Router();
 // Middleware to verify requests are coming from Discord
 function verifyDiscordRequest(clientKey) {
   return function (req, res, next) {
-    console.log('Verifying Discord request headers:', {
-      signature: !!req.get('X-Signature-Ed25519'),
-      timestamp: !!req.get('X-Signature-Timestamp'),
-      hasBody: !!req.rawBody
+    console.log('Discord request received:', {
+      method: req.method,
+      path: req.path,
+      headers: Object.keys(req.headers),
+      hasBody: !!req.body,
+      hasRawBody: !!req.rawBody
     });
 
     const signature = req.get('X-Signature-Ed25519');
@@ -19,7 +21,11 @@ function verifyDiscordRequest(clientKey) {
     const body = req.rawBody;
 
     if (!signature || !timestamp || !body) {
-      console.error('Missing required headers or body');
+      console.error('Missing required headers or body:', {
+        hasSignature: !!signature,
+        hasTimestamp: !!timestamp,
+        hasBody: !!body
+      });
       return res.status(401).json({ error: 'Invalid request signature' });
     }
 
@@ -101,6 +107,9 @@ router.use(verifyDiscordRequest(process.env.DISCORD_PUBLIC_KEY));
 
 // Handle interactions
 router.post('/', async (req, res) => {
+  console.log('Raw request body:', req.rawBody?.toString());
+  console.log('Parsed request body:', req.body);
+  
   const { type, data, token } = req.body;
   console.log('Received interaction:', { 
     type,

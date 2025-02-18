@@ -30,13 +30,7 @@ import collectionCountsRouter from './api/collection-counts/index.js';
 import processRewardsRouter from './api/rewards/process-daily.js';
 import rewardsEventsRouter from './api/rewards/events.js';
 import rawBodyMiddleware from './api/middleware/rawBody.js';
-let discordInteractions;
-try {
-  discordInteractions = await import('./api/discord/interactions/index.js');
-} catch (error) {
-  console.error('Failed to load Discord interactions:', error);
-  discordInteractions = null;
-}
+import discordInteractionsRouter from './api/discord/interactions/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -128,146 +122,10 @@ app.options('*', cors({
 }));
 
 // Add Discord interactions route before body parsing middleware
-if (discordInteractions) {
-  const discordRoute = express.Router();
-  
-  // Add raw body middleware
-  discordRoute.use(rawBodyMiddleware());
-  
-  // Handle Discord interactions
-  discordRoute.post('/', async (req, res) => {
-    const { type, token } = req.body;
-
-    // Handle verification requests immediately
-    if (type === 1) {
-      return res.json({ type: 1 }); // Return PONG
-    }
-
-    // For all other requests, acknowledge immediately
-    res.json({
-      type: 5, // DEFERRED_CHANNEL_MESSAGE
-      data: {
-        flags: 64 // Make response ephemeral
-      }
-    });
-
-    // Process the interaction in the background
-    try {
-      // Ensure rawBody is available for verification
-      if (!req.rawBody) {
-        console.error('Raw body not available for Discord verification');
-        await sendFollowupMessage(token, {
-          content: 'Error: Invalid request',
-          flags: 64
-        });
-        return;
-      }
-
-      // Set a timeout for the interaction processing
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Command processing timed out')), 2000);
-      });
-
-      // Process the interaction with timeout
-      await Promise.race([
-        discordInteractions.default(req),
-        timeoutPromise
-      ]).then(async (response) => {
-        if (response && response.data) {
-          await sendFollowupMessage(token, response.data);
-        }
-      }).catch(async (err) => {
-        console.error('Command processing error:', err);
-        await sendFollowupMessage(token, {
-          content: 'An error occurred while processing your command. Please try again.',
-          flags: 64
-        });
-      });
-    } catch (err) {
-      console.error('Discord interaction error:', {
-        message: err.message,
-        stack: err.stack,
-        type: err.type
-      });
-      
-      try {
-        await sendFollowupMessage(token, {
-          content: 'An error occurred while processing your command. Please try again.',
-          flags: 64
-        });
-      } catch (followupErr) {
-        console.error('Failed to send error followup:', followupErr);
-      }
-    }
-  });
-  
-  app.use('/api/discord-interactions', discordRoute);
-} else {
-  app.post('/api/discord-interactions', (req, res) => {
-    console.error('Discord interactions module not loaded');
-    res.json({
-      type: 4,
-      data: {
-        content: 'Discord interactions are currently unavailable.',
-        flags: 64
-      }
-    });
-  });
-}
-
-// Helper function to send followup messages with retry and backoff
-async function sendFollowupMessage(token, data, retries = 3) {
-  let lastError;
-  for (let i = 0; i < retries; i++) {
-    try {
-      const response = await fetch(
-        `https://discord.com/api/v10/webhooks/${process.env.DISCORD_CLIENT_ID}/${token}`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(data)
-        }
-      );
-
-      const responseText = await response.text();
-      
-      if (!response.ok) {
-        lastError = new Error(responseText);
-        console.error(`Error sending followup (attempt ${i + 1}/${retries}):`, responseText);
-        
-        // If we're rate limited, wait the specified time
-        if (response.status === 429) {
-          const rateLimit = JSON.parse(responseText);
-          await new Promise(resolve => setTimeout(resolve, (rateLimit.retry_after * 1000) + 100));
-          continue;
-        }
-        
-        // For invalid token, break immediately
-        if (response.status === 401) {
-          throw new Error('Invalid webhook token');
-        }
-        
-        // For other errors, use exponential backoff
-        if (i < retries - 1) {
-          await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
-          continue;
-        }
-      }
-      
-      return;
-    } catch (error) {
-      lastError = error;
-      console.error(`Failed to send followup (attempt ${i + 1}/${retries}):`, error);
-      if (i < retries - 1) {
-        await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
-      }
-    }
-  }
-  
-  throw lastError;
-}
+app.post('/api/discord-interactions', 
+  rawBodyMiddleware(),
+  discordInteractionsRouter
+);
 
 // Parse cookies before anything else
 app.use(cookieParser());
