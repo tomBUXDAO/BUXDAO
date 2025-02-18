@@ -1,8 +1,16 @@
 export default async function handler(req, res) {
   // Set CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  const origin = process.env.NODE_ENV === 'production' 
+    ? ['https://buxdao.com', 'https://www.buxdao.com']
+    : ['http://localhost:5173', 'http://localhost:3001'];
+  
+  const requestOrigin = req.headers.origin;
+  if (origin.includes(requestOrigin)) {
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Origin', requestOrigin);
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cache-Control, Pragma');
+  }
 
   // Handle OPTIONS request
   if (req.method === 'OPTIONS') {

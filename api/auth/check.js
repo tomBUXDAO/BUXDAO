@@ -13,6 +13,17 @@ const pool = new Pool({
 
 router.get('/', async (req, res) => {
   try {
+    // Set CORS headers
+    const origin = process.env.NODE_ENV === 'production' 
+      ? ['https://buxdao.com', 'https://www.buxdao.com']
+      : ['http://localhost:5173', 'http://localhost:3001'];
+    
+    const requestOrigin = req.headers.origin;
+    if (origin.includes(requestOrigin)) {
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+      res.setHeader('Access-Control-Allow-Origin', requestOrigin);
+    }
+
     console.log('Auth check request:', {
       sessionID: req.sessionID,
       hasSession: !!req.session,

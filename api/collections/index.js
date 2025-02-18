@@ -23,8 +23,15 @@ router.get('/:collection/stats', async (req, res) => {
       const data = await response.json();
 
       // Set CORS headers
-      res.set('Access-Control-Allow-Credentials', 'true');
-      res.set('Access-Control-Allow-Origin', process.env.NODE_ENV === 'production' ? 'https://buxdao.com' : 'http://localhost:5173');
+      const origin = process.env.NODE_ENV === 'production' 
+        ? ['https://buxdao.com', 'https://www.buxdao.com']
+        : ['http://localhost:5173', 'http://localhost:3001'];
+      
+      const requestOrigin = req.headers.origin;
+      if (origin.includes(requestOrigin)) {
+        res.set('Access-Control-Allow-Credentials', 'true');
+        res.set('Access-Control-Allow-Origin', requestOrigin);
+      }
       
       return res.status(200).json(data);
     } catch (error) {

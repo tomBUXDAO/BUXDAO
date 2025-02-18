@@ -1,8 +1,16 @@
+import fetch from 'node-fetch';
 import express from 'express';
+import pkg from 'pg';
 import { Connection, PublicKey, LAMPORTS_PER_SOL } from '@solana/web3.js';
-import { pool } from '../config/database.js';
+const { Pool } = pkg;
 
 const router = express.Router();
+const pool = new Pool({
+  connectionString: process.env.POSTGRES_URL,
+  ssl: {
+    rejectUnauthorized: false
+  }
+});
 
 router.get('/', async (req, res) => {
   let client;

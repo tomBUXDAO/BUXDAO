@@ -316,68 +316,60 @@ app.use('/api/user', (req, res, next) => {
   next();
 });
 
-// Printful API handlers
+// Printful API configuration
 const PRINTFUL_API_KEY = process.env.PRINTFUL_API_KEY;
 const PRINTFUL_API_URL = 'https://api.printful.com';
 
-// Explicit route handlers for Printful API
+// Printful API endpoints
 app.get('/api/printful/products', async (req, res) => {
-  console.log('[Printful] Starting products request...');
-  
-  if (!PRINTFUL_API_KEY) {
-    console.error('[Printful] API key is missing');
-    return res.status(500).json({ error: 'Printful API key is not configured' });
-  }
-
   try {
-    console.log('[Printful] Making request to Printful API...');
-    
-    const response = await axios({
-      method: 'get',
-      url: `${PRINTFUL_API_URL}/store/products`,
+    if (!PRINTFUL_API_KEY) {
+      console.error('Printful API key is not configured');
+      return res.status(500).json({ error: 'Printful API key is not configured' });
+    }
+
+    console.log('Fetching products from Printful API...');
+    const response = await axios.get(`${PRINTFUL_API_URL}/store/products`, {
       headers: {
-        'Authorization': `Bearer ${PRINTFUL_API_KEY}`,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
+        'Authorization': `Bearer ${PRINTFUL_API_KEY}`
       }
     });
 
-    console.log('[Printful] Response received:', {
-      status: response.status,
-      contentType: response.headers['content-type']
-    });
-
-    return res.json(response.data.result);
+    console.log('Successfully fetched products from Printful');
+    res.json(response.data.result);
   } catch (error) {
-    console.error('[Printful] API error:', {
-      message: error.message,
-      status: error.response?.status,
-      data: error.response?.data
+    console.error('Error fetching products from Printful:', error.message);
+    res.status(error.response?.status || 500).json({ 
+      error: 'Error fetching products from Printful',
+      details: error.message 
     });
-    return res.status(500).json({ error: 'Failed to fetch products' });
   }
 });
 
 app.get('/api/printful/products/:id', async (req, res) => {
-  if (!PRINTFUL_API_KEY) {
-    return res.status(500).json({ error: 'Printful API key is not configured' });
-  }
-
   try {
-    const response = await axios({
-      method: 'get',
-      url: `${PRINTFUL_API_URL}/store/products/${req.params.id}`,
+    if (!PRINTFUL_API_KEY) {
+      console.error('Printful API key is not configured');
+      return res.status(500).json({ error: 'Printful API key is not configured' });
+    }
+
+    const { id } = req.params;
+    console.log(`Fetching product ${id} from Printful API...`);
+    
+    const response = await axios.get(`${PRINTFUL_API_URL}/store/products/${id}`, {
       headers: {
-        'Authorization': `Bearer ${PRINTFUL_API_KEY}`,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
+        'Authorization': `Bearer ${PRINTFUL_API_KEY}`
       }
     });
 
-    return res.json(response.data.result);
+    console.log(`Successfully fetched product ${id} from Printful`);
+    res.json(response.data.result);
   } catch (error) {
-    console.error('[Printful] API error:', error.message);
-    return res.status(500).json({ error: 'Failed to fetch product details' });
+    console.error(`Error fetching product ${req.params.id} from Printful:`, error.message);
+    res.status(error.response?.status || 500).json({ 
+      error: 'Error fetching product from Printful',
+      details: error.message 
+    });
   }
 });
 
