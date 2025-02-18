@@ -76,7 +76,7 @@ router.post('/', async (req, res) => {
       channel_id: req.body.channel_id
     });
 
-    const { type, data, channel_id, token } = req.body;
+    const { type, data, channel_id } = req.body;
 
     // Handle verification requests
     if (type === 1) {
@@ -93,23 +93,16 @@ router.post('/', async (req, res) => {
       if (process.env.DISCORD_COMMANDS_CHANNEL_ID && 
           channel_id !== process.env.DISCORD_COMMANDS_CHANNEL_ID) {
         console.log('Command used in wrong channel');
-        await sendFollowup(token, {
-          content: `Please use this command in <#${process.env.DISCORD_COMMANDS_CHANNEL_ID}>`,
-          flags: 64
-        });
-        return;
+        return {
+          data: {
+            content: `Please use this command in <#${process.env.DISCORD_COMMANDS_CHANNEL_ID}>`,
+            flags: 64
+          }
+        };
       }
 
       if (name === 'nft') {
         console.log('Processing NFT lookup command');
-        // Acknowledge the interaction immediately
-        res.json({
-          type: 5, // DEFERRED_CHANNEL_MESSAGE
-          data: {
-            flags: 0 // Make response visible to everyone
-          }
-        });
-
         try {
           const subcommand = options[0];
           const tokenId = subcommand.options[0].value;
@@ -120,7 +113,7 @@ router.post('/', async (req, res) => {
 
           // Set a timeout for the NFT lookup
           const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => reject(new Error('NFT lookup timed out')), 2500);
+            setTimeout(() => reject(new Error('NFT lookup timed out')), 2000);
           });
 
           // Process the NFT lookup with timeout
@@ -129,36 +122,39 @@ router.post('/', async (req, res) => {
             timeoutPromise
           ]);
           
-          // Send the actual response as a followup
-          await sendFollowup(token, response.data);
+          return response;
         } catch (error) {
           console.error('NFT lookup error:', {
             message: error.message,
             stack: error.stack
           });
-          await sendFollowup(token, {
-            content: error.message || 'An error occurred while looking up the NFT. Please try again.',
-            flags: 64
-          });
+          return {
+            data: {
+              content: error.message || 'An error occurred while looking up the NFT. Please try again.',
+              flags: 64
+            }
+          };
         }
-        return;
       }
 
       // Default response for unknown commands
       console.log('Unknown command:', name);
-      await sendFollowup(token, {
-        content: 'Unknown command',
-        flags: 64
-      });
-      return;
+      return {
+        data: {
+          content: 'Unknown command',
+          flags: 64
+        }
+      };
     }
 
     // For other interaction types
     console.log('Unhandled interaction type:', type);
-    await sendFollowup(token, {
-      content: 'Unsupported interaction type',
-      flags: 64
-    });
+    return {
+      data: {
+        content: 'Unsupported interaction type',
+        flags: 64
+      }
+    };
   } catch (error) {
     console.error('Error processing Discord interaction:', {
       message: error.message,
@@ -166,15 +162,12 @@ router.post('/', async (req, res) => {
       type: error.type
     });
     
-    try {
-      // Send a proper error response
-      await sendFollowup(req.body.token, {
+    return {
+      data: {
         content: 'An error occurred while processing your command. Please try again.',
         flags: 64
-      });
-    } catch (followupErr) {
-      console.error('Failed to send error followup:', followupErr);
-    }
+      }
+    };
   }
 });
 
