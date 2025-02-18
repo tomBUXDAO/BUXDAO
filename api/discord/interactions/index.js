@@ -5,92 +5,93 @@ import fetch from 'node-fetch';
 
 const router = express.Router();
 
-// Handle interactions
-router.post('/', express.raw({ type: 'application/json' }), (req, res) => {
-  // Get verification headers
-  const signature = req.get('X-Signature-Ed25519');
-  const timestamp = req.get('X-Signature-Timestamp');
-  const rawBody = req.body; // Express.raw provides this directly as a Buffer
-
-  // Verify the request
+// Raw request handler
+router.post('/', async (req, res) => {
+  // Get the raw request body as a buffer
+  const chunks = [];
+  req.on('data', chunk => chunks.push(chunk));
+  
   try {
+    await new Promise((resolve, reject) => {
+      req.on('end', resolve);
+      req.on('error', reject);
+    });
+    
+    const rawBody = Buffer.concat(chunks);
+    
+    // Get verification headers
+    const signature = req.get('x-signature-ed25519');
+    const timestamp = req.get('x-signature-timestamp');
+    
+    // Verify the request
     const isValidRequest = verifyKey(rawBody, signature, timestamp, process.env.DISCORD_PUBLIC_KEY);
     if (!isValidRequest) {
-      return res.status(401).end();
+      return res.status(401).send('Invalid request signature');
     }
-  } catch (err) {
-    return res.status(401).end();
-  }
 
-  // Parse the body
-  let body;
-  try {
-    body = JSON.parse(rawBody);
-  } catch (err) {
-    return res.status(400).end();
-  }
+    // Parse the request body
+    const message = JSON.parse(rawBody);
 
-  const { type, data } = body;
+    // Handle PING
+    if (message.type === 1) {
+      return res.json({ type: 1 });
+    }
 
-  // Handle ping
-  if (type === 1) {
-    return res.json({ type: 1 });
-  }
+    // Handle commands
+    if (message.type === 2) {
+      // Immediately acknowledge
+      res.json({
+        type: 5,
+        data: {
+          content: "BUXBOT is thinking...",
+          flags: 64
+        }
+      });
 
-  // Handle commands
-  if (type === 2) {
-    // Immediately acknowledge
-    res.json({
-      type: 5,
+      // Process command in background
+      if (message.data.name === 'nft') {
+        const subcommand = message.data.options[0];
+        const tokenId = subcommand.options[0].value;
+        
+        // Create webhook URL
+        const webhookUrl = `https://discord.com/api/v10/webhooks/${process.env.DISCORD_CLIENT_ID}/${message.token}`;
+        
+        try {
+          const result = await handleNFTLookup(`${subcommand.name}.${tokenId}`);
+          
+          // Send response via webhook
+          await fetch(webhookUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(result.data)
+          });
+        } catch (error) {
+          // Send error via webhook
+          await fetch(webhookUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              content: `Error: ${error.message}`,
+              flags: 64
+            })
+          });
+        }
+      }
+      return;
+    }
+
+    // Handle unknown types
+    return res.json({
+      type: 4,
       data: {
-        content: "BUXBOT is thinking...",
+        content: "Unknown interaction type",
         flags: 64
       }
     });
-
-    // Process command in background
-    try {
-      const webhookToken = body.token;
-      const webhookUrl = `https://discord.com/api/v10/webhooks/${process.env.DISCORD_CLIENT_ID}/${webhookToken}`;
-
-      // Process command
-      if (data.name === 'nft') {
-        const subcommand = data.options[0];
-        const tokenId = subcommand.options[0].value;
-        
-        handleNFTLookup(`${subcommand.name}.${tokenId}`)
-          .then(result => {
-            fetch(webhookUrl, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(result.data)
-            }).catch(console.error);
-          })
-          .catch(error => {
-            fetch(webhookUrl, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                content: `Error: ${error.message}`,
-                flags: 64
-              })
-            }).catch(console.error);
-          });
-      }
-    } catch (error) {
-      console.error('Command processing error:', error);
-    }
-    return;
+  } catch (error) {
+    console.error('Interaction error:', error);
+    return res.status(500).send('Internal server error');
   }
-
-  // Handle unknown types
-  res.json({
-    type: 4,
-    data: {
-      content: "Unknown interaction type",
-      flags: 64
-    }
-  });
 });
 
 export default router; 
