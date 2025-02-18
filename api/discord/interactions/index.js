@@ -2,23 +2,42 @@ import { verifyKey } from 'discord-interactions';
 import { handleNFTLookup } from './commands/nft-lookup.js';
 import fetch from 'node-fetch';
 
-export default async function handler(req, res) {
-  // Get the signature and timestamp headers
-  const signature = req.get('x-signature-ed25519');
-  const timestamp = req.get('x-signature-timestamp');
+// Export config for Edge Function
+export const config = {
+  runtime: 'edge',
+  regions: ['iad1'], // US East (N. Virginia)
+};
 
-  // Collect raw body chunks
-  const chunks = [];
-  for await (const chunk of req) {
-    chunks.push(chunk);
+export default async function handler(req) {
+  // Only allow POST
+  if (req.method !== 'POST') {
+    return new Response(
+      JSON.stringify({ error: 'Method not allowed' }), 
+      { status: 405, headers: { 'Content-Type': 'application/json' }}
+    );
   }
-  const rawBody = Buffer.concat(chunks);
 
   try {
-    // Verify the request
-    const isValid = verifyKey(rawBody, signature, timestamp, process.env.DISCORD_PUBLIC_KEY);
+    // Get Discord headers
+    const signature = req.headers.get('x-signature-ed25519');
+    const timestamp = req.headers.get('x-signature-timestamp');
+    
+    // Get raw body
+    const rawBody = await req.text();
+
+    // Verify the signature
+    const isValid = verifyKey(
+      Buffer.from(rawBody),
+      signature,
+      timestamp,
+      process.env.DISCORD_PUBLIC_KEY
+    );
+
     if (!isValid) {
-      return res.status(401).send('Invalid request signature');
+      return new Response(
+        JSON.stringify({ error: 'Invalid signature' }), 
+        { status: 401, headers: { 'Content-Type': 'application/json' }}
+      );
     }
 
     // Parse the interaction
@@ -26,19 +45,25 @@ export default async function handler(req, res) {
 
     // Handle PING
     if (interaction.type === 1) {
-      return res.json({ type: 1 });
+      return new Response(
+        JSON.stringify({ type: 1 }), 
+        { status: 200, headers: { 'Content-Type': 'application/json' }}
+      );
     }
 
     // Handle commands
     if (interaction.type === 2) {
       // Immediately acknowledge
-      res.json({
-        type: 5,
-        data: {
-          content: "Processing command...",
-          flags: 64
-        }
-      });
+      const response = new Response(
+        JSON.stringify({
+          type: 5,
+          data: {
+            content: "Processing command...",
+            flags: 64
+          }
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' }}
+      );
 
       // Process command in background
       if (interaction.data.name === 'nft') {
@@ -48,40 +73,41 @@ export default async function handler(req, res) {
         // Create webhook URL
         const webhookUrl = `https://discord.com/api/v10/webhooks/${process.env.DISCORD_CLIENT_ID}/${interaction.token}`;
         
-        try {
-          const result = await handleNFTLookup(`${subcommand.name}.${tokenId}`);
-          
-          // Send response via webhook
-          await fetch(webhookUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(result.data)
+        // Process in background
+        handleNFTLookup(`${subcommand.name}.${tokenId}`)
+          .then(result => {
+            fetch(webhookUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(result.data)
+            });
+          })
+          .catch(error => {
+            fetch(webhookUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                content: `Error: ${error.message}`,
+                flags: 64
+              })
+            });
           });
-        } catch (error) {
-          // Send error via webhook
-          await fetch(webhookUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              content: `Error: ${error.message}`,
-              flags: 64
-            })
-          });
-        }
       }
-      return;
+
+      return response;
     }
 
     // Handle unknown types
-    return res.json({
-      type: 4,
-      data: {
-        content: "Unknown interaction type",
-        flags: 64
-      }
-    });
+    return new Response(
+      JSON.stringify({ error: 'Unknown interaction type' }), 
+      { status: 400, headers: { 'Content-Type': 'application/json' }}
+    );
+
   } catch (error) {
     console.error('Discord interaction error:', error);
-    return res.status(500).send('Internal server error');
+    return new Response(
+      JSON.stringify({ error: 'Internal server error' }), 
+      { status: 500, headers: { 'Content-Type': 'application/json' }}
+    );
   }
 } 
