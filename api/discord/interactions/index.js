@@ -1,60 +1,52 @@
-import express from 'express';
 import { verifyKey } from 'discord-interactions';
 import { handleNFTLookup } from './commands/nft-lookup.js';
 import fetch from 'node-fetch';
 
-const router = express.Router();
+export default async function handler(req, res) {
+  // Get the signature and timestamp headers
+  const signature = req.get('x-signature-ed25519');
+  const timestamp = req.get('x-signature-timestamp');
 
-// Raw request handler
-router.post('/', async (req, res) => {
-  // Get the raw request body as a buffer
+  // Collect raw body chunks
   const chunks = [];
-  req.on('data', chunk => chunks.push(chunk));
-  
+  for await (const chunk of req) {
+    chunks.push(chunk);
+  }
+  const rawBody = Buffer.concat(chunks);
+
   try {
-    await new Promise((resolve, reject) => {
-      req.on('end', resolve);
-      req.on('error', reject);
-    });
-    
-    const rawBody = Buffer.concat(chunks);
-    
-    // Get verification headers
-    const signature = req.get('x-signature-ed25519');
-    const timestamp = req.get('x-signature-timestamp');
-    
     // Verify the request
-    const isValidRequest = verifyKey(rawBody, signature, timestamp, process.env.DISCORD_PUBLIC_KEY);
-    if (!isValidRequest) {
+    const isValid = verifyKey(rawBody, signature, timestamp, process.env.DISCORD_PUBLIC_KEY);
+    if (!isValid) {
       return res.status(401).send('Invalid request signature');
     }
 
-    // Parse the request body
-    const message = JSON.parse(rawBody);
+    // Parse the interaction
+    const interaction = JSON.parse(rawBody);
 
     // Handle PING
-    if (message.type === 1) {
+    if (interaction.type === 1) {
       return res.json({ type: 1 });
     }
 
     // Handle commands
-    if (message.type === 2) {
+    if (interaction.type === 2) {
       // Immediately acknowledge
       res.json({
         type: 5,
         data: {
-          content: "BUXBOT is thinking...",
+          content: "Processing command...",
           flags: 64
         }
       });
 
       // Process command in background
-      if (message.data.name === 'nft') {
-        const subcommand = message.data.options[0];
+      if (interaction.data.name === 'nft') {
+        const subcommand = interaction.data.options[0];
         const tokenId = subcommand.options[0].value;
         
         // Create webhook URL
-        const webhookUrl = `https://discord.com/api/v10/webhooks/${process.env.DISCORD_CLIENT_ID}/${message.token}`;
+        const webhookUrl = `https://discord.com/api/v10/webhooks/${process.env.DISCORD_CLIENT_ID}/${interaction.token}`;
         
         try {
           const result = await handleNFTLookup(`${subcommand.name}.${tokenId}`);
@@ -89,9 +81,7 @@ router.post('/', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Interaction error:', error);
+    console.error('Discord interaction error:', error);
     return res.status(500).send('Internal server error');
   }
-});
-
-export default router; 
+} 
