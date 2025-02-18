@@ -1,113 +1,93 @@
+import express from 'express';
 import { verifyKey } from 'discord-interactions';
 import { handleNFTLookup } from './commands/nft-lookup.js';
 import fetch from 'node-fetch';
 
-// Export config for Edge Function
-export const config = {
-  runtime: 'edge',
-  regions: ['iad1'], // US East (N. Virginia)
-};
+const router = express.Router();
 
-export default async function handler(req) {
-  // Only allow POST
-  if (req.method !== 'POST') {
-    return new Response(
-      JSON.stringify({ error: 'Method not allowed' }), 
-      { status: 405, headers: { 'Content-Type': 'application/json' }}
-    );
+router.post('/', async (req, res) => {
+  const signature = req.headers['x-signature-ed25519'];
+  const timestamp = req.headers['x-signature-timestamp'];
+  const rawBody = req.rawBody;
+
+  if (!signature || !timestamp || !rawBody) {
+    console.error('Missing headers:', { signature, timestamp, rawBody: !!rawBody });
+    return res.status(401).json({ error: 'Invalid request signature' });
   }
 
   try {
-    // Get Discord headers
-    const signature = req.headers.get('x-signature-ed25519');
-    const timestamp = req.headers.get('x-signature-timestamp');
-    
-    // Get raw body
-    const rawBody = await req.text();
-
-    // Verify the signature
     const isValid = verifyKey(
-      Buffer.from(rawBody),
+      rawBody,
       signature,
       timestamp,
       process.env.DISCORD_PUBLIC_KEY
     );
 
     if (!isValid) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid signature' }), 
-        { status: 401, headers: { 'Content-Type': 'application/json' }}
-      );
+      return res.status(401).json({ error: 'Invalid request signature' });
     }
 
-    // Parse the interaction
-    const interaction = JSON.parse(rawBody);
+    const interaction = req.body;
 
-    // Handle PING
     if (interaction.type === 1) {
-      return new Response(
-        JSON.stringify({ type: 1 }), 
-        { status: 200, headers: { 'Content-Type': 'application/json' }}
-      );
+      return res.json({ type: 1 });
     }
 
-    // Handle commands
     if (interaction.type === 2) {
-      // Immediately acknowledge
-      const response = new Response(
-        JSON.stringify({
+      if (interaction.data.name === 'nft') {
+        const subcommand = interaction.data.options[0];
+        const tokenId = subcommand.options[0].value;
+        
+        // Immediately acknowledge
+        res.json({
           type: 5,
           data: {
             content: "Processing command...",
             flags: 64
           }
-        }),
-        { status: 200, headers: { 'Content-Type': 'application/json' }}
-      );
+        });
 
-      // Process command in background
-      if (interaction.data.name === 'nft') {
-        const subcommand = interaction.data.options[0];
-        const tokenId = subcommand.options[0].value;
-        
-        // Create webhook URL
-        const webhookUrl = `https://discord.com/api/v10/webhooks/${process.env.DISCORD_CLIENT_ID}/${interaction.token}`;
-        
-        // Process in background
-        handleNFTLookup(`${subcommand.name}.${tokenId}`)
-          .then(result => {
-            fetch(webhookUrl, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(result.data)
-            });
-          })
-          .catch(error => {
-            fetch(webhookUrl, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                content: `Error: ${error.message}`,
-                flags: 64
-              })
-            });
+        try {
+          const result = await handleNFTLookup(`${subcommand.name}.${tokenId}`);
+          
+          // Send followup message
+          const webhookUrl = `https://discord.com/api/v10/webhooks/${process.env.DISCORD_CLIENT_ID}/${interaction.token}`;
+          await fetch(webhookUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(result.data)
           });
+        } catch (error) {
+          console.error('NFT lookup error:', error);
+          
+          // Send error message
+          const webhookUrl = `https://discord.com/api/v10/webhooks/${process.env.DISCORD_CLIENT_ID}/${interaction.token}`;
+          await fetch(webhookUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              content: `Error: ${error.message}`,
+              flags: 64
+            })
+          });
+        }
+        return;
       }
 
-      return response;
+      return res.json({
+        type: 4,
+        data: {
+          content: "Unknown command",
+          flags: 64
+        }
+      });
     }
 
-    // Handle unknown types
-    return new Response(
-      JSON.stringify({ error: 'Unknown interaction type' }), 
-      { status: 400, headers: { 'Content-Type': 'application/json' }}
-    );
-
+    res.status(400).json({ error: 'Unknown interaction type' });
   } catch (error) {
     console.error('Discord interaction error:', error);
-    return new Response(
-      JSON.stringify({ error: 'Internal server error' }), 
-      { status: 500, headers: { 'Content-Type': 'application/json' }}
-    );
+    res.status(500).json({ error: 'Internal server error' });
   }
-} 
+});
+
+export default router; 

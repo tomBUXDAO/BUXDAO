@@ -31,7 +31,7 @@ import processRewardsRouter from './api/rewards/process-daily.js';
 import rewardsEventsRouter from './api/rewards/events.js';
 import rawBodyMiddleware from './api/middleware/rawBody.js';
 import discordInteractionsRouter from './api/discord/interactions/index.js';
-import nftLookupRouter from './api/nft-lookup/index.js';
+import nftLookupRouter from './api/nft-lookup.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
