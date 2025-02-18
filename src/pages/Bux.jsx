@@ -229,11 +229,11 @@ const Bux = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div>
                       <p className="text-gray-300 text-sm mb-1">Total Supply</p>
-                      <p className="text-gray-200 font-semibold text-xl">{tokenData.totalSupply}</p>
+                      <p className="text-gray-200 font-semibold text-xl">{Number(tokenData.totalSupply).toFixed(2)}</p>
                     </div>
                     <div>
                       <p className="text-gray-300 text-sm mb-1">Public Supply</p>
-                      <p className="text-gray-200 font-semibold text-xl">{tokenData.publicSupply}</p>
+                      <p className="text-gray-200 font-semibold text-xl">{Number(tokenData.publicSupply).toFixed(2)}</p>
                     </div>
                     <div className="sm:col-span-2">
                       <p className="text-gray-300 text-sm mb-1">Liquidity Pool</p>
