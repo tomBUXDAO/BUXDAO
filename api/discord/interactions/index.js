@@ -8,34 +8,33 @@ const router = express.Router();
 // Middleware to verify requests are coming from Discord
 function verifyDiscordRequest(clientKey) {
   return function (req, res, next) {
-    console.log('Verifying Discord request...');
-
     const signature = req.get('X-Signature-Ed25519');
     const timestamp = req.get('X-Signature-Timestamp');
     const body = req.rawBody;
 
     if (!signature || !timestamp || !body) {
       console.error('Missing required headers or body');
-      throw new Error('Invalid request signature');
+      return res.status(401).json({ error: 'Invalid request signature' });
     }
 
     try {
       const isValidRequest = verifyKey(body, signature, timestamp, clientKey);
       if (!isValidRequest) {
         console.error('Invalid request signature');
-        throw new Error('Invalid request signature');
+        return res.status(401).json({ error: 'Invalid request signature' });
       }
-      console.log('Request signature verified successfully');
       next();
     } catch (err) {
       console.error('Error verifying request:', err);
-      throw new Error('Invalid request signature');
+      return res.status(401).json({ error: 'Invalid request signature' });
     }
   };
 }
 
-// Function to send followup message
+// Function to send followup message with improved error handling
 async function sendFollowup(token, data, retries = 3) {
+  console.log('Sending followup message:', { token: token?.slice(0, 8), data });
+  
   for (let i = 0; i < retries; i++) {
     try {
       const response = await fetch(
@@ -49,17 +48,33 @@ async function sendFollowup(token, data, retries = 3) {
         }
       );
 
+      const responseText = await response.text();
+      console.log('Followup response:', { 
+        status: response.status, 
+        text: responseText.slice(0, 100) 
+      });
+
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Error sending followup:', errorText);
-        if (i === retries - 1) throw new Error(errorText);
-      } else {
-        return;
+        if (response.status === 429) {
+          // Handle rate limiting
+          const retryAfter = response.headers.get('retry-after');
+          await new Promise(resolve => setTimeout(resolve, (parseInt(retryAfter) || 5) * 1000));
+          continue;
+        }
+        
+        if (i === retries - 1) {
+          throw new Error(`Failed to send followup: ${responseText}`);
+        }
+        
+        // Exponential backoff for other errors
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
+        continue;
       }
+      
+      return;
     } catch (error) {
-      console.error(`Failed to send followup (attempt ${i + 1}/${retries}):`, error);
+      console.error(`Followup attempt ${i + 1}/${retries} failed:`, error);
       if (i === retries - 1) throw error;
-      await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
     }
   }
 }
@@ -69,105 +84,65 @@ router.use(verifyDiscordRequest(process.env.DISCORD_PUBLIC_KEY));
 
 // Handle interactions
 router.post('/', async (req, res) => {
+  const { type, data, token } = req.body;
+  console.log('Received interaction:', { type, command: data?.name });
+
   try {
-    console.log('Processing interaction:', {
-      type: req.body.type,
-      command: req.body.data?.name,
-      channel_id: req.body.channel_id
-    });
-
-    const { type, data, channel_id } = req.body;
-
-    // Handle verification requests
+    // Handle verification requests immediately
     if (type === 1) {
       console.log('Handling PING request');
-      return res.json({ type: 1 }); // Return PONG
+      return res.json({ type: 1 });
     }
 
-    // Handle commands
-    if (type === 2) { // APPLICATION_COMMAND
-      console.log('Handling command:', data.name);
-      const { name, options } = data;
-
-      // Check if command is used in the correct channel
-      if (process.env.DISCORD_COMMANDS_CHANNEL_ID && 
-          channel_id !== process.env.DISCORD_COMMANDS_CHANNEL_ID) {
-        console.log('Command used in wrong channel');
-        return {
-          data: {
-            content: `Please use this command in <#${process.env.DISCORD_COMMANDS_CHANNEL_ID}>`,
-            flags: 64
-          }
-        };
+    // For all other requests, acknowledge immediately
+    res.json({
+      type: 5,
+      data: {
+        content: "Processing your request...",
+        flags: 64
       }
+    });
 
-      if (name === 'nft') {
-        console.log('Processing NFT lookup command');
-        try {
+    // Process the command in the background
+    if (type === 2) {
+      const { name, options } = data;
+      console.log('Processing command:', { name, options });
+
+      try {
+        if (name === 'nft') {
           const subcommand = options[0];
           const tokenId = subcommand.options[0].value;
-          console.log('Looking up NFT:', {
-            collection: subcommand.name,
-            tokenId: tokenId
-          });
+          console.log('NFT lookup:', { collection: subcommand.name, tokenId });
 
-          // Set a timeout for the NFT lookup
-          const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => reject(new Error('NFT lookup timed out')), 2000);
+          const result = await handleNFTLookup(`${subcommand.name}.${tokenId}`);
+          await sendFollowup(token, result.data);
+        } else {
+          console.log('Unknown command:', name);
+          await sendFollowup(token, {
+            content: 'Unknown command',
+            flags: 64
           });
-
-          // Process the NFT lookup with timeout
-          const response = await Promise.race([
-            handleNFTLookup(`${subcommand.name}.${tokenId}`),
-            timeoutPromise
-          ]);
-          
-          return response;
-        } catch (error) {
-          console.error('NFT lookup error:', {
-            message: error.message,
-            stack: error.stack
-          });
-          return {
-            data: {
-              content: error.message || 'An error occurred while looking up the NFT. Please try again.',
-              flags: 64
-            }
-          };
         }
-      }
-
-      // Default response for unknown commands
-      console.log('Unknown command:', name);
-      return {
-        data: {
-          content: 'Unknown command',
+      } catch (cmdError) {
+        console.error('Command processing error:', cmdError);
+        await sendFollowup(token, {
+          content: cmdError.message || 'An error occurred while processing your command',
           flags: 64
-        }
-      };
+        });
+      }
     }
-
-    // For other interaction types
-    console.log('Unhandled interaction type:', type);
-    return {
-      data: {
-        content: 'Unsupported interaction type',
-        flags: 64
-      }
-    };
   } catch (error) {
-    console.error('Error processing Discord interaction:', {
-      message: error.message,
-      stack: error.stack,
-      type: error.type
-    });
-    
-    return {
-      data: {
-        content: 'An error occurred while processing your command. Please try again.',
-        flags: 64
+    console.error('Interaction error:', error);
+    try {
+      if (token) {
+        await sendFollowup(token, {
+          content: 'An error occurred while processing your request',
+          flags: 64
+        });
       }
-    };
+    } catch (followupError) {
+      console.error('Failed to send error followup:', followupError);
+    }
   }
 });
 
