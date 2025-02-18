@@ -29,8 +29,6 @@ import balanceRouter from './api/user/balance.js';
 import collectionCountsRouter from './api/collection-counts/index.js';
 import processRewardsRouter from './api/rewards/process-daily.js';
 import rewardsEventsRouter from './api/rewards/events.js';
-import rawBodyMiddleware from './api/middleware/rawBody.js';
-import discordInteractionsRouter from './api/discord/interactions/index.js';
 import nftLookupRouter from './api/nft-lookup.js';
 import webhookRouter from './api/discord/webhook.js';
 
@@ -135,23 +133,6 @@ app.use((req, res, next) => {
   });
   next();
 });
-
-// Discord interactions endpoint with raw body parsing
-app.post('/api/discord-interactions', 
-  express.raw({ type: 'application/json' }), 
-  (req, res, next) => {
-    // Store raw body for verification
-    req.rawBody = req.body;
-    try {
-      // Parse JSON body for further processing
-      req.body = JSON.parse(req.body);
-    } catch (e) {
-      console.error('Failed to parse Discord interaction body:', e);
-    }
-    next();
-  },
-  discordInteractionsRouter
-);
 
 // Body parsing middleware for all other routes
 app.use(express.json());

@@ -14,21 +14,22 @@ export default async function handler(req) {
   const signature = req.headers.get('x-signature-ed25519');
   const timestamp = req.headers.get('x-signature-timestamp');
   
-  // Get raw body
-  const body = await req.text();
-
-  // Log request details
-  console.log('Discord interaction received:', {
-    signature: !!signature,
-    timestamp: !!timestamp,
-    bodyLength: body.length,
-    headers: req.headers
+  // Log headers for debugging
+  console.log('Discord interaction headers:', {
+    signature: signature?.slice(0, 10) + '...',
+    timestamp,
+    method: req.method,
+    contentType: req.headers.get('content-type')
   });
 
   try {
+    // Get raw body
+    const rawBody = await req.text();
+    console.log('Raw body length:', rawBody.length);
+
     // Verify the request
     const isValidRequest = verifyKey(
-      body,
+      rawBody,
       signature,
       timestamp,
       process.env.DISCORD_PUBLIC_KEY
@@ -40,8 +41,11 @@ export default async function handler(req) {
     }
 
     // Parse the request body
-    const interaction = JSON.parse(body);
-    console.log('Processing interaction:', interaction.type);
+    const interaction = JSON.parse(rawBody);
+    console.log('Processing interaction:', {
+      type: interaction.type,
+      command: interaction.data?.name
+    });
 
     // Handle ping
     if (interaction.type === 1) {
@@ -53,42 +57,23 @@ export default async function handler(req) {
     // Handle slash commands
     if (interaction.type === 2) {
       const { name } = interaction.data;
-      console.log('Processing command:', name);
 
-      switch (name) {
-        case 'nft':
-          // Acknowledge the command immediately
-          return new Response(
-            JSON.stringify({
-              type: 5, // DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE
-              data: {
-                flags: 64 // EPHEMERAL
-              },
-            }),
-            { headers: { 'Content-Type': 'application/json' } }
-          );
+      // Immediately acknowledge the command
+      const response = {
+        type: 5, // DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE
+        data: {
+          content: 'Looking up NFT information...',
+          flags: 64 // EPHEMERAL
+        }
+      };
 
-        default:
-          return new Response(
-            JSON.stringify({
-              type: 4,
-              data: {
-                content: 'Unknown command',
-                embeds: [{
-                  title: 'Error',
-                  description: 'This command is not recognized',
-                  color: 0xFF0000,
-                  timestamp: new Date().toISOString()
-                }],
-                flags: 64
-              },
-            }),
-            { headers: { 'Content-Type': 'application/json' } }
-          );
-      }
+      return new Response(JSON.stringify(response), {
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
 
     // Handle unknown interaction type
+    console.warn('Unknown interaction type:', interaction.type);
     return new Response(
       JSON.stringify({
         type: 4,
@@ -99,6 +84,7 @@ export default async function handler(req) {
       }),
       { headers: { 'Content-Type': 'application/json' } }
     );
+
   } catch (error) {
     console.error('Error processing interaction:', error);
     return new Response(
