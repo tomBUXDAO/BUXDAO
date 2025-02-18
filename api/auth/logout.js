@@ -41,7 +41,7 @@ router.post('/', async (req, res) => {
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       path: '/',
       domain: process.env.NODE_ENV === 'production' ? '.buxdao.com' : undefined,
-      expires: new Date(0)
+      maxAge: 0
     };
 
     // List of known cookies to clear
@@ -56,15 +56,23 @@ router.post('/', async (req, res) => {
 
     // Clear specific cookies
     cookiesToClear.forEach(cookieName => {
-      if (cookieName) { // Only clear cookies with valid names
-        res.clearCookie(cookieName, cookieOptions);
-      }
+      res.clearCookie(cookieName, {
+        ...cookieOptions,
+        // Also try without domain for some cookies
+        domain: undefined
+      });
+      // Try with explicit domain
+      res.clearCookie(cookieName, cookieOptions);
     });
 
     // Also clear any other cookies present
     if (req.cookies) {
       for (const cookieName in req.cookies) {
         if (cookieName && !cookiesToClear.includes(cookieName)) {
+          res.clearCookie(cookieName, {
+            ...cookieOptions,
+            domain: undefined
+          });
           res.clearCookie(cookieName, cookieOptions);
         }
       }
