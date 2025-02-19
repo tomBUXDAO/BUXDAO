@@ -12,6 +12,8 @@ import session from 'express-session';
 import PostgresqlStore from 'connect-pg-simple';
 import pool from './config/database.js';
 import helmet from 'helmet';
+import { verifyKey } from 'discord-interactions';
+import { handleNFTLookup } from './api/discord/interactions/commands/nft-lookup.js';
 
 // Import routers
 import authCheckRouter from './api/auth/check.js';
@@ -333,10 +335,79 @@ app.use('/api/nft-lookup', nftLookupRouter);
 // Add webhook routes
 app.use('/api/discord/webhook', webhookRouter);
 
-// Add a catch-all for /api/discord-interactions to inform about Edge Function
-app.all('/api/discord-interactions', (req, res) => {
-  res.status(404).json({
-    error: 'Discord interactions are handled by the Edge Function. This route should not be hit directly.'
+// Discord Interactions endpoint for debugging
+app.post('/api/discord-interactions', express.raw({ type: 'application/json' }), async (req, res) => {
+  console.log('Discord interaction received:', {
+    headers: req.headers,
+    body: req.body ? req.body.toString() : null
+  });
+
+  const signature = req.headers['x-signature-ed25519'];
+  const timestamp = req.headers['x-signature-timestamp'];
+  const body = req.body;
+
+  const isValidRequest = verifyKey(
+    body,
+    signature,
+    timestamp,
+    process.env.DISCORD_PUBLIC_KEY
+  );
+
+  if (!isValidRequest) {
+    console.error('Invalid Discord request signature');
+    return res.status(401).send('Invalid request signature');
+  }
+
+  const interaction = JSON.parse(body);
+  console.log('Processing interaction:', {
+    type: interaction.type,
+    command: interaction.data?.name
+  });
+
+  if (interaction.type === 1) {
+    return res.json({ type: 1 });
+  }
+
+  if (interaction.type === 2) {
+    const { name, options } = interaction.data;
+
+    if (name === 'nft') {
+      const subcommand = options?.[0];
+      if (!subcommand) {
+        return res.json({
+          type: 4,
+          data: {
+            content: 'Please specify a collection and token ID',
+            flags: 64
+          }
+        });
+      }
+
+      const collection = subcommand.name;
+      const tokenId = subcommand.options?.[0]?.value;
+
+      try {
+        const result = await handleNFTLookup(`${collection}.${tokenId}`);
+        return res.json(result);
+      } catch (error) {
+        console.error('NFT lookup error:', error);
+        return res.json({
+          type: 4,
+          data: {
+            content: `Error looking up NFT: ${error.message}`,
+            flags: 64
+          }
+        });
+      }
+    }
+  }
+
+  return res.json({
+    type: 4,
+    data: {
+      content: 'Unknown command',
+      flags: 64
+    }
   });
 });
 
