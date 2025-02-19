@@ -34,98 +34,49 @@ if (!process.env.POSTGRES_URL) {
 // Serverless-optimized pool configuration
 const poolConfig = {
   connectionString: process.env.POSTGRES_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  ssl: { rejectUnauthorized: false },
   max: 1, // Single connection for serverless
   min: 0, // Allow pool to empty
-  idleTimeoutMillis: 50, // Very aggressive idle timeout
-  connectionTimeoutMillis: 5000, // 5 second connection timeout
-  maxUses: 5, // Recycle connections after 5 uses
+  idleTimeoutMillis: 30000, // 30 second idle timeout
+  connectionTimeoutMillis: 10000, // 10 second connection timeout
+  maxUses: 10, // Recycle connection after 10 uses
   allowExitOnIdle: true,
   keepAlive: true,
   keepAliveInitialDelayMillis: 1000,
   application_name: 'buxdao_auth',
-  statement_timeout: 5000,
-  query_timeout: 5000,
-  idle_in_transaction_session_timeout: 5000
+  statement_timeout: 10000,
+  query_timeout: 10000,
+  idle_in_transaction_session_timeout: 10000
 };
 
 const pool = new pkg.Pool(poolConfig);
 
-// Aggressive connection cleanup
+// Simplified connection cleanup
 setInterval(() => {
   pool.on('acquire', (client) => {
-    client.query('SELECT NOW()', [], (err) => {
-      if (err) {
-        console.error('Connection health check failed:', err);
-        client.release(true); // Force release on error
-      }
-    });
+    if (client) client.release(true);
   });
-}, 15000);
+}, 30000);
 
-// Enhanced error handling
+// Basic error handling
 pool.on('error', (err, client) => {
-  console.error('Database pool error:', {
-    error: err.message,
-    code: err.code,
-    detail: err.detail,
-    hint: err.hint,
-    client: client?.processID,
-    environment: process.env.NODE_ENV
-  });
-  
-  if (client) {
-    client.release(true);
-  }
-});
-
-pool.on('connect', (client) => {
-  client.on('error', (err) => {
-    console.error('Client error:', {
-      error: err.message,
-      processId: client.processID,
-      environment: process.env.NODE_ENV
-    });
-    client.release(true);
-  });
+  if (client) client.release(true);
 });
 
 async function connectDB() {
-  let retries = 2;
-  let lastError;
-  let delay = 100;
+  let retries = 3;
+  let delay = 1000;
   
   while (retries > 0) {
     try {
       const client = await pool.connect();
-      
-      await client.query(`
-        SET statement_timeout = '5s';
-        SET idle_in_transaction_session_timeout = '5s';
-        SET lock_timeout = '5s';
-      `);
-      
-      await client.query('SELECT 1');
       client.release();
       return true;
     } catch (error) {
-      lastError = error;
-      console.error('Database connection attempt failed:', {
-        error: error.message,
-        code: error.code,
-        retries: retries - 1,
-        delay
-      });
-      
       retries--;
-      
-      if (retries === 0) {
-        console.error('All database connection attempts failed');
-        return false;
-      }
-      
+      if (retries === 0) return false;
       await new Promise(resolve => setTimeout(resolve, delay));
-      delay = Math.min(delay + 100, 500); // Linear backoff with shorter delays
+      delay += 1000;
     }
   }
   return false;
