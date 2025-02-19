@@ -15,7 +15,7 @@ const COOKIE_OPTIONS = {
   secure: true,
   sameSite: 'none',
   path: '/',
-  domain: '.buxdao.com',
+  domain: 'buxdao.com',
   maxAge: 7 * 24 * 60 * 60 * 1000 // 1 week
 };
 
@@ -81,18 +81,30 @@ router.get('/', async (req, res) => {
       [userData.id, userData.username]
     );
 
-    // Set cookies
+    // Set cookies with explicit options
     const userInfo = {
       discord_id: userData.id,
       discord_username: userData.username,
       avatar: userData.avatar
     };
 
-    res.cookie('discord_user', JSON.stringify(userInfo), COOKIE_OPTIONS);
-    res.cookie('discord_token', tokenData.access_token, COOKIE_OPTIONS);
+    res.cookie('discord_user', JSON.stringify(userInfo), {
+      ...COOKIE_OPTIONS,
+      secure: true,
+      sameSite: 'none'
+    });
+    res.cookie('discord_token', tokenData.access_token, {
+      ...COOKIE_OPTIONS,
+      secure: true,
+      sameSite: 'none'
+    });
 
     // Release client and redirect
     if (client) client.release();
+
+    // Set headers for redirect
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Origin', FRONTEND_URL);
 
     // Redirect with absolute URL
     return res.redirect('https://buxdao.com/verify');
