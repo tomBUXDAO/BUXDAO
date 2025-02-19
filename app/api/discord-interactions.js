@@ -34,39 +34,35 @@ export const config = {
 };
 
 export default async function handler(req) {
+  // Only handle POST requests
   if (req.method !== 'POST') {
     return new Response('Method not allowed', { status: 405 });
   }
 
-  console.log('Received Discord interaction request');
-
+  // Get Discord headers
   const signature = req.headers.get('x-signature-ed25519');
   const timestamp = req.headers.get('x-signature-timestamp');
-
+  
   try {
-    const body = await req.text();
-    console.log('Request body:', body);
-
+    // Get raw body
+    const rawBody = await req.text();
+    
+    // Verify the request
     const isValidRequest = verifyKey(
-      body,
+      rawBody,
       signature,
       timestamp,
       process.env.DISCORD_PUBLIC_KEY
     );
 
     if (!isValidRequest) {
-      console.log('Invalid request signature');
       return new Response('Invalid request signature', { status: 401 });
     }
 
-    const interaction = JSON.parse(body);
-    console.log('Interaction:', {
-      type: interaction.type,
-      command: interaction.data?.name,
-      options: interaction.data?.options
-    });
+    // Parse the request body
+    const interaction = JSON.parse(rawBody);
 
-    // Handle ping
+    // Handle ping (type 1)
     if (interaction.type === 1) {
       return new Response(
         JSON.stringify({ type: 1 }),
@@ -74,43 +70,12 @@ export default async function handler(req) {
       );
     }
 
-    // Handle commands
+    // Handle commands (type 2)
     if (interaction.type === 2) {
       const { name, options } = interaction.data;
 
       if (name === 'nft') {
-        // Get the subcommand (collection) and token ID
-        const subcommand = options?.[0];
-        if (!subcommand) {
-          return new Response(
-            JSON.stringify({
-              type: 4,
-              data: {
-                content: 'Please specify a collection and token ID',
-                flags: 64
-              }
-            }),
-            { headers: { 'Content-Type': 'application/json' } }
-          );
-        }
-
-        const collection = subcommand.name;
-        const tokenId = subcommand.options?.[0]?.value;
-
-        if (!COLLECTIONS[collection]) {
-          return new Response(
-            JSON.stringify({
-              type: 4,
-              data: {
-                content: 'Invalid collection specified',
-                flags: 64
-              }
-            }),
-            { headers: { 'Content-Type': 'application/json' } }
-          );
-        }
-
-        // Return deferred response
+        // Send deferred response
         return new Response(
           JSON.stringify({
             type: 5,
@@ -122,7 +87,7 @@ export default async function handler(req) {
         );
       }
 
-      // Handle unknown commands
+      // Handle unknown command
       return new Response(
         JSON.stringify({
           type: 4,
@@ -136,7 +101,6 @@ export default async function handler(req) {
     }
 
     // Handle unknown interaction type
-    console.warn('Unknown interaction type:', interaction.type);
     return new Response(
       JSON.stringify({
         type: 4,
