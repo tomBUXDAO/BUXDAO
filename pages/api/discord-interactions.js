@@ -126,7 +126,7 @@ export default async function handler(req) {
         }
 
         // Return immediate acknowledgment
-        return new Response(
+        const response = new Response(
           JSON.stringify({
             type: 5, // DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE
             data: {
@@ -135,6 +135,33 @@ export default async function handler(req) {
           }),
           { headers: { 'Content-Type': 'application/json' } }
         );
+
+        // Get the webhook URL for follow-up
+        const webhookUrl = `https://discord.com/api/v10/webhooks/${process.env.DISCORD_CLIENT_ID}/${interaction.token}/messages/@original`;
+
+        // Make background request to NFT lookup endpoint
+        fetch(`${process.env.VERCEL_URL || 'https://buxdao.com'}/api/nft-lookup`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            collection,
+            tokenId,
+            webhookUrl
+          })
+        }).catch(error => {
+          console.error('Failed to initiate NFT lookup:', error);
+          // Try to update the message with error
+          fetch(webhookUrl, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              content: 'Failed to process NFT lookup',
+              flags: 64
+            })
+          }).catch(console.error);
+        });
+
+        return response;
       }
 
       // Handle unknown commands
