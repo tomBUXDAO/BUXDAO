@@ -10,7 +10,7 @@ import { fileURLToPath } from 'url';
 import cookieParser from 'cookie-parser';
 import session from 'express-session';
 import PostgresqlStore from 'connect-pg-simple';
-import pool from './config/database.js';
+import pool from './api/config/database.js';
 import helmet from 'helmet';
 import { verifyKey } from 'discord-interactions';
 import { handleNFTLookup } from './api/discord/interactions/commands/nft-lookup.js';
@@ -36,7 +36,7 @@ import webhookRouter from './api/discord/webhook.js';
 
 // Import monitor router with debug logging
 console.log('Importing monitor router...');
-import monitorRouter from './routes/monitor.js';
+import monitorRouter from './api/routes/monitor.js';
 console.log('Monitor router imported successfully');
 
 const __filename = fileURLToPath(import.meta.url);
