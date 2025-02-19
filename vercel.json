@@ -28,11 +28,27 @@
       "dest": "/server.js"
     },
     {
+      "src": "^/verify$",
+      "dest": "/index.html"
+    },
+    {
+      "src": "^/bux$",
+      "dest": "/index.html"
+    },
+    {
+      "src": "^/collections$",
+      "dest": "/index.html"
+    },
+    {
+      "src": "^/merch$",
+      "dest": "/index.html"
+    },
+    {
       "handle": "filesystem"
     },
     {
       "src": "/(.*)",
-      "dest": "/dist/$1"
+      "dest": "/index.html"
     }
   ]
 } 
