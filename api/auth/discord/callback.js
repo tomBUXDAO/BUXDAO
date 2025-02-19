@@ -1,39 +1,52 @@
-import express from 'express';
 import fetch from 'node-fetch';
 import { pool } from '../../../api/config/database.js';
 
-const router = express.Router();
-
 // Production URLs
-const FRONTEND_URL = 'https://buxdao.com';
-const API_URL = 'https://buxdao.com';
+const FRONTEND_URL = process.env.NODE_ENV === 'production' ? 'https://buxdao.com' : 'http://localhost:5173';
+const API_URL = process.env.NODE_ENV === 'production' ? 'https://buxdao.com' : 'http://localhost:3001';
 const CALLBACK_URL = `${API_URL}/api/auth/discord/callback`;
 
-// Cookie settings for production
+// Cookie settings
 const COOKIE_OPTIONS = {
   httpOnly: true,
-  secure: true,
-  sameSite: 'none',
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
   path: '/',
-  domain: 'buxdao.com',
+  domain: process.env.NODE_ENV === 'production' ? 'buxdao.com' : undefined,
   maxAge: 7 * 24 * 60 * 60 * 1000 // 1 week
 };
 
-router.get('/', async (req, res) => {
+export default async function handler(req, res) {
+  if (req.method !== 'GET') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
   let client;
   
   try {
-    const { code, state } = req.query;
-    const cookieState = req.cookies?.discord_state;
+    console.log('Discord callback received:', { 
+      code: req.query.code ? 'present' : 'missing',
+      state: req.query.state ? 'present' : 'missing',
+      headers: req.headers,
+      cookies: req.headers.cookie,
+      env: process.env.NODE_ENV,
+      callbackUrl: CALLBACK_URL
+    });
 
-    // Clear state cookie immediately
-    res.clearCookie('discord_state', COOKIE_OPTIONS);
+    const { code, state } = req.query;
 
     if (!code) {
+      console.error('No code provided in Discord callback');
       return res.redirect(`${FRONTEND_URL}/verify?error=no_code`);
     }
 
     // Exchange code for token
+    console.log('Attempting token exchange with:', {
+      clientId: process.env.DISCORD_CLIENT_ID ? 'present' : 'missing',
+      clientSecret: process.env.DISCORD_CLIENT_SECRET ? 'present' : 'missing',
+      callbackUrl: CALLBACK_URL
+    });
+
     const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
       method: 'POST',
       headers: {
@@ -49,10 +62,18 @@ router.get('/', async (req, res) => {
     });
 
     if (!tokenResponse.ok) {
-      return res.redirect(`${FRONTEND_URL}/verify?error=token_exchange_failed`);
+      const errorText = await tokenResponse.text();
+      console.error('Token exchange failed:', {
+        status: tokenResponse.status,
+        statusText: tokenResponse.statusText,
+        error: errorText,
+        headers: tokenResponse.headers
+      });
+      return res.redirect(`${FRONTEND_URL}/verify?error=token_exchange_failed&details=${encodeURIComponent(errorText)}`);
     }
 
     const tokenData = await tokenResponse.json();
+    console.log('Token exchange successful');
 
     // Get user data
     const userResponse = await fetch('https://discord.com/api/users/@me', {
@@ -62,10 +83,12 @@ router.get('/', async (req, res) => {
     });
 
     if (!userResponse.ok) {
+      console.error('User data fetch failed:', await userResponse.text());
       return res.redirect(`${FRONTEND_URL}/verify?error=user_data_failed`);
     }
 
     const userData = await userResponse.json();
+    console.log('User data fetched successfully:', { id: userData.id, username: userData.username });
 
     // Get database connection
     client = await pool.connect();
@@ -81,46 +104,45 @@ router.get('/', async (req, res) => {
       [userData.id, userData.username]
     );
 
-    // Set cookies with explicit options
+    console.log('Database record updated');
+
+    // Set cookies
     const userInfo = {
       discord_id: userData.id,
       discord_username: userData.username,
       avatar: userData.avatar
     };
 
-    res.cookie('discord_user', JSON.stringify(userInfo), {
-      ...COOKIE_OPTIONS,
-      secure: true,
-      sameSite: 'none'
-    });
-    res.cookie('discord_token', tokenData.access_token, {
-      ...COOKIE_OPTIONS,
-      secure: true,
-      sameSite: 'none'
-    });
-
-    // Release client and redirect
-    if (client) client.release();
-
-    // Set headers for redirect
+    // Set CORS headers
     res.setHeader('Access-Control-Allow-Credentials', 'true');
     res.setHeader('Access-Control-Allow-Origin', FRONTEND_URL);
 
-    // Redirect with absolute URL
-    return res.redirect('https://buxdao.com/verify');
+    // Set cookies
+    res.cookie('discord_user', JSON.stringify(userInfo), COOKIE_OPTIONS);
+    res.cookie('discord_token', tokenData.access_token, COOKIE_OPTIONS);
+
+    console.log('Cookies set, redirecting to verify page');
+
+    // Release client before redirect
+    if (client) {
+      client.release();
+      client = null;
+    }
+
+    return res.redirect(`${FRONTEND_URL}/verify`);
 
   } catch (error) {
     console.error('Discord callback error:', error);
 
-    if (client) client.release();
+    if (client) {
+      client.release();
+      client = null;
+    }
 
     // Clear cookies on error
-    res.clearCookie('discord_state', COOKIE_OPTIONS);
     res.clearCookie('discord_user', COOKIE_OPTIONS);
     res.clearCookie('discord_token', COOKIE_OPTIONS);
 
-    return res.redirect('https://buxdao.com/verify?error=auth_failed');
+    return res.redirect(`${FRONTEND_URL}/verify?error=auth_failed`);
   }
-});
-
-export default router; 
+} 
