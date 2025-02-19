@@ -60,7 +60,11 @@ export default defineConfig({
     alias: {
       '@': '/src',
       'buffer': 'buffer/',
-      '@solana/wallet-adapter-react-ui/styles.css': path.resolve(__dirname, 'node_modules/@solana/wallet-adapter-react-ui/styles.css')
+      '@solana/wallet-adapter-react-ui/styles.css': path.resolve(__dirname, 'node_modules/@solana/wallet-adapter-react-ui/styles.css'),
+      'process': 'process/browser',
+      'stream': 'stream-browserify',
+      'zlib': 'browserify-zlib',
+      'util': 'util'
     },
   },
   optimizeDeps: {
@@ -72,7 +76,8 @@ export default defineConfig({
       '@solana/wallet-adapter-base',
       '@solana/wallet-adapter-wallets',
       '@solana/web3.js',
-      'buffer'
+      'buffer',
+      '@solana/wallet-adapter-phantom'
     ],
     esbuildOptions: {
       target: 'esnext'
@@ -80,7 +85,7 @@ export default defineConfig({
   },
   define: {
     'process.env': {},
-    'global': {},
+    'global': 'globalThis',
   },
   css: {
     modules: {
