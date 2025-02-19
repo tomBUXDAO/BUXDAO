@@ -37,16 +37,16 @@ const poolConfig = {
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
   max: 1, // Single connection for serverless
   min: 0, // Allow pool to empty
-  idleTimeoutMillis: 100, // Very aggressive idle timeout
-  connectionTimeoutMillis: 10000, // 10 second connection timeout
-  maxUses: 7, // Recycle connections after 7 uses
+  idleTimeoutMillis: 50, // Very aggressive idle timeout
+  connectionTimeoutMillis: 5000, // 5 second connection timeout
+  maxUses: 5, // Recycle connections after 5 uses
   allowExitOnIdle: true,
   keepAlive: true,
   keepAliveInitialDelayMillis: 1000,
   application_name: 'buxdao_auth',
-  statement_timeout: 10000,
-  query_timeout: 10000,
-  idle_in_transaction_session_timeout: 10000
+  statement_timeout: 5000,
+  query_timeout: 5000,
+  idle_in_transaction_session_timeout: 5000
 };
 
 const pool = new pkg.Pool(poolConfig);
@@ -56,11 +56,12 @@ setInterval(() => {
   pool.on('acquire', (client) => {
     client.query('SELECT NOW()', [], (err) => {
       if (err) {
+        console.error('Connection health check failed:', err);
         client.release(true); // Force release on error
       }
     });
   });
-}, 30000);
+}, 15000);
 
 // Enhanced error handling
 pool.on('error', (err, client) => {
@@ -99,9 +100,9 @@ async function connectDB() {
       const client = await pool.connect();
       
       await client.query(`
-        SET statement_timeout = '10s';
-        SET idle_in_transaction_session_timeout = '10s';
-        SET lock_timeout = '10s';
+        SET statement_timeout = '5s';
+        SET idle_in_transaction_session_timeout = '5s';
+        SET lock_timeout = '5s';
       `);
       
       await client.query('SELECT 1');
@@ -123,8 +124,8 @@ async function connectDB() {
         return false;
       }
       
-      delay = Math.min(delay + 500, 1000);
       await new Promise(resolve => setTimeout(resolve, delay));
+      delay = Math.min(delay + 100, 500); // Linear backoff with shorter delays
     }
   }
   return false;

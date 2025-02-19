@@ -8,7 +8,7 @@ const FRONTEND_URL = process.env.NODE_ENV === 'production'
   ? 'https://buxdao.com'
   : 'http://localhost:5173';
 
-const REDIRECT_URI = process.env.NODE_ENV === 'production'
+const CALLBACK_URL = process.env.NODE_ENV === 'production'
   ? 'https://buxdao.com/api/auth/discord/callback'
   : 'http://localhost:3001/api/auth/discord/callback';
 
@@ -29,7 +29,8 @@ router.get('/', async (req, res) => {
       query: req.query,
       cookies: req.headers.cookie,
       url: req.url,
-      headers: req.headers
+      headers: req.headers,
+      callback_url: CALLBACK_URL
     });
 
     const { code, state } = req.query;
@@ -57,7 +58,7 @@ router.get('/', async (req, res) => {
     }
 
     // Exchange code for token
-    console.log('Exchanging code for token with URI:', REDIRECT_URI);
+    console.log('Exchanging code for token with URI:', CALLBACK_URL);
     const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
       method: 'POST',
       headers: {
@@ -68,7 +69,7 @@ router.get('/', async (req, res) => {
         client_secret: process.env.DISCORD_CLIENT_SECRET,
         grant_type: 'authorization_code',
         code: code,
-        redirect_uri: REDIRECT_URI
+        redirect_uri: CALLBACK_URL
       })
     });
 
