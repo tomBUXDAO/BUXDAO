@@ -4,6 +4,13 @@ import pkg from 'pg';
 import fetch from 'node-fetch';
 const { Pool } = pkg;
 
+// Log environment variables being accessed
+console.log('Auth module environment check:', {
+  POSTGRES_URL: !!process.env.POSTGRES_URL,
+  DISCORD_CLIENT_ID: process.env.DISCORD_CLIENT_ID,
+  NODE_ENV: process.env.NODE_ENV
+});
+
 const pool = new Pool({
   connectionString: process.env.POSTGRES_URL,
   ssl: {
@@ -19,6 +26,11 @@ const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID;
 const DISCORD_CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
 
 if (!DISCORD_CLIENT_ID || DISCORD_CLIENT_ID === 'undefined') {
+  console.error('Environment check failed:', {
+    DISCORD_CLIENT_ID_TYPE: typeof DISCORD_CLIENT_ID,
+    DISCORD_CLIENT_ID_VALUE: DISCORD_CLIENT_ID,
+    ENV_KEYS: Object.keys(process.env)
+  });
   throw new Error('DISCORD_CLIENT_ID environment variable is not configured');
 }
 

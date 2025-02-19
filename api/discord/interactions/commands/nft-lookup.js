@@ -3,7 +3,7 @@ import { pool } from '../../../config/database.js';
 // Collection configurations
 export const COLLECTIONS = {
   'cat': {
-    name: 'FCKed Catz',
+    name: 'Fcked Catz',
     symbol: 'FCKEDCATZ',
     hasRarity: true
   },

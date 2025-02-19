@@ -1,5 +1,6 @@
 import { PublicKey, Connection, LAMPORTS_PER_SOL } from '@solana/web3.js';
-import pool from '../config/database.js';
+import { pool } from './config/database.js';
+import fetch from 'node-fetch';
 
 export default async function handler(req, res) {
   let client;

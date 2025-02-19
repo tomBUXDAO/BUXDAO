@@ -20,7 +20,7 @@ const DAILY_REWARDS = {
 const SYMBOL_TO_NAME = {
   'CelebCatz': 'Celeb Catz',
   'MM3D': 'Money Monsters 3D',
-  'FCKEDCATZ': 'FCKed Catz',
+  'FCKEDCATZ': 'Fcked Catz',
   'MM': 'Money Monsters',
   'AIBB': 'A.I. BitBots'
 };

@@ -48,6 +48,48 @@ Table: holders
 - last_verified
 - holdings_count
 - roles
+
+Table: daily_rewards
+- discord_id
+- calculation_time
+- reward_period_start
+- reward_period_end
+- collection specific counts and rewards
+- total_daily_reward
+- is_processed
+
+Table: claim_accounts
+- wallet_address (PK)
+- discord_id
+- unclaimed_amount
+- total_claimed
+- last_claim_time
+
+Table: bux_holders
+- wallet_address (PK)
+- balance
+- owner_discord_id
+- last_updated
+
+Table: nft_metadata
+- mint_address (unique)
+- name
+- symbol
+- owner_wallet
+- owner_discord_id
+- owner_name
+- is_listed
+- list_price
+- last_sale_price
+- marketplace
+- last_updated
+
+Table: collection_counts
+- wallet_address (PK)
+- discord_id
+- collection specific counts
+- total_count
+- last_updated
 ```
 
 ### Environment Variables Required
@@ -92,11 +134,48 @@ Table: holders
 - Regular backup of holder data
 
 ### Current Development Status
-- Implementing BUX token exchange program using Anchor
-- Program ID generated and saved
-- Basic claim functionality implemented
-- Build environment pending macOS Monterey upgrade
-- Next steps: Complete program build and testing
+- Implementing real-time NFT ownership monitoring
+- Claim system using database-driven rewards
+- Daily rewards processed at 00:00 UTC
+- Discord notifications for sales/listings
+
+### NFT Monitoring System
+- WebSocket-based real-time monitoring at collection level
+- Backup periodic sync every 15 minutes
+- Discord notifications for ownership changes
+- QuickNode WebSocket integration
+
+### Rewards & Claims System
+- Daily rewards calculation at 00:00 UTC
+- Reward rates per collection:
+  - Celeb Catz: 20 BUX/day
+  - Money Monsters 3D: 7 BUX/day
+  - Fcked Catz: 5 BUX/day
+  - Money Monsters: 5 BUX/day
+  - A.I. BitBots: 3 BUX/day
+  - AI Collabs: 1 BUX/day
+- Additional bonuses:
+  - Money Monsters Top 10: +5 BUX/day
+  - Money Monsters 3D Top 10: +7 BUX/day
+  - Branded Catz: +5 BUX/day
+
+### Automated Processes
+1. Daily Rewards (00:00 UTC):
+   - Calculate rewards based on NFT holdings
+   - Update unclaimed amounts
+   - Send Discord notifications
+
+2. NFT Ownership Monitoring:
+   - Real-time WebSocket monitoring
+   - Update database on ownership changes
+   - Trigger Discord notifications
+   - Backup sync every 15 minutes
+
+3. Claims Processing:
+   - Validate unclaimed amount
+   - Update holder balances
+   - Record transaction history
+   - Send confirmation notifications
 
 ### Git Rules
 - Keep commits atomic and descriptive

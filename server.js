@@ -34,6 +34,11 @@ import rewardsEventsRouter from './api/rewards/events.js';
 import nftLookupRouter from './api/nft-lookup.js';
 import webhookRouter from './api/discord/webhook.js';
 
+// Import monitor router with debug logging
+console.log('Importing monitor router...');
+import monitorRouter from './routes/monitor.js';
+console.log('Monitor router imported successfully');
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -139,12 +144,26 @@ app.use((req, res, next) => {
   next();
 });
 
-// Body parsing middleware for all other routes
+// Body parsing middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Parse cookies before anything else
+// Parse cookies
 app.use(cookieParser());
+
+// Add detailed request logging
+app.use((req, res, next) => {
+  console.log('Request details:', {
+    method: req.method,
+    originalUrl: req.originalUrl,
+    path: req.path,
+    params: req.params,
+    query: req.query,
+    body: req.body,
+    headers: req.headers
+  });
+  next();
+});
 
 // Session configuration with PostgreSQL store
 const pgSession = PostgresqlStore(session);
@@ -284,7 +303,7 @@ app.get('/api/printful/products/:id', async (req, res) => {
   }
 });
 
-// API routes
+// Mount all API routes
 app.use('/api/auth/check', authCheckRouter);
 app.use('/api/auth/discord', discordAuthRouter);
 app.use('/api/auth/discord/callback', discordCallbackRouter);
@@ -298,18 +317,36 @@ app.use('/api/token-metrics', tokenMetricsRouter);
 app.use('/api/user', userRouter);
 app.use('/api/user/balance', balanceRouter);
 app.use('/api/collection-counts', collectionCountsRouter);
+app.use('/api/nft-lookup', nftLookupRouter);
+app.use('/api/discord/webhook', webhookRouter);
+
+// Mount monitor routes with more detailed logging
+console.log('Mounting monitor routes...');
+app.use('/api/monitor', (req, res, next) => {
+  console.log('Monitor route accessed:', {
+    method: req.method,
+    path: req.path,
+    url: req.url,
+    body: req.body,
+    headers: req.headers,
+    route: req.route,
+    baseUrl: req.baseUrl
+  });
+  next();
+}, (req, res, next) => {
+  if (!monitorRouter) {
+    console.error('Monitor router is not properly imported');
+    return res.status(500).json({ error: 'Monitor service not available' });
+  }
+  next();
+}, monitorRouter);
+console.log('Monitor routes mounted successfully');
 
 // Mount rewards routes
 const rewardsRouter = express.Router();
 rewardsRouter.use('/process-daily', processRewardsRouter);
 rewardsRouter.use('/events', rewardsEventsRouter);
 app.use('/api/rewards', rewardsRouter);
-
-// Replace with new NFT lookup endpoint
-app.use('/api/nft-lookup', nftLookupRouter);
-
-// Add webhook routes
-app.use('/api/discord/webhook', webhookRouter);
 
 // Discord Interactions endpoint
 app.post('/api/discord-interactions', express.raw({ type: 'application/json' }), async (req, res) => {
@@ -435,9 +472,19 @@ app.post('/api/discord-interactions', express.raw({ type: 'application/json' }),
   }
 });
 
-// API 404 handler
+// API 404 handler (must be last)
 app.use('/api/*', (req, res) => {
+  console.log('404 Not Found:', req.method, req.path);
   res.status(404).json({ error: 'API endpoint not found' });
+});
+
+// Add catch-all error handler
+app.use((err, req, res, next) => {
+  console.error('Global error handler:', err);
+  res.status(500).json({
+    error: 'Internal server error',
+    details: err.message
+  });
 });
 
 // Improve database connection handling

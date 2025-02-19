@@ -1,4 +1,38 @@
 import 'dotenv/config';
+import fs from 'fs';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const envPath = join(__dirname, '..', '.env');
+
+console.log('Attempting to load .env from:', envPath);
+try {
+  const envFile = fs.readFileSync(envPath, 'utf8');
+  const envVars = envFile.split('\n').reduce((acc, line) => {
+    line = line.trim();
+    if (line && !line.startsWith('#')) {
+      const [key, ...valueParts] = line.split('=');
+      const value = valueParts.join('=').trim();
+      if (key && value) {
+        process.env[key.trim()] = value;
+      }
+    }
+    return acc;
+  }, {});
+
+  console.log('Environment variables loaded successfully');
+  console.log('Loaded variables:', {
+    DISCORD_CLIENT_ID: process.env.DISCORD_CLIENT_ID,
+    NODE_ENV: process.env.NODE_ENV,
+    HAS_DISCORD_SECRET: !!process.env.DISCORD_CLIENT_SECRET,
+    HAS_SESSION_SECRET: !!process.env.SESSION_SECRET
+  });
+} catch (error) {
+  console.error('Error loading .env file:', error);
+  process.exit(1);
+}
+
 import express from 'express';
 import cors from 'cors';
 import session from 'express-session';
@@ -13,28 +47,26 @@ import tokenMetricsRouter from './token-metrics/index.js';
 import { connectDB } from './config/database.js';
 import axios from 'axios';
 import webhookRouter from './discord/webhook.js';
+import cookieParser from 'cookie-parser';
+
+// Import monitor router with debug logging
+console.log('Importing monitor router...');
+import monitorRouter from './routes/monitor.js';  // Fix the import path to be relative to server.js location
+console.log('Monitor router imported successfully');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
 // CORS configuration
-const corsOptions = {
-  origin: process.env.NODE_ENV === 'production' 
-    ? ['https://buxdao.com', 'https://www.buxdao.com', 'https://discord.com'] 
-    : ['http://localhost:5173', 'http://localhost:3001', 'https://discord.com'],
+app.use(cors({
+  origin: 'http://localhost:5173', // Vite dev server
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'Cache-Control', 'Pragma', 'X-Signature-Ed25519', 'X-Signature-Timestamp'],
-  exposedHeaders: ['Set-Cookie'],
-  preflightContinue: false,
-  optionsSuccessStatus: 204
-};
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
-app.use(cors(corsOptions));
-
-// Regular body parsing middleware
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
 // Log all incoming requests
 app.use((req, res, next) => {
@@ -44,15 +76,13 @@ app.use((req, res, next) => {
 
 // Session configuration
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'dev-secret',
+  secret: process.env.SESSION_SECRET || 'your-secret-key',
   resave: false,
   saveUninitialized: false,
   cookie: {
     secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-    maxAge: 24 * 60 * 60 * 1000,
-    httpOnly: true,
-    domain: process.env.NODE_ENV === 'production' ? '.buxdao.com' : undefined
+    sameSite: 'lax',
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
   }
 }));
 
@@ -122,6 +152,29 @@ app.get('/api/printful/products/:id', async (req, res) => {
   }
 });
 
+// Mount monitor routes with error handling
+console.log('Mounting monitor routes...');
+try {
+  if (!monitorRouter || typeof monitorRouter !== 'function') {
+    throw new Error('Monitor router not properly imported');
+  }
+  
+  app.use('/api/monitor', (req, res, next) => {
+    console.log('Monitor route accessed:', {
+      method: req.method,
+      path: req.path,
+      url: req.url,
+      body: req.body,
+      headers: req.headers,
+      baseUrl: req.baseUrl
+    });
+    next();
+  }, monitorRouter);
+  console.log('Monitor routes mounted successfully');
+} catch (error) {
+  console.error('Error mounting monitor routes:', error);
+}
+
 // Routes
 app.use('/api/auth', authRouter);
 app.use('/api/user/balance', balanceRouter);
@@ -136,6 +189,12 @@ app.use('/api/discord/webhook', webhookRouter);
 // Add a test route
 app.get('/api/test', (req, res) => {
   res.json({ message: 'API is working' });
+});
+
+// Add a simple check for critical environment variables
+console.log('Environment check:', {
+  DISCORD_CLIENT_ID: !!process.env.DISCORD_CLIENT_ID,
+  NODE_ENV: process.env.NODE_ENV || 'development'
 });
 
 app.listen(PORT, () => {

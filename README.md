@@ -1,6 +1,6 @@
 # BUXDAO NFT Website
 
-Community-owned NFT collections on Solana blockchain with integrated merch store and token exchange system.
+Community-owned NFT collections on Solana blockchain with integrated merch store and rewards system.
 
 ## Features
 - Real-time floor prices from Magic Eden
@@ -13,7 +13,35 @@ Community-owned NFT collections on Solana blockchain with integrated merch store
 - Automated order fulfillment
 - Real-time inventory sync
 - Holder-exclusive products
-- BUX token exchange system
+- Daily rewards system
+
+## Rewards System
+The platform includes an automated rewards system that:
+- Calculates daily rewards at 00:00 UTC
+- Tracks NFT holdings across collections
+- Manages reward distribution
+- Processes claims through database
+- Provides real-time balance updates
+
+### Reward Rates
+- Celeb Catz: 20 BUX/day
+- Money Monsters 3D: 7 BUX/day
+- Fcked Catz: 5 BUX/day
+- Money Monsters: 5 BUX/day
+- A.I. BitBots: 3 BUX/day
+- AI Collabs: 1 BUX/day
+
+Additional Bonuses:
+- Money Monsters Top 10: +5 BUX/day
+- Money Monsters 3D Top 10: +7 BUX/day
+- Branded Catz: +5 BUX/day
+
+## NFT Monitoring
+- Real-time ownership tracking via WebSocket
+- Automated holder verification
+- Sales and listing notifications
+- Periodic sync backup system
+- Discord integration for notifications
 
 ## BUX Exchange Program
 The platform includes an on-chain BUX token exchange program that:
@@ -59,6 +87,48 @@ Table: holders
 - last_verified
 - holdings_count
 - roles
+
+Table: daily_rewards
+- discord_id
+- calculation_time
+- reward_period_start
+- reward_period_end
+- collection specific counts and rewards
+- total_daily_reward
+- is_processed
+
+Table: claim_accounts
+- wallet_address (PK)
+- discord_id
+- unclaimed_amount
+- total_claimed
+- last_claim_time
+
+Table: bux_holders
+- wallet_address (PK)
+- balance
+- owner_discord_id
+- last_updated
+
+Table: nft_metadata
+- mint_address (unique)
+- name
+- symbol
+- owner_wallet
+- owner_discord_id
+- owner_name
+- is_listed
+- list_price
+- last_sale_price
+- marketplace
+- last_updated
+
+Table: collection_counts
+- wallet_address (PK)
+- discord_id
+- collection specific counts
+- total_count
+- last_updated
 ```
 
 ### Authentication Flow
@@ -123,10 +193,10 @@ SESSION_SECRET=
 - `/api/printful/webhook` - Order processing
 - `/api/printful/sync` - Inventory sync
 
-### Token Exchange
-- `/api/user/claim` - Token claim requests
-- `/api/user/balance` - User BUX balance
-- `/api/user/claim/confirm` - Confirm token claims
+### Rewards
+- `/api/user/rewards` - View rewards
+- `/api/user/claim` - Claim rewards
+- `/api/user/balance` - Check balance
 
 ## Deployment
 - Edge Functions via Vercel
