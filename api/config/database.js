@@ -31,84 +31,80 @@ if (!process.env.POSTGRES_URL) {
   throw new Error('Database connection failed: POSTGRES_URL is not set');
 }
 
-// Configure pool based on environment
+// Serverless-optimized pool configuration
 const poolConfig = {
   connectionString: process.env.POSTGRES_URL,
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
   max: 1, // Single connection for serverless
-  idleTimeoutMillis: 500, // Very short idle timeout
-  connectionTimeoutMillis: 5000, // 5 second connection timeout
+  min: 0, // Allow pool to empty
+  idleTimeoutMillis: 100, // Very aggressive idle timeout
+  connectionTimeoutMillis: 10000, // 10 second connection timeout
+  maxUses: 7, // Recycle connections after 7 uses
+  allowExitOnIdle: true,
   keepAlive: true,
   keepAliveInitialDelayMillis: 1000,
-  allowExitOnIdle: true,
   application_name: 'buxdao_auth',
-  statement_timeout: 5000, // 5 second query timeout
-  query_timeout: 5000, // 5 second query timeout
-  idle_in_transaction_session_timeout: 5000 // 5 second transaction timeout
+  statement_timeout: 10000,
+  query_timeout: 10000,
+  idle_in_transaction_session_timeout: 10000
 };
 
 const pool = new pkg.Pool(poolConfig);
 
-// Enhanced logging for connection events
-pool.on('connect', (client) => {
-  console.log('Database client connected:', {
-    processId: client.processID,
-    database: client.database,
-    user: client.user,
-    host: client.host,
-    port: client.port,
-    poolSize: pool.totalCount,
-    environment: process.env.NODE_ENV
+// Aggressive connection cleanup
+setInterval(() => {
+  pool.on('acquire', (client) => {
+    client.query('SELECT NOW()', [], (err) => {
+      if (err) {
+        client.release(true); // Force release on error
+      }
+    });
   });
-});
+}, 30000);
 
+// Enhanced error handling
 pool.on('error', (err, client) => {
   console.error('Database pool error:', {
     error: err.message,
     code: err.code,
     detail: err.detail,
     hint: err.hint,
-    position: err.position,
     client: client?.processID,
     environment: process.env.NODE_ENV
   });
+  
+  if (client) {
+    client.release(true);
+  }
 });
 
-pool.on('acquire', (client) => {
-  console.log('Database client acquired from pool:', {
-    processId: client.processID,
-    totalCount: pool.totalCount,
-    idleCount: pool.idleCount,
-    waitingCount: pool.waitingCount,
-    environment: process.env.NODE_ENV
+pool.on('connect', (client) => {
+  client.on('error', (err) => {
+    console.error('Client error:', {
+      error: err.message,
+      processId: client.processID,
+      environment: process.env.NODE_ENV
+    });
+    client.release(true);
   });
 });
 
 async function connectDB() {
-  let retries = 3; // Reduce retries
+  let retries = 2;
   let lastError;
-  let delay = 500; // Start with shorter delay
+  let delay = 100;
   
   while (retries > 0) {
     try {
-      console.log(`Attempting database connection (${retries} attempts remaining)...`);
       const client = await pool.connect();
       
-      // Set session parameters for better timeout handling
       await client.query(`
-        SET statement_timeout = '5s';
-        SET idle_in_transaction_session_timeout = '5s';
+        SET statement_timeout = '10s';
+        SET idle_in_transaction_session_timeout = '10s';
+        SET lock_timeout = '10s';
       `);
       
-      // Test the connection
       await client.query('SELECT 1');
-      
-      console.log('Database connection successful:', {
-        poolSize: pool.totalCount,
-        environment: process.env.NODE_ENV,
-        retries: 3 - retries
-      });
-      
       client.release();
       return true;
     } catch (error) {
@@ -116,25 +112,18 @@ async function connectDB() {
       console.error('Database connection attempt failed:', {
         error: error.message,
         code: error.code,
-        detail: error.detail,
-        hint: error.hint,
         retries: retries - 1,
-        delay: delay
+        delay
       });
       
       retries--;
       
       if (retries === 0) {
-        console.error('All database connection attempts failed:', {
-          error: lastError.message,
-          code: lastError.code,
-          environment: process.env.NODE_ENV
-        });
+        console.error('All database connection attempts failed');
         return false;
       }
       
-      // Linear backoff with shorter delays
-      delay = Math.min(delay + 500, 2000);
+      delay = Math.min(delay + 500, 1000);
       await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
