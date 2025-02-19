@@ -24,31 +24,12 @@
   ],
   "routes": [
     {
+      "src": "/api/discord-interactions",
+      "dest": "/pages/api/discord-interactions.js"
+    },
+    {
       "src": "/api/(.*)",
-      "headers": {
-        "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
-        "CDN-Cache-Control": "no-store",
-        "Vercel-CDN-Cache-Control": "no-store",
-        "Pragma": "no-cache",
-        "Expires": "0",
-        "Surrogate-Control": "no-store"
-      },
-      "dest": "/api/$1"
-    },
-    {
-      "src": "/(.*)",
-      "headers": {
-        "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
-        "CDN-Cache-Control": "no-store",
-        "Vercel-CDN-Cache-Control": "no-store",
-        "Pragma": "no-cache",
-        "Expires": "0",
-        "Surrogate-Control": "no-store"
-      },
-      "dest": "/$1"
-    },
-    {
-      "handle": "filesystem"
+      "dest": "/server.js"
     },
     {
       "src": "/(.*)",

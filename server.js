@@ -123,13 +123,16 @@ app.options('*', cors({
 
 // Add request logging middleware
 app.use((req, res, next) => {
+  // Skip logging for Discord interaction requests as they'll be handled by the Edge Function
+  if (req.path === '/api/discord-interactions') {
+    return next();
+  }
+  
   console.log('Incoming request:', {
     method: req.method,
     url: req.url,
     path: req.path,
-    headers: req.headers,
-    body: req.body,
-    rawBody: req.rawBody ? 'present' : 'missing'
+    headers: req.headers
   });
   next();
 });
@@ -329,6 +332,13 @@ app.use('/api/nft-lookup', nftLookupRouter);
 
 // Add webhook routes
 app.use('/api/discord/webhook', webhookRouter);
+
+// Add a catch-all for /api/discord-interactions to inform about Edge Function
+app.all('/api/discord-interactions', (req, res) => {
+  res.status(404).json({
+    error: 'Discord interactions are handled by the Edge Function. This route should not be hit directly.'
+  });
+});
 
 // API 404 handler
 app.use('/api/*', (req, res) => {
