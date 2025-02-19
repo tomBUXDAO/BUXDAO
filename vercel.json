@@ -9,28 +9,20 @@
       "schedule": "0 0 * * *"
     }
   ],
-  "builds": [
-    {
-      "src": "package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist"
-      }
-    },
-    {
-      "src": "api/discord-interactions.js",
-      "use": "@vercel/edge"
-    },
-    {
-      "src": "server.js",
-      "use": "@vercel/node"
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "functions": {
+    "api/discord-interactions.js": {
+      "runtime": "edge",
+      "memory": 256,
+      "maxDuration": 10
     }
-  ],
+  },
   "routes": [
     {
       "src": "/api/discord-interactions",
       "methods": ["POST", "OPTIONS"],
-      "dest": "api/discord-interactions.js"
+      "dest": "/api/discord-interactions"
     },
     {
       "src": "/api/(.*)",
