@@ -35,11 +35,13 @@ if (!process.env.POSTGRES_URL) {
 const poolConfig = {
   connectionString: process.env.POSTGRES_URL,
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-  max: process.env.NODE_ENV === 'production' ? 1 : 20, // Use single connection in serverless
-  idleTimeoutMillis: process.env.NODE_ENV === 'production' ? 1000 : 30000, // Shorter idle timeout in production
-  connectionTimeoutMillis: 5000, // Increased from 2000 to 5000
-  keepAlive: process.env.NODE_ENV === 'production', // Enable TCP keepalive
-  allowExitOnIdle: process.env.NODE_ENV === 'production' // Allow connection to close when idle in serverless
+  max: process.env.NODE_ENV === 'production' ? 1 : 20,
+  idleTimeoutMillis: process.env.NODE_ENV === 'production' ? 500 : 30000, // Even shorter idle timeout
+  connectionTimeoutMillis: 10000, // Increased timeout
+  keepAlive: true, // Always enable keepalive
+  keepAliveInitialDelayMillis: 10000,
+  allowExitOnIdle: process.env.NODE_ENV === 'production',
+  application_name: 'buxdao_auth'
 };
 
 const pool = new pkg.Pool(poolConfig);
@@ -82,18 +84,26 @@ pool.on('acquire', (client) => {
 async function connectDB() {
   let retries = 5;
   let lastError;
+  let delay = 1000; // Start with 1 second delay
   
   while (retries > 0) {
     try {
       console.log(`Attempting database connection (${retries} attempts remaining)...`);
       const client = await pool.connect();
       
-      // Test the connection with a simple query
-      await client.query('SELECT NOW()');
+      // Set session parameters for better timeout handling
+      await client.query(`
+        SET statement_timeout = '10s';
+        SET idle_in_transaction_session_timeout = '10s';
+      `);
+      
+      // Test the connection
+      await client.query('SELECT 1');
       
       console.log('Database connection successful:', {
         poolSize: pool.totalCount,
-        environment: process.env.NODE_ENV
+        environment: process.env.NODE_ENV,
+        retries: 5 - retries
       });
       
       client.release();
@@ -106,6 +116,7 @@ async function connectDB() {
         detail: error.detail,
         hint: error.hint,
         retries: retries - 1,
+        delay: delay,
         environment: process.env.NODE_ENV
       });
       
@@ -121,9 +132,9 @@ async function connectDB() {
       }
       
       // Exponential backoff with jitter
-      const backoff = Math.min(1000 * Math.pow(2, 5 - retries), 10000);
+      delay = Math.min(delay * 2, 5000);
       const jitter = Math.floor(Math.random() * 1000);
-      await new Promise(resolve => setTimeout(resolve, backoff + jitter));
+      await new Promise(resolve => setTimeout(resolve, delay + jitter));
     }
   }
   return false;
