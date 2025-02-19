@@ -1,18 +1,62 @@
+// Load environment variables first, before any other imports
+import { fileURLToPath } from 'url';
+import { dirname, resolve } from 'path';
 import dotenv from 'dotenv';
-// Load environment variables before anything else
-dotenv.config();
+import fs from 'fs';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Try multiple possible .env file locations
+const envPaths = [
+  resolve(__dirname, '.env'),
+  resolve(__dirname, '../.env'),
+  resolve(process.cwd(), '.env')
+];
+
+let envLoaded = false;
+
+for (const envPath of envPaths) {
+  if (fs.existsSync(envPath)) {
+    console.log('Found .env file at:', envPath);
+    const result = dotenv.config({ path: envPath });
+    
+    if (!result.error) {
+      envLoaded = true;
+      console.log('Successfully loaded environment from:', envPath);
+      break;
+    } else {
+      console.error('Error loading .env file from', envPath, ':', result.error);
+    }
+  } else {
+    console.log('No .env file found at:', envPath);
+  }
+}
+
+if (!envLoaded) {
+  console.error('Failed to load .env file from any of these locations:', envPaths);
+  throw new Error('Could not load environment variables. Please ensure .env file exists and is accessible.');
+}
+
+console.log('Environment loaded:', {
+  nodeEnv: process.env.NODE_ENV,
+  postgresUrl: process.env.POSTGRES_URL ? '[REDACTED]' : undefined,
+  envKeys: Object.keys(process.env).filter(key => !key.includes('SECRET'))
+});
+
+// Only proceed with other imports after environment is loaded
 import express from 'express';
 import cors from 'cors';
 import axios from 'axios';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import cookieParser from 'cookie-parser';
 import session from 'express-session';
 import PostgresqlStore from 'connect-pg-simple';
-import pool from './api/config/database.js';
 import helmet from 'helmet';
 import { verifyKey } from 'discord-interactions';
+
+// Database import after environment is loaded
+import { pool } from './api/config/database.js';
 import { handleNFTLookup } from './api/discord/interactions/commands/nft-lookup.js';
 
 // Import routers
@@ -38,9 +82,6 @@ import webhookRouter from './api/discord/webhook.js';
 console.log('Importing monitor router...');
 import monitorRouter from './api/routes/monitor.js';
 console.log('Monitor router imported successfully');
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 const app = express();
 
@@ -542,17 +583,21 @@ const initDatabase = async () => {
 // Initialize database with better error handling
 initDatabase().then(success => {
   if (!success) {
-    console.warn('Server starting with limited functionality due to database connection failure');
+    console.error('Failed to connect to database. Please check your database connection settings:');
+    console.error('- Ensure POSTGRES_URL is correctly set in .env');
+    console.error('- Check if the database is accessible');
+    console.error('- Verify network connectivity to the database host');
+    process.exit(1);
   }
+
+  // Start the server only after successful database connection
+  const PORT = process.env.PORT || 3001;
+  app.listen(PORT, () => {
+    console.log(`Server is running on http://localhost:${PORT}`);
+  });
 }).catch(err => {
   console.error('Critical database initialization error:', err);
-  console.warn('Server starting with limited functionality');
-});
-
-// Start the server
-const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+  process.exit(1);
 });
 
 export default app;

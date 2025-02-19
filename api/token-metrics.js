@@ -1,6 +1,6 @@
 import express from 'express';
 import { Connection, PublicKey, LAMPORTS_PER_SOL } from '@solana/web3.js';
-import pool from '../config/database.js';
+import { pool } from './config/database.js';
 
 const router = express.Router();
 

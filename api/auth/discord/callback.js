@@ -1,6 +1,6 @@
 import express from 'express';
 import fetch from 'node-fetch';
-import pool from '../../../config/database.js';
+import { pool } from '../../../api/config/database.js';
 
 const router = express.Router();
 
