@@ -325,7 +325,13 @@ app.post('/api/discord-interactions', express.raw({ type: 'application/json' }),
 
     if (!signature || !timestamp || !body) {
       console.error('Missing required Discord headers or body');
-      return res.status(401).json({ error: 'Missing required Discord headers or body' });
+      return res.status(401).json({ 
+        type: 4,
+        data: {
+          content: 'Invalid request: Missing required headers',
+          flags: 64
+        }
+      });
     }
 
     const isValidRequest = verifyKey(
@@ -337,7 +343,13 @@ app.post('/api/discord-interactions', express.raw({ type: 'application/json' }),
 
     if (!isValidRequest) {
       console.error('Invalid Discord request signature');
-      return res.status(401).json({ error: 'Invalid request signature' });
+      return res.status(401).json({ 
+        type: 4,
+        data: {
+          content: 'Invalid request signature',
+          flags: 64
+        }
+      });
     }
 
     const interaction = JSON.parse(body);
@@ -346,29 +358,18 @@ app.post('/api/discord-interactions', express.raw({ type: 'application/json' }),
       command: interaction.data?.name
     });
 
-    // Handle ping
+    // Handle ping (type 1)
     if (interaction.type === 1) {
       return res.json({ type: 1 });
     }
 
-    // Handle commands
+    // Handle commands (type 2)
     if (interaction.type === 2) {
       const { name, options } = interaction.data;
 
       if (name === 'nft') {
-        const subcommand = options?.[0];
-        if (!subcommand) {
-          return res.json({
-            type: 4,
-            data: {
-              content: 'Please specify a collection and token ID',
-              flags: 64
-            }
-          });
-        }
-
         // Send deferred response first
-        res.json({
+        await res.json({
           type: 5,
           data: {
             flags: 64
@@ -376,6 +377,16 @@ app.post('/api/discord-interactions', express.raw({ type: 'application/json' }),
         });
 
         try {
+          const subcommand = options?.[0];
+          if (!subcommand) {
+            const webhookUrl = `https://discord.com/api/v10/webhooks/${process.env.DISCORD_CLIENT_ID}/${interaction.token}/messages/@original`;
+            await axios.patch(webhookUrl, {
+              content: 'Please specify a collection and token ID',
+              flags: 64
+            });
+            return;
+          }
+
           const collection = subcommand.name;
           const tokenId = subcommand.options?.[0]?.value;
           const result = await handleNFTLookup(`${collection}.${tokenId}`);

@@ -24,6 +24,11 @@
   ],
   "routes": [
     {
+      "src": "/api/discord-interactions",
+      "methods": ["POST", "OPTIONS"],
+      "dest": "/server.js"
+    },
+    {
       "src": "/api/(.*)",
       "dest": "/server.js"
     },
