@@ -211,30 +211,6 @@ app.use(helmet({
   crossOriginResourcePolicy: false
 }));
 
-// Serve static files with proper MIME types
-app.use(express.static('dist', {
-  maxAge: '1y',
-  etag: true,
-  lastModified: true,
-  setHeaders: (res, path) => {
-    // Set proper MIME types
-    if (path.endsWith('.js')) {
-      res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
-    } else if (path.endsWith('.css')) {
-      res.setHeader('Content-Type', 'text/css; charset=utf-8');
-    } else if (path.endsWith('.html')) {
-      res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    }
-
-    // Set caching headers
-    if (path.includes('/assets/')) {
-      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-    } else {
-      res.setHeader('Cache-Control', 'no-cache');
-    }
-  }
-}));
-
 // API middleware - only for /api routes
 app.use('/api', (req, res, next) => {
   res.set('Content-Type', 'application/json');
@@ -335,104 +311,97 @@ app.use('/api/nft-lookup', nftLookupRouter);
 // Add webhook routes
 app.use('/api/discord/webhook', webhookRouter);
 
-// Discord Interactions endpoint for debugging
+// Discord Interactions endpoint
 app.post('/api/discord-interactions', express.raw({ type: 'application/json' }), async (req, res) => {
-  console.log('Discord interaction received:', {
-    headers: req.headers,
-    body: req.body ? req.body.toString() : null
-  });
+  try {
+    console.log('Discord interaction received:', {
+      headers: req.headers,
+      body: req.body ? req.body.toString() : null
+    });
 
-  const signature = req.headers['x-signature-ed25519'];
-  const timestamp = req.headers['x-signature-timestamp'];
-  const body = req.body;
+    const signature = req.headers['x-signature-ed25519'];
+    const timestamp = req.headers['x-signature-timestamp'];
+    const body = req.body;
 
-  const isValidRequest = verifyKey(
-    body,
-    signature,
-    timestamp,
-    process.env.DISCORD_PUBLIC_KEY
-  );
+    if (!signature || !timestamp || !body) {
+      console.error('Missing required Discord headers or body');
+      return res.status(401).json({ error: 'Missing required Discord headers or body' });
+    }
 
-  if (!isValidRequest) {
-    console.error('Invalid Discord request signature');
-    return res.status(401).send('Invalid request signature');
-  }
+    const isValidRequest = verifyKey(
+      body,
+      signature,
+      timestamp,
+      process.env.DISCORD_PUBLIC_KEY
+    );
 
-  const interaction = JSON.parse(body);
-  console.log('Processing interaction:', {
-    type: interaction.type,
-    command: interaction.data?.name
-  });
+    if (!isValidRequest) {
+      console.error('Invalid Discord request signature');
+      return res.status(401).json({ error: 'Invalid request signature' });
+    }
 
-  if (interaction.type === 1) {
-    return res.json({ type: 1 });
-  }
+    const interaction = JSON.parse(body);
+    console.log('Processing interaction:', {
+      type: interaction.type,
+      command: interaction.data?.name
+    });
 
-  if (interaction.type === 2) {
-    const { name, options } = interaction.data;
+    // Handle ping
+    if (interaction.type === 1) {
+      return res.json({ type: 1 });
+    }
 
-    if (name === 'nft') {
-      const subcommand = options?.[0];
-      if (!subcommand) {
-        return res.json({
-          type: 4,
+    // Handle commands
+    if (interaction.type === 2) {
+      const { name, options } = interaction.data;
+
+      if (name === 'nft') {
+        // Acknowledge the command immediately
+        await res.json({
+          type: 5,
           data: {
-            content: 'Please specify a collection and token ID',
-            flags: 64
+            content: "Looking up NFT information..."
           }
         });
-      }
 
-      const collection = subcommand.name;
-      const tokenId = subcommand.options?.[0]?.value;
+        const subcommand = options?.[0];
+        if (!subcommand) {
+          return res.json({
+            type: 4,
+            data: {
+              content: 'Please specify a collection and token ID',
+              flags: 64
+            }
+          });
+        }
 
-      try {
-        const result = await handleNFTLookup(`${collection}.${tokenId}`);
-        return res.json(result);
-      } catch (error) {
-        console.error('NFT lookup error:', error);
-        return res.json({
-          type: 4,
-          data: {
+        try {
+          const collection = subcommand.name;
+          const tokenId = subcommand.options?.[0]?.value;
+          const result = await handleNFTLookup(`${collection}.${tokenId}`);
+          
+          // Use the webhook URL to update the message
+          const webhookUrl = `https://discord.com/api/v10/webhooks/${process.env.DISCORD_CLIENT_ID}/${interaction.token}/messages/@original`;
+          await axios.patch(webhookUrl, result.data);
+        } catch (error) {
+          console.error('NFT lookup error:', error);
+          const webhookUrl = `https://discord.com/api/v10/webhooks/${process.env.DISCORD_CLIENT_ID}/${interaction.token}/messages/@original`;
+          await axios.patch(webhookUrl, {
             content: `Error looking up NFT: ${error.message}`,
             flags: 64
-          }
-        });
+          });
+        }
       }
     }
+  } catch (error) {
+    console.error('Error handling Discord interaction:', error);
+    return res.status(500).json({ error: 'Internal server error' });
   }
-
-  return res.json({
-    type: 4,
-    data: {
-      content: 'Unknown command',
-      flags: 64
-    }
-  });
 });
 
 // API 404 handler
 app.use('/api/*', (req, res) => {
   res.status(404).json({ error: 'API endpoint not found' });
-});
-
-// Handle client-side routing in development mode
-app.get('*', (req, res, next) => {
-  if (process.env.NODE_ENV === 'development') {
-    // In development, proxy to Vite dev server
-    res.redirect(`http://localhost:5173${req.url}`);
-  } else {
-    // In production, serve the index.html
-    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
-  }
-});
-
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error('Unhandled error:', err);
-  res.status(err.status || 500).json({
-    error: process.env.NODE_ENV === 'development' ? err.message : 'Internal Server Error'
-  });
 });
 
 // Improve database connection handling

@@ -28,8 +28,11 @@
       "dest": "/server.js"
     },
     {
+      "handle": "filesystem"
+    },
+    {
       "src": "/(.*)",
-      "dest": "/server.js"
+      "dest": "/dist/$1"
     }
   ]
 } 
