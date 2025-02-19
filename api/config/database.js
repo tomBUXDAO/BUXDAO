@@ -31,13 +31,18 @@ if (!process.env.POSTGRES_URL) {
   throw new Error('Database connection failed: POSTGRES_URL is not set');
 }
 
-const pool = new Pool({
+// Configure pool based on environment
+const poolConfig = {
   connectionString: process.env.POSTGRES_URL,
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-  max: 20,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
-});
+  max: process.env.NODE_ENV === 'production' ? 1 : 20, // Use single connection in serverless
+  idleTimeoutMillis: process.env.NODE_ENV === 'production' ? 1000 : 30000, // Shorter idle timeout in production
+  connectionTimeoutMillis: 5000, // Increased from 2000 to 5000
+  keepAlive: process.env.NODE_ENV === 'production', // Enable TCP keepalive
+  allowExitOnIdle: process.env.NODE_ENV === 'production' // Allow connection to close when idle in serverless
+};
+
+const pool = new pkg.Pool(poolConfig);
 
 // Enhanced logging for connection events
 pool.on('connect', (client) => {
@@ -46,7 +51,9 @@ pool.on('connect', (client) => {
     database: client.database,
     user: client.user,
     host: client.host,
-    port: client.port
+    port: client.port,
+    poolSize: pool.totalCount,
+    environment: process.env.NODE_ENV
   });
 });
 
@@ -57,7 +64,8 @@ pool.on('error', (err, client) => {
     detail: err.detail,
     hint: err.hint,
     position: err.position,
-    client: client?.processID
+    client: client?.processID,
+    environment: process.env.NODE_ENV
   });
 });
 
@@ -66,39 +74,56 @@ pool.on('acquire', (client) => {
     processId: client.processID,
     totalCount: pool.totalCount,
     idleCount: pool.idleCount,
-    waitingCount: pool.waitingCount
+    waitingCount: pool.waitingCount,
+    environment: process.env.NODE_ENV
   });
 });
 
 async function connectDB() {
   let retries = 5;
+  let lastError;
+  
   while (retries > 0) {
     try {
       console.log(`Attempting database connection (${retries} attempts remaining)...`);
       const client = await pool.connect();
-      const result = await client.query('SELECT version(), current_database(), current_user');
+      
+      // Test the connection with a simple query
+      await client.query('SELECT NOW()');
+      
       console.log('Database connection successful:', {
-        version: result.rows[0].version,
-        database: result.rows[0].current_database,
-        user: result.rows[0].current_user,
-        processId: client.processID
+        poolSize: pool.totalCount,
+        environment: process.env.NODE_ENV
       });
+      
       client.release();
       return true;
     } catch (error) {
+      lastError = error;
       console.error('Database connection attempt failed:', {
         error: error.message,
         code: error.code,
         detail: error.detail,
         hint: error.hint,
-        retries: retries - 1
+        retries: retries - 1,
+        environment: process.env.NODE_ENV
       });
+      
       retries--;
+      
       if (retries === 0) {
-        throw error;
+        console.error('All database connection attempts failed:', {
+          error: lastError.message,
+          code: lastError.code,
+          environment: process.env.NODE_ENV
+        });
+        return false;
       }
-      // Wait before retrying with exponential backoff
-      await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, 5 - retries)));
+      
+      // Exponential backoff with jitter
+      const backoff = Math.min(1000 * Math.pow(2, 5 - retries), 10000);
+      const jitter = Math.floor(Math.random() * 1000);
+      await new Promise(resolve => setTimeout(resolve, backoff + jitter));
     }
   }
   return false;
