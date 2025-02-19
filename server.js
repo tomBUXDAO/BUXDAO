@@ -356,14 +356,6 @@ app.post('/api/discord-interactions', express.raw({ type: 'application/json' }),
       const { name, options } = interaction.data;
 
       if (name === 'nft') {
-        // Acknowledge the command immediately
-        await res.json({
-          type: 5,
-          data: {
-            content: "Looking up NFT information..."
-          }
-        });
-
         const subcommand = options?.[0];
         if (!subcommand) {
           return res.json({
@@ -374,6 +366,14 @@ app.post('/api/discord-interactions', express.raw({ type: 'application/json' }),
             }
           });
         }
+
+        // Send deferred response first
+        res.json({
+          type: 5,
+          data: {
+            flags: 64
+          }
+        });
 
         try {
           const collection = subcommand.name;
@@ -391,11 +391,36 @@ app.post('/api/discord-interactions', express.raw({ type: 'application/json' }),
             flags: 64
           });
         }
+        return;
       }
+
+      // Handle unknown command
+      return res.json({
+        type: 4,
+        data: {
+          content: 'Unknown command',
+          flags: 64
+        }
+      });
     }
+
+    // Handle unknown interaction type
+    return res.json({
+      type: 4,
+      data: {
+        content: 'Unknown interaction type',
+        flags: 64
+      }
+    });
   } catch (error) {
     console.error('Error handling Discord interaction:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ 
+      type: 4,
+      data: {
+        content: 'An error occurred while processing the command',
+        flags: 64
+      }
+    });
   }
 });
 
