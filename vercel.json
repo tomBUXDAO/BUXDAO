@@ -18,23 +18,14 @@
       }
     },
     {
-      "src": "api/**/*.js",
+      "src": "server.js",
       "use": "@vercel/node"
     }
   ],
   "routes": [
     {
-      "src": "/api/auth/discord/callback",
-      "dest": "/api/auth/discord/callback.js"
-    },
-    {
-      "src": "/api/discord-interactions",
-      "methods": ["POST", "OPTIONS"],
-      "dest": "/api/discord-interactions"
-    },
-    {
       "src": "/api/(.*)",
-      "dest": "/api/$1"
+      "dest": "/server.js"
     },
     {
       "handle": "filesystem"
