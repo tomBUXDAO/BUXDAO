@@ -18,10 +18,6 @@
       }
     },
     {
-      "src": "api/discord-interactions.js",
-      "use": "@vercel/edge@1.1.1"
-    },
-    {
       "src": "server.js",
       "use": "@vercel/node"
     }
@@ -30,7 +26,7 @@
     {
       "src": "/api/discord-interactions",
       "methods": ["POST", "OPTIONS"],
-      "dest": "api/discord-interactions.js"
+      "dest": "/api/discord-interactions"
     },
     {
       "src": "/api/(.*)",
