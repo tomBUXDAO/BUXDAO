@@ -1,44 +1,46 @@
 // Load environment variables first, before any other imports
-import { fileURLToPath } from 'url';
-import { dirname, resolve } from 'path';
-import dotenv from 'dotenv';
-import fs from 'fs';
+if (process.env.NODE_ENV !== 'production') {
+  const { fileURLToPath } = await import('url');
+  const { dirname, resolve } = await import('path');
+  const { default: dotenv } = await import('dotenv');
+  const { default: fs } = await import('fs');
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = dirname(__filename);
 
-// Try multiple possible .env file locations
-const envPaths = [
-  resolve(__dirname, '.env'),
-  resolve(__dirname, '../.env'),
-  resolve(process.cwd(), '.env')
-];
+  // Try multiple possible .env file locations in development
+  const envPaths = [
+    resolve(__dirname, '.env'),
+    resolve(__dirname, '../.env'),
+    resolve(process.cwd(), '.env')
+  ];
 
-let envLoaded = false;
+  let envLoaded = false;
 
-for (const envPath of envPaths) {
-  if (fs.existsSync(envPath)) {
-    console.log('Found .env file at:', envPath);
-    const result = dotenv.config({ path: envPath });
-    
-    if (!result.error) {
-      envLoaded = true;
-      console.log('Successfully loaded environment from:', envPath);
-      break;
+  for (const envPath of envPaths) {
+    if (fs.existsSync(envPath)) {
+      console.log('Found .env file at:', envPath);
+      const result = dotenv.config({ path: envPath });
+      
+      if (!result.error) {
+        envLoaded = true;
+        console.log('Successfully loaded environment from:', envPath);
+        break;
+      } else {
+        console.error('Error loading .env file from', envPath, ':', result.error);
+      }
     } else {
-      console.error('Error loading .env file from', envPath, ':', result.error);
+      console.log('No .env file found at:', envPath);
     }
-  } else {
-    console.log('No .env file found at:', envPath);
+  }
+
+  if (!envLoaded && process.env.NODE_ENV !== 'production') {
+    console.error('Failed to load .env file from any of these locations:', envPaths);
+    throw new Error('Could not load environment variables. Please ensure .env file exists and is accessible.');
   }
 }
 
-if (!envLoaded) {
-  console.error('Failed to load .env file from any of these locations:', envPaths);
-  throw new Error('Could not load environment variables. Please ensure .env file exists and is accessible.');
-}
-
-console.log('Environment loaded:', {
+console.log('Environment check:', {
   nodeEnv: process.env.NODE_ENV,
   postgresUrl: process.env.POSTGRES_URL ? '[REDACTED]' : undefined,
   envKeys: Object.keys(process.env).filter(key => !key.includes('SECRET'))
