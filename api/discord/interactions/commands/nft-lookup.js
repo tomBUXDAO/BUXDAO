@@ -146,14 +146,14 @@ async function getNFTDetails(collection, tokenId) {
         content: "",
         embeds: [{
           title: nft.name,
-          description: `Collection: ${collectionConfig.name}\n\n[View on Magic Eden](https://magiceden.io/item-details/${nft.mint_address})\n[View on Tensor](https://www.tensor.trade/item/${nft.mint_address})`,
+          description: `[View on Magic Eden](https://magiceden.io/item-details/${nft.mint_address})\n[View on Tensor](https://www.tensor.trade/item/${nft.mint_address})`,
           color: 0x9C44FB,
           fields: fields,
           image: {
             url: nft.image_url || null
           },
           thumbnail: {
-            url: `${process.env.NODE_ENV === 'production' ? 'https://buxdao.com' : 'http://localhost:3001'}${collectionConfig.logo}`
+            url: `${process.env.NODE_ENV === 'production' ? 'https://buxdao.com' : 'http://localhost:3001'}/public${collectionConfig.logo}`
           },
           footer: {
             text: `Mint: ${nft.mint_address || 'Unknown'}`
