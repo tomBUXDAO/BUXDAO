@@ -15,26 +15,32 @@ router.get('/', async (req, res) => {
     // Get user's BUX balance and unclaimed rewards
     const query = `
       SELECT 
-        bh.balance,
+        COALESCE(bh.balance, 0) as balance,
         ca.unclaimed_amount
-      FROM bux_holders bh
-      LEFT JOIN claim_accounts ca ON ca.discord_id = bh.owner_discord_id
-      WHERE bh.owner_discord_id = $1
+      FROM claim_accounts ca
+      LEFT JOIN bux_holders bh ON bh.owner_discord_id = ca.discord_id
+      WHERE ca.discord_id = $1
     `;
 
+    console.log('Executing query with discord_id:', req.session.user.discord_id);
     const result = await client.query(query, [req.session.user.discord_id]);
+    console.log('Query result:', result.rows[0]);
     
     if (!result.rows[0]) {
+      console.log('No results found for user');
       return res.json({
         balance: 0,
         unclaimed_amount: 0
       });
     }
 
-    res.json({
+    const response = {
       balance: parseInt(result.rows[0].balance) || 0,
       unclaimed_amount: parseInt(result.rows[0].unclaimed_amount) || 0
-    });
+    };
+    console.log('Sending response:', response);
+
+    res.json(response);
   } catch (error) {
     console.error('Error fetching user balance:', error);
     res.status(500).json({ error: 'Internal server error' });
