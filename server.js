@@ -412,68 +412,92 @@ app.use('/api/rewards', rewardsRouter);
 
 // Discord Interactions endpoint
 app.post('/api/discord-interactions', express.raw({ type: 'application/json' }), async (req, res) => {
-  const signature = req.headers['x-signature-ed25519'];
-  const timestamp = req.headers['x-signature-timestamp'];
+  try {
+    const signature = req.headers['x-signature-ed25519'];
+    const timestamp = req.headers['x-signature-timestamp'];
+    const rawBody = req.body;
 
-  const isValidRequest = verifyKey(
-    req.body,
-    signature,
-    timestamp,
-    process.env.DISCORD_PUBLIC_KEY
-  );
+    console.log('Raw interaction:', JSON.parse(rawBody));
 
-  if (!isValidRequest) {
-    return res.status(401).send('Invalid request signature');
-  }
+    const isValidRequest = verifyKey(
+      rawBody,
+      signature,
+      timestamp,
+      process.env.DISCORD_PUBLIC_KEY
+    );
 
-  const interaction = JSON.parse(req.body);
+    if (!isValidRequest) {
+      return res.status(401).send('Invalid request signature');
+    }
 
-  // Handle ping
-  if (interaction.type === 1) {
-    return res.json({ type: 1 });
-  }
+    const interaction = JSON.parse(rawBody);
+    console.log('Full interaction data:', {
+      type: interaction.type,
+      data: {
+        ...interaction.data,
+        options: JSON.stringify(interaction.data?.options)
+      }
+    });
 
-  // Handle application commands
-  if (interaction.type === 2 && interaction.data) {
-    const command = interaction.data;
+    // Handle ping
+    if (interaction.type === 1) {
+      return res.json({ type: 1 });
+    }
 
-    // Handle NFT command
-    if (command.name === 'nft' && command.options && Array.isArray(command.options)) {
-      try {
-        const nftInput = command.options[0]?.value;
-        
-        if (!nftInput) {
+    // Handle application commands
+    if (interaction.type === 2 && interaction.data) {
+      const command = interaction.data;
+      console.log('Command options:', JSON.stringify(command.options));
+
+      // Handle NFT command
+      if (command.name === 'nft') {
+        try {
+          const nftInput = command.options?.[0]?.value;
+          console.log('NFT input:', nftInput);
+          
+          if (!nftInput) {
+            return res.json({
+              type: 4,
+              data: {
+                content: 'Please provide a collection and token ID in the format: collection.tokenId',
+                flags: 64
+              }
+            });
+          }
+
+          const result = await handleNFTLookup(nftInput);
+          console.log('NFT lookup result:', result);
+          return res.json(result);
+        } catch (error) {
+          console.error('NFT command error:', error);
           return res.json({
             type: 4,
             data: {
-              content: 'Please provide a collection and token ID in the format: collection.tokenId',
+              content: `Error: ${error.message}`,
               flags: 64
             }
           });
         }
-
-        const result = await handleNFTLookup(nftInput);
-        return res.json(result);
-      } catch (error) {
-        return res.json({
-          type: 4,
-          data: {
-            content: `Error: ${error.message}`,
-            flags: 64
-          }
-        });
       }
     }
-  }
 
-  // Handle unknown commands
-  return res.json({
-    type: 4,
-    data: {
-      content: 'Unknown command',
-      flags: 64
-    }
-  });
+    return res.json({
+      type: 4,
+      data: {
+        content: 'Unknown command',
+        flags: 64
+      }
+    });
+  } catch (error) {
+    console.error('Critical interaction error:', error);
+    return res.json({
+      type: 4,
+      data: {
+        content: 'An error occurred processing the command',
+        flags: 64
+      }
+    });
+  }
 });
 
 // API 404 handler (must be last)
