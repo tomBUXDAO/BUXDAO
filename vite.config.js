@@ -56,36 +56,45 @@ export default defineConfig({
     },
   },
   resolve: {
-    extensions: ['.js', '.jsx', '.ts', '.tsx'],
     alias: {
       '@': '/src',
-      'buffer': 'buffer/',
+      'buffer': 'buffer',
       '@solana/wallet-adapter-react-ui/styles.css': path.resolve(__dirname, 'node_modules/@solana/wallet-adapter-react-ui/styles.css'),
-      'process': 'process/browser',
+      'process': path.resolve(__dirname, 'node_modules/process/browser.js'),
       'stream': 'stream-browserify',
-      'zlib': 'browserify-zlib',
-      'util': 'util'
+      'zlib': path.resolve(__dirname, 'node_modules/browserify-zlib'),
+      'util': path.resolve(__dirname, 'node_modules/util'),
+      'crypto': 'crypto-browserify',
+      'path': 'path-browserify',
+      'http': false,
+      'https': false,
+      'os': false,
+      'fs': false,
+      'net': false,
+      'tls': false
     },
+    extensions: ['.js', '.jsx', '.ts', '.tsx']
   },
   optimizeDeps: {
-    include: [
-      'react',
-      'react-dom',
-      '@solana/wallet-adapter-react',
-      '@solana/wallet-adapter-react-ui',
-      '@solana/wallet-adapter-base',
-      '@solana/wallet-adapter-wallets',
-      '@solana/web3.js',
-      'buffer',
-      '@solana/wallet-adapter-phantom'
-    ],
     esbuildOptions: {
-      target: 'esnext'
+      target: 'esnext',
+      define: {
+        global: 'globalThis'
+      },
+      supported: {
+        bigint: true
+      }
     }
   },
   define: {
     'process.env': {},
     'global': 'globalThis',
+    'process.version': '"v16.0.0"',
+    'process.versions': JSON.stringify({
+      node: '16.0.0'
+    }),
+    'process.platform': '"browser"',
+    'process.env.NODE_DEBUG': 'false'
   },
   css: {
     modules: {
