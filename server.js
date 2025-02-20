@@ -413,23 +413,14 @@ app.use('/api/rewards', rewardsRouter);
 // Discord Interactions endpoint
 app.post('/api/discord-interactions', express.raw({ type: 'application/json' }), async (req, res) => {
   try {
-    // Get the raw body as a string, handling both Buffer and parsed JSON cases
     const rawBody = Buffer.isBuffer(req.body) 
       ? req.body.toString('utf8')
       : JSON.stringify(req.body);
-    
-    console.log('Discord interaction received:', {
-      headers: req.headers,
-      bodyType: typeof req.body,
-      isBuffer: Buffer.isBuffer(req.body),
-      rawBody: rawBody
-    });
 
     const signature = req.headers['x-signature-ed25519'];
     const timestamp = req.headers['x-signature-timestamp'];
 
     if (!signature || !timestamp || !rawBody) {
-      console.error('Missing required Discord headers or body');
       return res.status(401).json({ 
         type: 4,
         data: {
@@ -447,7 +438,6 @@ app.post('/api/discord-interactions', express.raw({ type: 'application/json' }),
     );
 
     if (!isValidRequest) {
-      console.error('Invalid Discord request signature');
       return res.status(401).json({ 
         type: 4,
         data: {
@@ -457,14 +447,7 @@ app.post('/api/discord-interactions', express.raw({ type: 'application/json' }),
       });
     }
 
-    // Parse the interaction data, handling both string and object cases
     const interaction = typeof rawBody === 'string' ? JSON.parse(rawBody) : req.body;
-    
-    console.log('Processing interaction:', {
-      type: interaction.type,
-      command: interaction.data?.name,
-      options: interaction.data?.options
-    });
 
     // Handle ping (type 1)
     if (interaction.type === 1) {
@@ -501,35 +484,20 @@ app.post('/api/discord-interactions', express.raw({ type: 'application/json' }),
             });
           }
 
-          // Log the command details
-          console.log('NFT lookup command received:', {
-            collection,
-            tokenId,
-            subcommand
-          });
-
           // Send the "thinking" state FIRST
           await res.json({ 
             type: 5,
             data: { flags: 64 }
           });
 
-          // Then process the command
+          // Process the command
           const result = await handleNFTLookup(`${collection}.${tokenId}`);
           
           // Use the webhook URL to send the actual response
           const webhookUrl = `https://discord.com/api/v10/webhooks/${process.env.DISCORD_CLIENT_ID}/${interaction.token}/messages/@original`;
           
-          console.log('Sending webhook response:', {
-            webhookUrl: webhookUrl.replace(/\d{10,}/g, '***'),
-            resultType: result.type,
-            hasEmbed: !!result.data?.embeds
-          });
-
           await axios.patch(webhookUrl, result.data);
         } catch (error) {
-          console.error('NFT lookup error:', error);
-          
           // If we haven't sent the initial response yet, send an error
           if (!res.headersSent) {
             return res.json({
@@ -570,7 +538,6 @@ app.post('/api/discord-interactions', express.raw({ type: 'application/json' }),
       }
     });
   } catch (error) {
-    console.error('Error handling Discord interaction:', error);
     return res.status(500).json({ 
       type: 4,
       data: {
