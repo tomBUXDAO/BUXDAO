@@ -414,7 +414,6 @@ app.use('/api/rewards', rewardsRouter);
 app.post('/api/discord-interactions', express.raw({ type: 'application/json' }), async (req, res) => {
   try {
     const rawBody = req.body;
-    console.log('Raw interaction body:', rawBody.toString());
     
     const signature = req.headers['x-signature-ed25519'];
     const timestamp = req.headers['x-signature-timestamp'];
@@ -444,7 +443,16 @@ app.post('/api/discord-interactions', express.raw({ type: 'application/json' }),
 
     // Parse the interaction data
     const interaction = JSON.parse(rawBody.toString());
-    console.log('Parsed interaction:', JSON.stringify(interaction, null, 2));
+    
+    // Log the full interaction data with special handling for options
+    const logInteraction = {
+      ...interaction,
+      data: {
+        ...interaction.data,
+        options: interaction.data?.options ? JSON.parse(JSON.stringify(interaction.data.options)) : undefined
+      }
+    };
+    console.log('Full interaction data:', JSON.stringify(logInteraction, null, 2));
 
     // Handle ping (type 1)
     if (interaction.type === 1) {
@@ -454,38 +462,34 @@ app.post('/api/discord-interactions', express.raw({ type: 'application/json' }),
     // Handle commands (type 2)
     if (interaction.type === 2) {
       const { name, options } = interaction.data;
-      console.log('Command data:', { name, options: JSON.stringify(options, null, 2) });
 
       if (name === 'nft') {
         try {
-          // Log full options structure
-          console.log('NFT command options:', JSON.stringify(options, null, 2));
+          // Log the full options array
+          console.log('Full NFT command options:', JSON.stringify(options, null, 2));
 
-          // Get the first option (subcommand)
-          const subcommand = options?.[0];
-          console.log('Subcommand:', subcommand);
-
-          if (!subcommand) {
+          // Handle the command structure correctly
+          if (!options || !options.length) {
             return res.json({
               type: 4,
               data: {
-                content: 'Please specify a collection and token ID',
+                content: 'Please provide a collection and token ID',
                 flags: 64
               }
             });
           }
 
-          // Get the token ID from the subcommand's options
-          const tokenId = subcommand.options?.[0]?.value;
-          const collection = subcommand.name;
+          // Get the collection and token ID from the options
+          const collection = options[0]?.value?.split('.')[0];
+          const tokenId = parseInt(options[0]?.value?.split('.')[1]);
 
-          console.log('Extracted values:', { collection, tokenId });
+          console.log('Parsed command values:', { collection, tokenId });
 
-          if (!collection || tokenId === undefined) {
+          if (!collection || isNaN(tokenId)) {
             return res.json({
               type: 4,
               data: {
-                content: 'Please provide both collection and token ID',
+                content: 'Please provide a valid collection and token ID (e.g., cat.1073)',
                 flags: 64
               }
             });

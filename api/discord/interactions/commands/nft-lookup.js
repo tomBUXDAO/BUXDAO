@@ -1,4 +1,4 @@
-// Version 1.0.3 - Added detailed logging
+// Version 1.0.4 - Updated command handling
 import { pool } from '../../../config/database.js';
 
 // Collection configurations
@@ -31,19 +31,19 @@ export const COLLECTIONS = {
 };
 
 async function getNFTDetails(collection, tokenId) {
-  console.log('getNFTDetails called with:', { collection, tokenId });
+  console.log('getNFTDetails called with:', { collection, tokenId, type: typeof tokenId });
   
   const collectionConfig = COLLECTIONS[collection];
   console.log('Collection config:', collectionConfig);
 
   if (!collectionConfig) {
     console.error('Invalid collection:', collection);
-    throw new Error(`Invalid collection "${collection}"`);
+    throw new Error(`Invalid collection "${collection}". Available collections: ${Object.keys(COLLECTIONS).join(', ')}`);
   }
 
   if (!tokenId || isNaN(tokenId)) {
-    console.error('Invalid token ID:', tokenId);
-    throw new Error(`Invalid token ID "${tokenId}"`);
+    console.error('Invalid token ID:', { tokenId, type: typeof tokenId });
+    throw new Error(`Invalid token ID "${tokenId}". Please provide a valid number.`);
   }
 
   let client;
@@ -62,7 +62,13 @@ async function getNFTDetails(collection, tokenId) {
     
     console.log('Executing query:', { query, values });
     const result = await client.query(query, values);
-    console.log('Query result rows:', result?.rows?.length);
+    console.log('Query result:', { 
+      rowCount: result?.rows?.length,
+      firstRow: result?.rows?.[0] ? {
+        name: result.rows[0].name,
+        symbol: result.rows[0].symbol
+      } : null
+    });
 
     if (!result || result.rows.length === 0) {
       console.log('NFT not found:', { collection, tokenId });
@@ -169,19 +175,22 @@ export async function handleNFTLookup(command) {
   console.log('handleNFTLookup called with:', command);
 
   if (!command || typeof command !== 'string') {
-    console.error('Invalid command format:', command);
-    throw new Error('Invalid command format');
+    console.error('Invalid command format:', { command, type: typeof command });
+    throw new Error('Invalid command format. Expected string in format: collection.tokenId');
   }
 
   const [collection, tokenIdStr] = command.split('.');
   console.log('Parsed command:', { collection, tokenIdStr });
 
-  const tokenId = parseInt(tokenIdStr);
-  console.log('Parsed token ID:', tokenId);
+  if (!collection) {
+    throw new Error('Missing collection. Available collections: ' + Object.keys(COLLECTIONS).join(', '));
+  }
 
-  if (!collection || isNaN(tokenId)) {
-    console.error('Invalid command format:', { collection, tokenIdStr });
-    throw new Error('Invalid command format. Use: collection.tokenId (e.g., cat.1073)');
+  const tokenId = parseInt(tokenIdStr);
+  console.log('Parsed token ID:', { tokenId, type: typeof tokenId });
+
+  if (isNaN(tokenId)) {
+    throw new Error(`Invalid token ID "${tokenIdStr}". Please provide a valid number.`);
   }
 
   return getNFTDetails(collection, tokenId);
