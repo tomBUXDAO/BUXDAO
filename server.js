@@ -478,10 +478,8 @@ app.post('/api/discord-interactions', express.raw({ type: 'application/json' }),
           // Use webhook to update the response
           const webhookUrl = `https://discord.com/api/v10/webhooks/${process.env.DISCORD_CLIENT_ID}/${interaction.token}/messages/@original`;
           
-          // Send the embed directly without wrapping it
-          await axios.patch(webhookUrl, {
-            embeds: result.data.embeds
-          });
+          // Send the response in the exact format Discord expects
+          await axios.patch(webhookUrl, result);
           return;
         } catch (error) {
           const webhookUrl = `https://discord.com/api/v10/webhooks/${process.env.DISCORD_CLIENT_ID}/${interaction.token}/messages/@original`;

@@ -135,17 +135,20 @@ async function getNFTDetails(collection, tokenId) {
 
     // Format the embed response
     const response = {
-      embeds: [{
-        title: nft.name,
-        color: 0x9C44FB, // Purple color
-        fields: fields,
-        thumbnail: {
-          url: nft.image_url || null
-        },
-        footer: {
-          text: `${collectionConfig.name} • Mint: ${nft.mint_address || 'Unknown'}`
-        }
-      }]
+      type: 4,
+      data: {
+        embeds: [{
+          title: nft.name,
+          color: 0x9C44FB, // Purple color
+          fields: fields,
+          thumbnail: {
+            url: nft.image_url || null
+          },
+          footer: {
+            text: `${collectionConfig.name} • Mint: ${nft.mint_address || 'Unknown'}`
+          }
+        }]
+      }
     };
 
     return response;
