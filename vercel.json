@@ -1,7 +1,7 @@
 {
   "version": 2,
   "env": {
-    "DEPLOY_TIME": "2024-03-21-2"
+    "DEPLOY_TIME": "2024-03-21-8"
   },
   "crons": [
     {
@@ -47,7 +47,7 @@
       "handle": "filesystem"
     },
     {
-      "src": "/(.*)",
+      "src": "/((?!api).*)",
       "dest": "/index.html"
     }
   ]
