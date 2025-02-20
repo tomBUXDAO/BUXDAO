@@ -413,7 +413,8 @@ app.use('/api/rewards', rewardsRouter);
 // Discord Interactions endpoint
 app.post('/api/discord-interactions', express.raw({ type: 'application/json' }), async (req, res) => {
   try {
-    const rawBody = req.body;
+    // Get the raw body as a buffer and convert to string
+    const rawBody = req.body.toString();
     
     const signature = req.headers['x-signature-ed25519'];
     const timestamp = req.headers['x-signature-timestamp'];
@@ -423,7 +424,7 @@ app.post('/api/discord-interactions', express.raw({ type: 'application/json' }),
       return res.status(401).json({ error: 'Invalid request: Missing required headers' });
     }
 
-    // Verify the request
+    // Verify the request with the raw body string
     try {
       const isValidRequest = verifyKey(
         rawBody,
@@ -441,8 +442,8 @@ app.post('/api/discord-interactions', express.raw({ type: 'application/json' }),
       return res.status(401).json({ error: 'Error verifying request' });
     }
 
-    // Parse the interaction data
-    const interaction = JSON.parse(rawBody.toString());
+    // Parse the interaction data from the raw body string
+    const interaction = JSON.parse(rawBody);
     
     // Log the full interaction data with special handling for options
     const logInteraction = {
