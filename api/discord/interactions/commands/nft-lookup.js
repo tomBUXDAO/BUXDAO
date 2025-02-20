@@ -7,31 +7,36 @@ export const COLLECTIONS = {
     name: 'Fcked Cat',
     symbol: 'FCKEDCATZ',
     hasRarity: true,
-    logo: '/logos/cat.PNG'
+    logo: '/logos/cat.PNG',
+    color: 0xFFF44D // Yellow
   },
   'celeb': {
     name: 'Celebrity Catz',
     symbol: 'CelebCatz',
     hasRarity: false,
-    logo: '/logos/celeb.PNG'
+    logo: '/logos/celeb.PNG',
+    color: 0xFF4D4D // Red
   },
   'mm': {
     name: 'Money Monsters',
     symbol: 'MM',
     hasRarity: true,
-    logo: '/logos/monster.PNG'
+    logo: '/logos/monster.PNG',
+    color: 0x4DFFFF // Cyan
   },
   'mm3d': {
     name: 'Money Monsters 3D',
     symbol: 'MM3D',
     hasRarity: true,
-    logo: '/logos/monster.PNG'
+    logo: '/logos/monster.PNG',
+    color: 0x4DFF4D // Green
   },
   'bot': {
     name: 'A.I. BitBots',
     symbol: 'AIBB',
     hasRarity: false,
-    logo: '/logos/bot.PNG'
+    logo: '/logos/bot.PNG',
+    color: 0xFF4DFF // Pink
   }
 };
 
@@ -145,9 +150,9 @@ async function getNFTDetails(collection, tokenId) {
         tts: false,
         content: "",
         embeds: [{
-          title: nft.name,
-          description: `[View on Magic Eden](https://magiceden.io/item-details/${nft.mint_address})\n[View on Tensor](https://www.tensor.trade/item/${nft.mint_address})`,
-          color: 0x9C44FB,
+          title: nft.name.replace(/ /g, ' '), // Replace any potential non-breaking spaces with regular spaces
+          description: `[View on Magic Eden](https://magiceden.io/item-details/${nft.mint_address}) • [View on Tensor](https://www.tensor.trade/item/${nft.mint_address})`,
+          color: collectionConfig.color,
           fields: fields,
           image: {
             url: nft.image_url || null
