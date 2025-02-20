@@ -134,25 +134,26 @@ async function getNFTDetails(collection, tokenId) {
     }
 
     // Format the embed response
-    const response = {
-      type: 4,
-      data: {
-        embeds: [{
-          title: nft.name,
-          description: `Collection: ${collectionConfig.name}`,
-          color: 0x9C44FB,
-          fields: fields,
-          thumbnail: {
-            url: nft.image_url || null
-          },
-          footer: {
-            text: `Mint: ${nft.mint_address || 'Unknown'}`
-          }
-        }]
+    const embed = {
+      title: nft.name,
+      description: `Collection: ${collectionConfig.name}`,
+      color: 0x9C44FB,
+      fields: fields,
+      thumbnail: {
+        url: nft.image_url || null
+      },
+      footer: {
+        text: `Mint: ${nft.mint_address || 'Unknown'}`
       }
     };
 
-    return response;
+    return {
+      type: 4,
+      data: {
+        embeds: [embed],
+        flags: 0
+      }
+    };
   } catch (error) {
     console.error('Error in getNFTDetails:', error);
     if (error.code === '57014') {

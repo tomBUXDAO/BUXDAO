@@ -479,7 +479,7 @@ app.post('/api/discord-interactions', express.raw({ type: 'application/json' }),
             type: 4,
             data: {
               content: `Error: ${error.message}`,
-              flags: 64
+              flags: 64  // EPHEMERAL flag for error messages
             }
           });
         }
