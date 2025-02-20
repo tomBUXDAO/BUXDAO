@@ -413,51 +413,38 @@ app.use('/api/rewards', rewardsRouter);
 // Discord Interactions endpoint
 app.post('/api/discord-interactions', express.raw({ type: 'application/json' }), async (req, res) => {
   try {
-    // Handle both raw buffer and parsed object cases
-    const rawBody = Buffer.isBuffer(req.body) ? req.body.toString() : JSON.stringify(req.body);
+    // Get the raw body buffer
+    const rawBody = req.body;
     
     const signature = req.headers['x-signature-ed25519'];
     const timestamp = req.headers['x-signature-timestamp'];
 
     if (!signature || !timestamp || !rawBody) {
       console.error('Missing required headers:', { signature: !!signature, timestamp: !!timestamp, hasBody: !!rawBody });
-      return res.status(401).json({ error: 'Invalid request: Missing required headers' });
+      return res.status(401).send('Invalid request signature');
     }
 
-    // Verify the request with the raw body string
-    try {
-      const isValidRequest = verifyKey(
-        rawBody,
-        signature,
-        timestamp,
-        process.env.DISCORD_PUBLIC_KEY
-      );
+    // Verify the request
+    const isValidRequest = verifyKey(
+      rawBody,
+      signature,
+      timestamp,
+      process.env.DISCORD_PUBLIC_KEY
+    );
 
-      if (!isValidRequest) {
-        console.error('Invalid request signature');
-        return res.status(401).json({ error: 'Invalid request signature' });
-      }
-    } catch (verifyError) {
-      console.error('Error verifying request:', verifyError);
-      return res.status(401).json({ error: 'Error verifying request' });
+    if (!isValidRequest) {
+      console.error('Invalid request signature');
+      return res.status(401).send('Invalid request signature');
     }
 
-    // Parse the interaction data
-    const interaction = Buffer.isBuffer(req.body) ? JSON.parse(rawBody) : req.body;
-    
-    // Log the full interaction data with special handling for options
-    const logInteraction = {
-      ...interaction,
-      data: {
-        ...interaction.data,
-        options: interaction.data?.options ? JSON.parse(JSON.stringify(interaction.data.options)) : undefined
-      }
-    };
-    console.log('Full interaction data:', JSON.stringify(logInteraction, null, 2));
+    const interaction = JSON.parse(rawBody);
+    console.log('Interaction received:', interaction.type);
 
     // Handle ping (type 1)
     if (interaction.type === 1) {
-      return res.json({ type: 1 });
+      return res.send({
+        type: 1
+      });
     }
 
     // Handle commands (type 2)
@@ -473,21 +460,21 @@ app.post('/api/discord-interactions', express.raw({ type: 'application/json' }),
           // Process the command
           const result = await handleNFTLookup(`${collection}.${tokenId}`);
           
-          // Send immediate response
-          return res.json(result);
+          // Send response in Discord's expected format
+          return res.send(result);
         } catch (error) {
-          return res.json({
+          return res.send({
             type: 4,
             data: {
               content: `Error: ${error.message}`,
-              flags: 64  // EPHEMERAL flag for error messages
+              flags: 64
             }
           });
         }
       }
 
       // Handle unknown command
-      return res.json({
+      return res.send({
         type: 4,
         data: {
           content: 'Unknown command',
@@ -497,7 +484,7 @@ app.post('/api/discord-interactions', express.raw({ type: 'application/json' }),
     }
 
     // Handle unknown interaction type
-    return res.json({
+    return res.send({
       type: 4,
       data: {
         content: 'Unknown interaction type',
@@ -506,7 +493,7 @@ app.post('/api/discord-interactions', express.raw({ type: 'application/json' }),
     });
   } catch (error) {
     console.error('Global interaction error:', error);
-    return res.status(500).json({ 
+    return res.status(500).send({
       type: 4,
       data: {
         content: 'An error occurred while processing the command',

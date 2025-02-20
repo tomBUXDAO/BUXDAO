@@ -134,24 +134,24 @@ async function getNFTDetails(collection, tokenId) {
     }
 
     // Format the embed response
-    const embed = {
-      title: nft.name,
-      description: `Collection: ${collectionConfig.name}`,
-      color: 0x9C44FB,
-      fields: fields,
-      thumbnail: {
-        url: nft.image_url || null
-      },
-      footer: {
-        text: `Mint: ${nft.mint_address || 'Unknown'}`
-      }
-    };
-
     return {
-      type: 4,
+      type: 4, // CHANNEL_MESSAGE_WITH_SOURCE
       data: {
-        embeds: [embed],
-        flags: 0
+        tts: false,
+        content: "",
+        embeds: [{
+          title: nft.name,
+          description: `Collection: ${collectionConfig.name}`,
+          color: 0x9C44FB,
+          fields: fields,
+          thumbnail: {
+            url: nft.image_url || null
+          },
+          footer: {
+            text: `Mint: ${nft.mint_address || 'Unknown'}`
+          }
+        }],
+        allowed_mentions: { parse: [] }
       }
     };
   } catch (error) {
