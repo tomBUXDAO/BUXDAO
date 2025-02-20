@@ -413,8 +413,8 @@ app.use('/api/rewards', rewardsRouter);
 // Discord Interactions endpoint
 app.post('/api/discord-interactions', express.raw({ type: 'application/json' }), async (req, res) => {
   try {
-    // Get the raw body as a buffer and convert to string
-    const rawBody = req.body.toString();
+    // Handle both raw buffer and parsed object cases
+    const rawBody = Buffer.isBuffer(req.body) ? req.body.toString() : JSON.stringify(req.body);
     
     const signature = req.headers['x-signature-ed25519'];
     const timestamp = req.headers['x-signature-timestamp'];
@@ -442,8 +442,8 @@ app.post('/api/discord-interactions', express.raw({ type: 'application/json' }),
       return res.status(401).json({ error: 'Error verifying request' });
     }
 
-    // Parse the interaction data from the raw body string
-    const interaction = JSON.parse(rawBody);
+    // Parse the interaction data
+    const interaction = Buffer.isBuffer(req.body) ? JSON.parse(rawBody) : req.body;
     
     // Log the full interaction data with special handling for options
     const logInteraction = {
