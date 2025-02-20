@@ -35,18 +35,18 @@ if (!process.env.POSTGRES_URL) {
 const poolConfig = {
   connectionString: process.env.POSTGRES_URL,
   ssl: { rejectUnauthorized: false },
-  max: 1,
-  min: 0,
-  idleTimeoutMillis: 20000,
-  connectionTimeoutMillis: 5000,
-  maxUses: 5,
+  max: 20,
+  min: 2,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 10000,
+  maxUses: 7500,
   allowExitOnIdle: true,
   keepAlive: true,
   keepAliveInitialDelayMillis: 1000,
   application_name: 'buxdao_auth',
-  statement_timeout: 5000,
-  query_timeout: 5000,
-  idle_in_transaction_session_timeout: 5000
+  statement_timeout: 30000,
+  query_timeout: 30000,
+  idle_in_transaction_session_timeout: 30000
 };
 
 const pool = new pkg.Pool(poolConfig);
@@ -60,7 +60,7 @@ pool.on('error', (err, client) => {
 });
 
 async function connectDB() {
-  let retries = 2;
+  let retries = 5;
   let lastError;
   
   while (retries > 0) {
@@ -68,6 +68,7 @@ async function connectDB() {
       const client = await pool.connect();
       await client.query('SELECT NOW()');
       client.release();
+      console.log('Database connection successful');
       return true;
     } catch (error) {
       lastError = error;
@@ -78,7 +79,7 @@ async function connectDB() {
       });
       retries--;
       if (retries === 0) break;
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 1000));
     }
   }
   
