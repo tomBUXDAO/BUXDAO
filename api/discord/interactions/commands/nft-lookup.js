@@ -139,13 +139,14 @@ async function getNFTDetails(collection, tokenId) {
       data: {
         embeds: [{
           title: nft.name,
-          color: 0x9C44FB, // Purple color
+          description: `Collection: ${collectionConfig.name}`,
+          color: 0x9C44FB,
           fields: fields,
           thumbnail: {
             url: nft.image_url || null
           },
           footer: {
-            text: `${collectionConfig.name} • Mint: ${nft.mint_address || 'Unknown'}`
+            text: `Mint: ${nft.mint_address || 'Unknown'}`
           }
         }]
       }

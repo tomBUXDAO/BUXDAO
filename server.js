@@ -469,25 +469,19 @@ app.post('/api/discord-interactions', express.raw({ type: 'application/json' }),
           const [collection, tokenIdStr] = input.split('.');
           const tokenId = parseInt(tokenIdStr);
 
-          // Send the "thinking" state
-          await res.json({ type: 5 });
-
           // Process the command
           const result = await handleNFTLookup(`${collection}.${tokenId}`);
           
-          // Use webhook to update the response
-          const webhookUrl = `https://discord.com/api/v10/webhooks/${process.env.DISCORD_CLIENT_ID}/${interaction.token}/messages/@original`;
-          
-          // Send the response in the exact format Discord expects
-          await axios.patch(webhookUrl, result);
-          return;
+          // Send immediate response
+          return res.json(result);
         } catch (error) {
-          const webhookUrl = `https://discord.com/api/v10/webhooks/${process.env.DISCORD_CLIENT_ID}/${interaction.token}/messages/@original`;
-          await axios.patch(webhookUrl, {
-            content: `Error: ${error.message}`,
-            flags: 64
+          return res.json({
+            type: 4,
+            data: {
+              content: `Error: ${error.message}`,
+              flags: 64
+            }
           });
-          return;
         }
       }
 
