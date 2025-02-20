@@ -412,90 +412,66 @@ app.use('/api/rewards', rewardsRouter);
 
 // Discord Interactions endpoint
 app.post('/api/discord-interactions', express.raw({ type: 'application/json' }), async (req, res) => {
-  try {
-    const signature = req.headers['x-signature-ed25519'];
-    const timestamp = req.headers['x-signature-timestamp'];
-    const body = req.body;
+  const signature = req.headers['x-signature-ed25519'];
+  const timestamp = req.headers['x-signature-timestamp'];
 
-    const isValidRequest = verifyKey(
-      body, // Pass the raw buffer directly
-      signature,
-      timestamp,
-      process.env.DISCORD_PUBLIC_KEY
-    );
+  const isValidRequest = verifyKey(
+    req.body,
+    signature,
+    timestamp,
+    process.env.DISCORD_PUBLIC_KEY
+  );
 
-    if (!isValidRequest) {
-      return res.status(401).send('Invalid request signature');
-    }
+  if (!isValidRequest) {
+    return res.status(401).send('Invalid request signature');
+  }
 
-    const interaction = JSON.parse(body);
-    console.log('Interaction received:', {
-      type: interaction.type,
-      data: interaction.data
-    });
+  const interaction = JSON.parse(req.body);
 
-    // Handle ping (type 1)
-    if (interaction.type === 1) {
-      return res.send({ type: 1 });
-    }
+  // Handle ping (type 1)
+  if (interaction.type === 1) {
+    return res.json({ type: 1 });
+  }
 
-    // Handle commands (type 2)
-    if (interaction.type === 2) {
-      const { name, options } = interaction.data;
+  // Handle slash commands (type 2)
+  if (interaction.type === 2) {
+    const { name, options } = interaction.data;
 
-      if (name === 'nft') {
-        try {
-          // Properly access the first option's value
-          const input = options?.[0]?.value;
-          if (!input) {
-            return res.send({
-              type: 4,
-              data: {
-                content: 'Please provide a collection and token ID in the format: collection.tokenId',
-                flags: 64
-              }
-            });
-          }
-
-          const result = await handleNFTLookup(input);
-          return res.send(result);
-        } catch (error) {
-          return res.send({
+    if (name === 'nft') {
+      try {
+        const input = options?.[0]?.value;
+        
+        if (!input) {
+          return res.json({
             type: 4,
             data: {
-              content: `Error: ${error.message}`,
-              flags: 64
+              content: 'Please provide a collection and token ID in the format: collection.tokenId',
+              flags: 64 // Ephemeral message
             }
           });
         }
-      }
 
-      return res.send({
-        type: 4,
-        data: {
-          content: 'Unknown command',
-          flags: 64
-        }
-      });
+        const result = await handleNFTLookup(input);
+        return res.json(result);
+      } catch (error) {
+        return res.json({
+          type: 4,
+          data: {
+            content: `Error: ${error.message}`,
+            flags: 64 // Ephemeral message
+          }
+        });
+      }
     }
-
-    return res.send({
-      type: 4,
-      data: {
-        content: 'Unknown interaction type',
-        flags: 64
-      }
-    });
-  } catch (error) {
-    console.error('Global interaction error:', error);
-    return res.send({
-      type: 4,
-      data: {
-        content: 'An error occurred while processing the command',
-        flags: 64
-      }
-    });
   }
+
+  return res.json({
+    type: 4,
+    data: {
+      content: 'Unknown command or interaction type',
+      flags: 64 // Ephemeral message
+    }
+  });
 });
 
 // API 404 handler (must be last)
