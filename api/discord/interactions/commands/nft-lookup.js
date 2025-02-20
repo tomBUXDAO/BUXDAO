@@ -154,6 +154,9 @@ async function getNFTDetails(collection, tokenId) {
           description: `[View on Magic Eden](https://magiceden.io/item-details/${nft.mint_address}) • [View on Tensor](https://www.tensor.trade/item/${nft.mint_address})\n\n**Mint:** \`${nft.mint_address || 'Unknown'}\``,
           color: collectionConfig.color,
           fields: fields,
+          thumbnail: {
+            url: `https://buxdao.com${collectionConfig.logo}`
+          },
           image: {
             url: nft.image_url || null
           },
