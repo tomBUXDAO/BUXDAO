@@ -1,4 +1,4 @@
-// Version 1.0.1 - Fixed database connection handling
+// Version 1.0.2 - Improved error handling and logging
 import { pool } from '../../../config/database.js';
 
 // Collection configurations
@@ -31,31 +31,42 @@ export const COLLECTIONS = {
 };
 
 async function getNFTDetails(collection, tokenId) {
+  console.log('Getting NFT details:', { collection, tokenId });
+  
   const collectionConfig = COLLECTIONS[collection];
   if (!collectionConfig) {
+    console.error('Invalid collection:', collection);
     throw new Error(`Invalid collection "${collection}"`);
   }
 
   if (!tokenId || isNaN(tokenId)) {
+    console.error('Invalid token ID:', tokenId);
     throw new Error(`Invalid token ID "${tokenId}"`);
   }
 
   let client;
   try {
+    console.log('Connecting to database...');
     client = await pool.connect();
 
-    const result = await client.query(`
+    const query = `
       SELECT *
       FROM nft_metadata
       WHERE symbol = $1 AND name = $2
       LIMIT 1
-    `, [collectionConfig.symbol, `${collectionConfig.name} #${tokenId}`]);
+    `;
+    const values = [collectionConfig.symbol, `${collectionConfig.name} #${tokenId}`];
+    
+    console.log('Executing query:', { query, values });
+    const result = await client.query(query, values);
 
     if (!result || result.rows.length === 0) {
+      console.log('NFT not found:', { collection, tokenId });
       throw new Error(`NFT not found: ${collectionConfig.name} #${tokenId}`);
     }
 
     const nft = result.rows[0];
+    console.log('Found NFT:', { name: nft.name, owner: nft.owner_discord_id || nft.owner_wallet });
 
     // Build fields array based on available data
     const fields = [];
@@ -100,7 +111,7 @@ async function getNFTDetails(collection, tokenId) {
     }
 
     // Format the embed response
-    return {
+    const response = {
       type: 4,
       data: {
         embeds: [{
@@ -116,7 +127,11 @@ async function getNFTDetails(collection, tokenId) {
         }]
       }
     };
+
+    console.log('Generated response:', JSON.stringify(response, null, 2));
+    return response;
   } catch (error) {
+    console.error('Error in getNFTDetails:', error);
     if (error.code === '57014') {
       throw new Error('The request took too long to process. Please try again.');
     }
@@ -125,6 +140,7 @@ async function getNFTDetails(collection, tokenId) {
     if (client) {
       try {
         await client.release();
+        console.log('Database client released');
       } catch (releaseError) {
         console.error('Error releasing client:', releaseError);
       }
@@ -133,7 +149,10 @@ async function getNFTDetails(collection, tokenId) {
 }
 
 export async function handleNFTLookup(command) {
+  console.log('Handling NFT lookup command:', command);
+
   if (!command || typeof command !== 'string') {
+    console.error('Invalid command format:', command);
     throw new Error('Invalid command format');
   }
 
@@ -141,6 +160,7 @@ export async function handleNFTLookup(command) {
   const tokenId = parseInt(tokenIdStr);
 
   if (!collection || isNaN(tokenId)) {
+    console.error('Invalid command format:', { collection, tokenIdStr });
     throw new Error('Invalid command format. Use: collection.tokenId (e.g., cat.1073)');
   }
 
