@@ -1,4 +1,4 @@
-import { getClient } from '../../../config/database.js';
+import { pool } from '../../../config/database.js';
 
 // Collection configurations
 export const COLLECTIONS = {
@@ -43,46 +43,22 @@ async function getNFTDetails(collection, tokenId) {
 
   let client;
   try {
-    // Get a client with timeout
-    client = await Promise.race([
-      getClient(),
-      new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Connection timeout')), 8000)
-      )
-    ]);
-    
+    client = await pool.connect();
     console.log('Database connection acquired');
-    
-    // Query NFT details with explicit timeout
-    const queryConfig = {
-      text: `
-        SELECT *
-        FROM nft_metadata
-        WHERE symbol = $1 AND name = $2
-        LIMIT 1
-      `,
-      values: [collectionConfig.symbol, `${collectionConfig.name} #${tokenId}`],
-      rowMode: 'array'
-    };
 
-    console.log('Executing NFT query:', {
-      symbol: collectionConfig.symbol,
-      name: `${collectionConfig.name} #${tokenId}`
-    });
-    
-    const result = await Promise.race([
-      client.query(queryConfig),
-      new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Query timeout')), 5000)
-      )
-    ]);
+    const result = await client.query(`
+      SELECT *
+      FROM nft_metadata
+      WHERE symbol = $1 AND name = $2
+      LIMIT 1
+    `, [collectionConfig.symbol, `${collectionConfig.name} #${tokenId}`]);
 
     console.log('Query result:', {
       rowCount: result.rows.length,
       firstRow: result.rows[0] ? {
-        name: result.rows[0][result.fields.findIndex(f => f.name === 'name')],
-        symbol: result.rows[0][result.fields.findIndex(f => f.name === 'symbol')],
-        owner: result.rows[0][result.fields.findIndex(f => f.name === 'owner_wallet')]?.slice(0, 8)
+        name: result.rows[0].name,
+        symbol: result.rows[0].symbol,
+        owner: result.rows[0].owner_wallet?.slice(0, 8)
       } : null
     });
 
@@ -90,11 +66,7 @@ async function getNFTDetails(collection, tokenId) {
       throw new Error(`NFT not found: ${collectionConfig.name} #${tokenId}`);
     }
 
-    // Convert array row to object
-    const nft = result.fields.reduce((obj, field, i) => {
-      obj[field.name] = result.rows[0][i];
-      return obj;
-    }, {});
+    const nft = result.rows[0];
 
     // Build fields array based on available data
     const fields = [];
@@ -163,29 +135,16 @@ async function getNFTDetails(collection, tokenId) {
       stack: error.stack,
       code: error.code
     });
-    
-    // Handle specific errors
-    if (error.message === 'Connection timeout') {
-      throw new Error('The bot is warming up. Please try again in a few seconds.');
-    }
-    
-    if (error.message === 'Query timeout') {
-      throw new Error('The request took too long to process. Please try again.');
-    }
-    
+
     if (error.code === '57014') {
       throw new Error('The request took too long to process. Please try again.');
     }
-    
-    if (error.code === '3D000') {
-      throw new Error('Database connection error. Please try again.');
-    }
-    
+
     throw error;
   } finally {
     if (client) {
       try {
-        await client.release(true); // Force release
+        await client.release();
         console.log('Database connection released');
       } catch (releaseError) {
         console.error('Error releasing client:', releaseError);
