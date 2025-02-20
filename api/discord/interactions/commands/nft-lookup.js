@@ -141,10 +141,10 @@ async function getNFTDetails(collection, tokenId) {
         content: "",
         embeds: [{
           title: nft.name,
-          description: `Collection: ${collectionConfig.name}`,
+          description: `Collection: ${collectionConfig.name}\n\n[View on Magic Eden](https://magiceden.io/item-details/${nft.mint_address})\n[View on Tensor](https://www.tensor.trade/item/${nft.mint_address})`,
           color: 0x9C44FB,
           fields: fields,
-          thumbnail: {
+          image: {
             url: nft.image_url || null
           },
           footer: {
