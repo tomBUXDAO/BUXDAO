@@ -135,23 +135,19 @@ async function getNFTDetails(collection, tokenId) {
 
     // Format the embed response
     const response = {
-      type: 4,
-      data: {
-        embeds: [{
-          title: nft.name,
-          color: 0x9C44FB, // Purple color
-          fields: fields,
-          thumbnail: {
-            url: nft.image_url || null
-          },
-          footer: {
-            text: `${collectionConfig.name} • Mint: ${nft.mint_address || 'Unknown'}`
-          }
-        }]
-      }
+      embeds: [{
+        title: nft.name,
+        color: 0x9C44FB, // Purple color
+        fields: fields,
+        thumbnail: {
+          url: nft.image_url || null
+        },
+        footer: {
+          text: `${collectionConfig.name} • Mint: ${nft.mint_address || 'Unknown'}`
+        }
+      }]
     };
 
-    console.log('Generated response:', JSON.stringify(response, null, 2));
     return response;
   } catch (error) {
     console.error('Error in getNFTDetails:', error);

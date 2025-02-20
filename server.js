@@ -465,66 +465,30 @@ app.post('/api/discord-interactions', express.raw({ type: 'application/json' }),
 
       if (name === 'nft') {
         try {
-          // Log the full options array
-          console.log('Full NFT command options:', JSON.stringify(options, null, 2));
-
-          // Handle the command structure correctly
-          if (!options || !options.length) {
-            return res.json({
-              type: 4,
-              data: {
-                content: 'Please provide a collection and token ID',
-                flags: 64
-              }
-            });
-          }
-
-          // Get the collection and token ID from the options
-          const collection = options[0]?.value?.split('.')[0];
-          const tokenId = parseInt(options[0]?.value?.split('.')[1]);
-
-          console.log('Parsed command values:', { collection, tokenId });
-
-          if (!collection || isNaN(tokenId)) {
-            return res.json({
-              type: 4,
-              data: {
-                content: 'Please provide a valid collection and token ID (e.g., cat.1073)',
-                flags: 64
-              }
-            });
-          }
+          const input = options[0]?.value;
+          const [collection, tokenIdStr] = input.split('.');
+          const tokenId = parseInt(tokenIdStr);
 
           // Send the "thinking" state
           await res.json({ type: 5 });
 
           // Process the command
-          console.log('Calling handleNFTLookup with:', `${collection}.${tokenId}`);
           const result = await handleNFTLookup(`${collection}.${tokenId}`);
-          console.log('NFT lookup result:', JSON.stringify(result, null, 2));
           
           // Use webhook to update the response
           const webhookUrl = `https://discord.com/api/v10/webhooks/${process.env.DISCORD_CLIENT_ID}/${interaction.token}/messages/@original`;
-          console.log('Sending webhook response to:', webhookUrl);
           
-          await axios.patch(webhookUrl, result.data);
-          console.log('Webhook response sent successfully');
+          // Send the embed directly without wrapping it
+          await axios.patch(webhookUrl, {
+            embeds: result.data.embeds
+          });
           return;
         } catch (error) {
-          console.error('Error processing NFT lookup:', error);
-          
-          const errorMessage = error.message || 'An error occurred while looking up the NFT';
           const webhookUrl = `https://discord.com/api/v10/webhooks/${process.env.DISCORD_CLIENT_ID}/${interaction.token}/messages/@original`;
-          
-          try {
-            await axios.patch(webhookUrl, {
-              content: `Error: ${errorMessage}`,
-              flags: 64
-            });
-            console.log('Error response sent via webhook');
-          } catch (webhookError) {
-            console.error('Error sending webhook response:', webhookError);
-          }
+          await axios.patch(webhookUrl, {
+            content: `Error: ${error.message}`,
+            flags: 64
+          });
           return;
         }
       }
