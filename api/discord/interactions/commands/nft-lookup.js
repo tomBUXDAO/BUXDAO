@@ -30,8 +30,6 @@ export const COLLECTIONS = {
 };
 
 async function getNFTDetails(collection, tokenId) {
-  console.log('Looking up NFT:', { collection, tokenId });
-  
   const collectionConfig = COLLECTIONS[collection];
   if (!collectionConfig) {
     throw new Error(`Invalid collection "${collection}"`);
@@ -44,7 +42,6 @@ async function getNFTDetails(collection, tokenId) {
   let client;
   try {
     client = await pool.connect();
-    console.log('Database connection acquired');
 
     const result = await client.query(`
       SELECT *
@@ -52,15 +49,6 @@ async function getNFTDetails(collection, tokenId) {
       WHERE symbol = $1 AND name = $2
       LIMIT 1
     `, [collectionConfig.symbol, `${collectionConfig.name} #${tokenId}`]);
-
-    console.log('Query result:', {
-      rowCount: result.rows.length,
-      firstRow: result.rows[0] ? {
-        name: result.rows[0].name,
-        symbol: result.rows[0].symbol,
-        owner: result.rows[0].owner_wallet?.slice(0, 8)
-      } : null
-    });
 
     if (!result || result.rows.length === 0) {
       throw new Error(`NFT not found: ${collectionConfig.name} #${tokenId}`);
@@ -128,24 +116,14 @@ async function getNFTDetails(collection, tokenId) {
       }
     };
   } catch (error) {
-    console.error('NFT lookup error:', {
-      collection,
-      tokenId,
-      error: error.message,
-      stack: error.stack,
-      code: error.code
-    });
-
     if (error.code === '57014') {
       throw new Error('The request took too long to process. Please try again.');
     }
-
     throw error;
   } finally {
     if (client) {
       try {
         await client.release();
-        console.log('Database connection released');
       } catch (releaseError) {
         console.error('Error releasing client:', releaseError);
       }
@@ -154,8 +132,6 @@ async function getNFTDetails(collection, tokenId) {
 }
 
 export async function handleNFTLookup(command) {
-  console.log('Handling NFT lookup command:', command);
-  
   if (!command || typeof command !== 'string') {
     throw new Error('Invalid command format');
   }

@@ -15,19 +15,7 @@ if (process.env.NODE_ENV !== 'production') {
   dotenv.config({ path: resolve(__dirname, '../../.env') });
 }
 
-console.log('Database configuration check:', {
-  hasPostgresUrl: !!process.env.POSTGRES_URL,
-  nodeEnv: process.env.NODE_ENV || 'development'
-});
-
 if (!process.env.POSTGRES_URL) {
-  console.error('Critical database configuration error:', {
-    error: 'Missing POSTGRES_URL',
-    nodeEnv: process.env.NODE_ENV,
-    hint: process.env.NODE_ENV === 'production' 
-      ? 'Ensure POSTGRES_URL is set in your production environment variables'
-      : 'Ensure your .env file exists and contains POSTGRES_URL'
-  });
   throw new Error('POSTGRES_URL environment variable is required');
 }
 
@@ -61,7 +49,6 @@ async function getClient() {
   connecting = new Promise(async (resolve, reject) => {
     try {
       client = await pool.connect();
-      console.log('New database connection established');
       
       // Handle connection errors
       client.on('error', err => {
@@ -84,13 +71,3 @@ async function getClient() {
 
 // Export both pool and getClient
 export { pool, getClient };
-
-// Test the connection
-getClient()
-  .then(client => {
-    console.log('Initial database connection successful');
-    client.release();
-  })
-  .catch(err => {
-    console.error('Initial database connection failed:', err);
-  }); 
