@@ -7,6 +7,9 @@ export default async function handler(req, res) {
     const timestamp = req.headers['x-signature-timestamp'];
     const rawBody = req.body;
 
+    // Log full interaction data
+    console.log('Full Discord interaction:', JSON.stringify(rawBody, null, 2));
+
     // Verify the request is from Discord
     const isValidRequest = verifyKey(
       rawBody,
@@ -30,11 +33,17 @@ export default async function handler(req, res) {
     if (interaction.type === 2 && interaction.data) {
       const command = interaction.data;
 
+      // Log command data
+      console.log('Command data:', {
+        name: command.name,
+        options: command.options
+      });
+
       // Handle NFT command
       if (command.name === 'nft') {
         try {
           // Get the subcommand and token ID
-          const subcommand = command.options[0];
+          const subcommand = command.options?.[0];
           if (!subcommand) {
             return res.json({
               type: 4,
@@ -46,7 +55,9 @@ export default async function handler(req, res) {
           }
 
           const collection = subcommand.name;
-          const tokenId = subcommand.options[0]?.value;
+          const tokenId = subcommand.options?.[0]?.value;
+
+          console.log('NFT lookup request:', { collection, tokenId });
 
           if (!tokenId) {
             return res.json({
@@ -59,6 +70,7 @@ export default async function handler(req, res) {
           }
 
           const result = await handleNFTLookup(`${collection}.${tokenId}`);
+          console.log('NFT lookup result:', result);
           return res.json(result);
         } catch (error) {
           console.error('NFT lookup error:', error);
