@@ -6,27 +6,32 @@ export const COLLECTIONS = {
   'cat': {
     name: 'Fcked Cat',
     symbol: 'FCKEDCATZ',
-    hasRarity: true
+    hasRarity: true,
+    logo: '/logos/cat.PNG'
   },
   'celeb': {
     name: 'Celebrity Catz',
     symbol: 'CelebCatz',
-    hasRarity: false
+    hasRarity: false,
+    logo: '/logos/celeb.PNG'
   },
   'mm': {
     name: 'Money Monsters',
     symbol: 'MM',
-    hasRarity: true
+    hasRarity: true,
+    logo: '/logos/monster.PNG'
   },
   'mm3d': {
     name: 'Money Monsters 3D',
     symbol: 'MM3D',
-    hasRarity: true
+    hasRarity: true,
+    logo: '/logos/monster.PNG'
   },
   'bot': {
     name: 'A.I. BitBots',
     symbol: 'AIBB',
-    hasRarity: false
+    hasRarity: false,
+    logo: '/logos/bot.PNG'
   }
 };
 
@@ -88,7 +93,7 @@ async function getNFTDetails(collection, tokenId) {
 
     // Owner field - prefer Discord name if available
     const ownerField = {
-      name: 'Owner',
+      name: '👤 Owner',
       value: nft.owner_name 
         ? `<@${nft.owner_discord_id}>`
         : nft.owner_wallet
@@ -104,7 +109,7 @@ async function getNFTDetails(collection, tokenId) {
       ? `Listed for ${(Number(nft.list_price) || 0).toFixed(2)} SOL`
       : 'Not Listed';
     const statusField = {
-      name: 'Status',
+      name: '🏷️ Status',
       value: status,
       inline: true
     };
@@ -114,7 +119,7 @@ async function getNFTDetails(collection, tokenId) {
     // Last sale if available
     if (nft.last_sale_price) {
       const saleField = {
-        name: 'Last Sale',
+        name: '💰 Last Sale',
         value: `${Number(nft.last_sale_price).toFixed(2)} SOL`,
         inline: true
       };
@@ -125,7 +130,7 @@ async function getNFTDetails(collection, tokenId) {
     // Rarity rank if collection supports it
     if (collectionConfig.hasRarity && nft.rarity_rank) {
       const rarityField = {
-        name: 'Rarity Rank',
+        name: '✨ Rarity Rank',
         value: `#${nft.rarity_rank}`,
         inline: true
       };
@@ -146,6 +151,9 @@ async function getNFTDetails(collection, tokenId) {
           fields: fields,
           image: {
             url: nft.image_url || null
+          },
+          thumbnail: {
+            url: `${process.env.NODE_ENV === 'production' ? 'https://buxdao.com' : 'http://localhost:3001'}${collectionConfig.logo}`
           },
           footer: {
             text: `Mint: ${nft.mint_address || 'Unknown'}`
