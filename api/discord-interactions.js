@@ -5,10 +5,14 @@ export default async function handler(req, res) {
   try {
     const signature = req.headers['x-signature-ed25519'];
     const timestamp = req.headers['x-signature-timestamp'];
-    const rawBody = req.body;
+    
+    // Handle raw body properly
+    const rawBody = req.body instanceof Buffer ? req.body : Buffer.from(JSON.stringify(req.body));
+    const strBody = rawBody.toString('utf8');
+    const interaction = JSON.parse(strBody);
 
     // Log full interaction data
-    console.log('Full Discord interaction:', JSON.stringify(rawBody, null, 2));
+    console.log('Full Discord interaction:', JSON.stringify(interaction, null, 2));
 
     // Verify the request is from Discord
     const isValidRequest = verifyKey(
@@ -21,8 +25,6 @@ export default async function handler(req, res) {
     if (!isValidRequest) {
       return res.status(401).send('Invalid request signature');
     }
-
-    const interaction = JSON.parse(rawBody);
 
     // Handle ping
     if (interaction.type === 1) {
