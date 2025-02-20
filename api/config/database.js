@@ -34,6 +34,14 @@ if (!process.env.POSTGRES_URL) {
 // Parse the connection string
 const connectionString = process.env.POSTGRES_URL;
 
+// Create the pool for compatibility with existing code
+const pool = new Pool({
+  connectionString,
+  ssl: {
+    rejectUnauthorized: false
+  }
+});
+
 // Configure a single client for serverless environment
 let client = null;
 let connecting = null;
@@ -52,15 +60,6 @@ async function getClient() {
   // Create new connection
   connecting = new Promise(async (resolve, reject) => {
     try {
-      const pool = new Pool({
-        connectionString,
-        max: 1,
-        connectionTimeoutMillis: 10000,
-        ssl: {
-          rejectUnauthorized: false
-        }
-      });
-
       client = await pool.connect();
       console.log('New database connection established');
       
@@ -83,8 +82,8 @@ async function getClient() {
   return connecting;
 }
 
-// Export the getClient function
-export { getClient };
+// Export both pool and getClient
+export { pool, getClient };
 
 // Test the connection
 getClient()
