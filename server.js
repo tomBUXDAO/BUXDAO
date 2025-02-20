@@ -427,62 +427,51 @@ app.post('/api/discord-interactions', express.raw({ type: 'application/json' }),
   }
 
   const interaction = JSON.parse(req.body);
-  console.log('Interaction received:', {
-    type: interaction.type,
-    data: interaction.data,
-    options: interaction.data?.options
-  });
 
-  // Handle ping (type 1)
+  // Handle ping
   if (interaction.type === 1) {
     return res.json({ type: 1 });
   }
 
-  // Handle slash commands (type 2)
-  if (interaction.type === 2) {
-    const { name, options } = interaction.data;
-    console.log('Command details:', { name, options });
+  // Handle application commands
+  if (interaction.type === 2 && interaction.data) {
+    const command = interaction.data;
 
-    if (name === 'nft') {
+    // Handle NFT command
+    if (command.name === 'nft' && command.options && Array.isArray(command.options)) {
       try {
-        // Log the full options array
-        console.log('NFT command options:', options);
+        const nftInput = command.options[0]?.value;
         
-        // Get the first option's value
-        const input = options?.[0]?.value;
-        console.log('NFT command input:', input);
-        
-        if (!input) {
+        if (!nftInput) {
           return res.json({
             type: 4,
             data: {
               content: 'Please provide a collection and token ID in the format: collection.tokenId',
-              flags: 64 // Ephemeral message
+              flags: 64
             }
           });
         }
 
-        const result = await handleNFTLookup(input);
-        console.log('NFT lookup result:', result);
+        const result = await handleNFTLookup(nftInput);
         return res.json(result);
       } catch (error) {
-        console.error('NFT command error:', error);
         return res.json({
           type: 4,
           data: {
             content: `Error: ${error.message}`,
-            flags: 64 // Ephemeral message
+            flags: 64
           }
         });
       }
     }
   }
 
+  // Handle unknown commands
   return res.json({
     type: 4,
     data: {
-      content: 'Unknown command or interaction type',
-      flags: 64 // Ephemeral message
+      content: 'Unknown command',
+      flags: 64
     }
   });
 });
