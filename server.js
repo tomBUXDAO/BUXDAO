@@ -413,16 +413,18 @@ app.use('/api/rewards', rewardsRouter);
 // Discord Interactions endpoint
 app.post('/api/discord-interactions', express.raw({ type: 'application/json' }), async (req, res) => {
   try {
+    // Get the raw body as a buffer and convert to string
+    const rawBody = req.body.toString('utf8');
+    
     console.log('Discord interaction received:', {
       headers: req.headers,
-      body: req.body ? req.body.toString() : null
+      rawBody: rawBody
     });
 
     const signature = req.headers['x-signature-ed25519'];
     const timestamp = req.headers['x-signature-timestamp'];
-    const body = req.body;
 
-    if (!signature || !timestamp || !body) {
+    if (!signature || !timestamp || !rawBody) {
       console.error('Missing required Discord headers or body');
       return res.status(401).json({ 
         type: 4,
@@ -434,7 +436,7 @@ app.post('/api/discord-interactions', express.raw({ type: 'application/json' }),
     }
 
     const isValidRequest = verifyKey(
-      body,
+      Buffer.from(rawBody),
       signature,
       timestamp,
       process.env.DISCORD_PUBLIC_KEY
@@ -451,10 +453,11 @@ app.post('/api/discord-interactions', express.raw({ type: 'application/json' }),
       });
     }
 
-    const interaction = JSON.parse(body);
+    const interaction = JSON.parse(rawBody);
     console.log('Processing interaction:', {
       type: interaction.type,
-      command: interaction.data?.name
+      command: interaction.data?.name,
+      options: interaction.data?.options
     });
 
     // Handle ping (type 1)
@@ -467,34 +470,69 @@ app.post('/api/discord-interactions', express.raw({ type: 'application/json' }),
       const { name, options } = interaction.data;
 
       if (name === 'nft') {
-        // Send deferred response first
-        await res.json({
-          type: 5,
-          data: {
-            flags: 64
-          }
-        });
-
         try {
           const subcommand = options?.[0];
           if (!subcommand) {
-            const webhookUrl = `https://discord.com/api/v10/webhooks/${process.env.DISCORD_CLIENT_ID}/${interaction.token}/messages/@original`;
-            await axios.patch(webhookUrl, {
-              content: 'Please specify a collection and token ID',
-              flags: 64
+            return res.json({
+              type: 4,
+              data: {
+                content: 'Please specify a collection and token ID',
+                flags: 64
+              }
             });
-            return;
           }
 
           const collection = subcommand.name;
           const tokenId = subcommand.options?.[0]?.value;
+
+          if (!collection || !tokenId) {
+            return res.json({
+              type: 4,
+              data: {
+                content: 'Please provide both collection and token ID',
+                flags: 64
+              }
+            });
+          }
+
+          // Log the command details
+          console.log('NFT lookup command received:', {
+            collection,
+            tokenId,
+            subcommand
+          });
+
+          // Send the "thinking" state FIRST
+          await res.json({ type: 5 }); // Changed to type 5 for "thinking" state
+
+          // Then process the command
           const result = await handleNFTLookup(`${collection}.${tokenId}`);
           
-          // Use the webhook URL to update the message
+          // Use the webhook URL to send the actual response
           const webhookUrl = `https://discord.com/api/v10/webhooks/${process.env.DISCORD_CLIENT_ID}/${interaction.token}/messages/@original`;
+          
+          console.log('Sending webhook response:', {
+            webhookUrl: webhookUrl.replace(/\d{10,}/g, '***'),
+            resultType: result.type,
+            hasEmbed: !!result.data?.embeds
+          });
+
           await axios.patch(webhookUrl, result.data);
         } catch (error) {
           console.error('NFT lookup error:', error);
+          
+          // If we haven't sent the initial response yet, send an error
+          if (!res.headersSent) {
+            return res.json({
+              type: 4,
+              data: {
+                content: `Error looking up NFT: ${error.message}`,
+                flags: 64
+              }
+            });
+          }
+          
+          // Otherwise use the webhook to update with the error
           const webhookUrl = `https://discord.com/api/v10/webhooks/${process.env.DISCORD_CLIENT_ID}/${interaction.token}/messages/@original`;
           await axios.patch(webhookUrl, {
             content: `Error looking up NFT: ${error.message}`,
