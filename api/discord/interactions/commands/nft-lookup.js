@@ -1,4 +1,4 @@
-// Version 1.0.2 - Improved error handling and logging
+// Version 1.0.3 - Added detailed logging
 import { pool } from '../../../config/database.js';
 
 // Collection configurations
@@ -31,9 +31,11 @@ export const COLLECTIONS = {
 };
 
 async function getNFTDetails(collection, tokenId) {
-  console.log('Getting NFT details:', { collection, tokenId });
+  console.log('getNFTDetails called with:', { collection, tokenId });
   
   const collectionConfig = COLLECTIONS[collection];
+  console.log('Collection config:', collectionConfig);
+
   if (!collectionConfig) {
     console.error('Invalid collection:', collection);
     throw new Error(`Invalid collection "${collection}"`);
@@ -46,8 +48,9 @@ async function getNFTDetails(collection, tokenId) {
 
   let client;
   try {
-    console.log('Connecting to database...');
+    console.log('Attempting database connection...');
     client = await pool.connect();
+    console.log('Database connection successful');
 
     const query = `
       SELECT *
@@ -59,6 +62,7 @@ async function getNFTDetails(collection, tokenId) {
     
     console.log('Executing query:', { query, values });
     const result = await client.query(query, values);
+    console.log('Query result rows:', result?.rows?.length);
 
     if (!result || result.rows.length === 0) {
       console.log('NFT not found:', { collection, tokenId });
@@ -66,13 +70,18 @@ async function getNFTDetails(collection, tokenId) {
     }
 
     const nft = result.rows[0];
-    console.log('Found NFT:', { name: nft.name, owner: nft.owner_discord_id || nft.owner_wallet });
+    console.log('Found NFT data:', {
+      name: nft.name,
+      owner: nft.owner_discord_id || nft.owner_wallet,
+      listed: nft.is_listed,
+      price: nft.list_price
+    });
 
     // Build fields array based on available data
     const fields = [];
 
     // Owner field - prefer Discord name if available
-    fields.push({
+    const ownerField = {
       name: 'Owner',
       value: nft.owner_name 
         ? `<@${nft.owner_discord_id}>`
@@ -80,34 +89,42 @@ async function getNFTDetails(collection, tokenId) {
           ? `\`${nft.owner_wallet.slice(0, 4)}...${nft.owner_wallet.slice(-4)}\``
           : 'Unknown',
       inline: true
-    });
+    };
+    console.log('Owner field:', ownerField);
+    fields.push(ownerField);
 
     // Status field - show if listed and price
     const status = nft.is_listed 
       ? `Listed for ${(Number(nft.list_price) || 0).toFixed(2)} SOL`
       : 'Not Listed';
-    fields.push({
+    const statusField = {
       name: 'Status',
       value: status,
       inline: true
-    });
+    };
+    console.log('Status field:', statusField);
+    fields.push(statusField);
 
     // Last sale if available
     if (nft.last_sale_price) {
-      fields.push({
+      const saleField = {
         name: 'Last Sale',
         value: `${Number(nft.last_sale_price).toFixed(2)} SOL`,
         inline: true
-      });
+      };
+      console.log('Sale field:', saleField);
+      fields.push(saleField);
     }
 
     // Rarity rank if collection supports it
     if (collectionConfig.hasRarity && nft.rarity_rank) {
-      fields.push({
+      const rarityField = {
         name: 'Rarity Rank',
         value: `#${nft.rarity_rank}`,
         inline: true
-      });
+      };
+      console.log('Rarity field:', rarityField);
+      fields.push(rarityField);
     }
 
     // Format the embed response
@@ -149,7 +166,7 @@ async function getNFTDetails(collection, tokenId) {
 }
 
 export async function handleNFTLookup(command) {
-  console.log('Handling NFT lookup command:', command);
+  console.log('handleNFTLookup called with:', command);
 
   if (!command || typeof command !== 'string') {
     console.error('Invalid command format:', command);
@@ -157,7 +174,10 @@ export async function handleNFTLookup(command) {
   }
 
   const [collection, tokenIdStr] = command.split('.');
+  console.log('Parsed command:', { collection, tokenIdStr });
+
   const tokenId = parseInt(tokenIdStr);
+  console.log('Parsed token ID:', tokenId);
 
   if (!collection || isNaN(tokenId)) {
     console.error('Invalid command format:', { collection, tokenIdStr });

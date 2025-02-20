@@ -413,8 +413,8 @@ app.use('/api/rewards', rewardsRouter);
 // Discord Interactions endpoint
 app.post('/api/discord-interactions', express.raw({ type: 'application/json' }), async (req, res) => {
   try {
-    // Get the raw body as a buffer
     const rawBody = req.body;
+    console.log('Raw interaction body:', rawBody.toString());
     
     const signature = req.headers['x-signature-ed25519'];
     const timestamp = req.headers['x-signature-timestamp'];
@@ -444,11 +444,7 @@ app.post('/api/discord-interactions', express.raw({ type: 'application/json' }),
 
     // Parse the interaction data
     const interaction = JSON.parse(rawBody.toString());
-    console.log('Received interaction:', {
-      type: interaction.type,
-      commandName: interaction.data?.name,
-      options: interaction.data?.options
-    });
+    console.log('Parsed interaction:', JSON.stringify(interaction, null, 2));
 
     // Handle ping (type 1)
     if (interaction.type === 1) {
@@ -458,14 +454,32 @@ app.post('/api/discord-interactions', express.raw({ type: 'application/json' }),
     // Handle commands (type 2)
     if (interaction.type === 2) {
       const { name, options } = interaction.data;
+      console.log('Command data:', { name, options: JSON.stringify(options, null, 2) });
 
       if (name === 'nft') {
         try {
-          // Extract collection and token ID from options
-          const collection = options?.[0]?.name;
-          const tokenId = options?.[0]?.options?.[0]?.value;
+          // Log full options structure
+          console.log('NFT command options:', JSON.stringify(options, null, 2));
 
-          console.log('NFT lookup request:', { collection, tokenId });
+          // Get the first option (subcommand)
+          const subcommand = options?.[0];
+          console.log('Subcommand:', subcommand);
+
+          if (!subcommand) {
+            return res.json({
+              type: 4,
+              data: {
+                content: 'Please specify a collection and token ID',
+                flags: 64
+              }
+            });
+          }
+
+          // Get the token ID from the subcommand's options
+          const tokenId = subcommand.options?.[0]?.value;
+          const collection = subcommand.name;
+
+          console.log('Extracted values:', { collection, tokenId });
 
           if (!collection || tokenId === undefined) {
             return res.json({
@@ -481,12 +495,16 @@ app.post('/api/discord-interactions', express.raw({ type: 'application/json' }),
           await res.json({ type: 5 });
 
           // Process the command
+          console.log('Calling handleNFTLookup with:', `${collection}.${tokenId}`);
           const result = await handleNFTLookup(`${collection}.${tokenId}`);
+          console.log('NFT lookup result:', JSON.stringify(result, null, 2));
           
           // Use webhook to update the response
           const webhookUrl = `https://discord.com/api/v10/webhooks/${process.env.DISCORD_CLIENT_ID}/${interaction.token}/messages/@original`;
+          console.log('Sending webhook response to:', webhookUrl);
           
           await axios.patch(webhookUrl, result.data);
+          console.log('Webhook response sent successfully');
           return;
         } catch (error) {
           console.error('Error processing NFT lookup:', error);
@@ -499,6 +517,7 @@ app.post('/api/discord-interactions', express.raw({ type: 'application/json' }),
               content: `Error: ${errorMessage}`,
               flags: 64
             });
+            console.log('Error response sent via webhook');
           } catch (webhookError) {
             console.error('Error sending webhook response:', webhookError);
           }
