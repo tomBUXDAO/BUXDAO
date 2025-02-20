@@ -38,9 +38,9 @@ const connectionString = process.env.POSTGRES_URL;
 export const pool = new Pool({
   connectionString,
   max: 1, // Keep only 1 connection in serverless environment
-  connectionTimeoutMillis: 5000, // 5 second timeout
-  idleTimeoutMillis: 120000, // Close idle connections after 2 minutes
-  allowExitOnIdle: true, // Allow the pool to exit when all clients are finished
+  connectionTimeoutMillis: 10000, // 10 second timeout for cold starts
+  idleTimeoutMillis: 30000, // Close idle connections after 30 seconds
+  allowExitOnIdle: true,
   ssl: {
     rejectUnauthorized: false // Required for Neon database
   }
@@ -49,15 +49,15 @@ export const pool = new Pool({
 // Add error handler to the pool
 pool.on('error', (err, client) => {
   console.error('Unexpected error on idle client', err);
+  process.exit(-1); // Terminate on pool errors to trigger container restart
 });
 
 // Add connection handler
 pool.on('connect', (client) => {
   console.log('New database connection established');
-  
-  // Set session parameters
-  client.query('SET statement_timeout = 5000')
-    .catch(err => console.error('Error setting statement timeout:', err));
+  client.on('error', err => {
+    console.error('Client error:', err);
+  });
 });
 
 // Export a function to test the connection
@@ -65,8 +65,8 @@ export async function testConnection() {
   let client;
   try {
     client = await pool.connect();
-    await client.query('SELECT 1');
-    console.log('Database connection test successful');
+    const result = await client.query('SELECT NOW()');
+    console.log('Database connection test successful:', result.rows[0]);
     return true;
   } catch (error) {
     console.error('Database connection test failed:', error);
@@ -87,8 +87,10 @@ testConnection()
   .then(success => {
     if (!success) {
       console.error('Failed to establish initial database connection');
+      process.exit(1); // Exit on connection failure to trigger container restart
     }
   })
   .catch(err => {
     console.error('Error during initial connection test:', err);
+    process.exit(1);
   }); 

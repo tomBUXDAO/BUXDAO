@@ -43,11 +43,11 @@ async function getNFTDetails(collection, tokenId) {
 
   let client;
   try {
-    // Get a client from the pool with a short timeout
+    // Get a client from the pool with a longer timeout for cold starts
     client = await Promise.race([
       pool.connect(),
       new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Connection timeout')), 3000)
+        setTimeout(() => reject(new Error('Connection timeout')), 8000)
       )
     ]);
     
@@ -73,7 +73,7 @@ async function getNFTDetails(collection, tokenId) {
     const result = await Promise.race([
       client.query(queryConfig),
       new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Query timeout')), 3000)
+        setTimeout(() => reject(new Error('Query timeout')), 5000)
       )
     ]);
 
@@ -166,7 +166,7 @@ async function getNFTDetails(collection, tokenId) {
     
     // Handle specific errors
     if (error.message === 'Connection timeout') {
-      throw new Error('Database connection timed out. Please try again.');
+      throw new Error('The bot is warming up. Please try again in a few seconds.');
     }
     
     if (error.message === 'Query timeout') {
