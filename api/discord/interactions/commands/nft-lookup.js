@@ -43,31 +43,46 @@ async function getNFTDetails(collection, tokenId) {
 
   let client;
   try {
-    client = await pool.connect();
+    // Get a client from the pool with a short timeout
+    client = await Promise.race([
+      pool.connect(),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Connection timeout')), 3000)
+      )
+    ]);
+    
     console.log('Database connection acquired');
     
-    // Set a shorter statement timeout for this query
-    await client.query('SET statement_timeout = 5000');
-    
-    // Query NFT details
+    // Query NFT details with explicit timeout
+    const queryConfig = {
+      text: `
+        SELECT *
+        FROM nft_metadata
+        WHERE symbol = $1 AND name = $2
+        LIMIT 1
+      `,
+      values: [collectionConfig.symbol, `${collectionConfig.name} #${tokenId}`],
+      rowMode: 'array'
+    };
+
     console.log('Executing NFT query:', {
       symbol: collectionConfig.symbol,
-      namePattern: `${collectionConfig.name} #${tokenId}`
+      name: `${collectionConfig.name} #${tokenId}`
     });
     
-    const result = await client.query(`
-      SELECT *
-      FROM nft_metadata
-      WHERE symbol = $1 AND name = $2
-      LIMIT 1
-    `, [collectionConfig.symbol, `${collectionConfig.name} #${tokenId}`]);
+    const result = await Promise.race([
+      client.query(queryConfig),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Query timeout')), 3000)
+      )
+    ]);
 
     console.log('Query result:', {
       rowCount: result.rows.length,
       firstRow: result.rows[0] ? {
-        name: result.rows[0].name,
-        symbol: result.rows[0].symbol,
-        owner: result.rows[0].owner_wallet?.slice(0, 8)
+        name: result.rows[0][result.fields.findIndex(f => f.name === 'name')],
+        symbol: result.rows[0][result.fields.findIndex(f => f.name === 'symbol')],
+        owner: result.rows[0][result.fields.findIndex(f => f.name === 'owner_wallet')]?.slice(0, 8)
       } : null
     });
 
@@ -75,7 +90,11 @@ async function getNFTDetails(collection, tokenId) {
       throw new Error(`NFT not found: ${collectionConfig.name} #${tokenId}`);
     }
 
-    const nft = result.rows[0];
+    // Convert array row to object
+    const nft = result.fields.reduce((obj, field, i) => {
+      obj[field.name] = result.rows[0][i];
+      return obj;
+    }, {});
 
     // Build fields array based on available data
     const fields = [];
@@ -145,7 +164,15 @@ async function getNFTDetails(collection, tokenId) {
       code: error.code
     });
     
-    // Handle specific database errors
+    // Handle specific errors
+    if (error.message === 'Connection timeout') {
+      throw new Error('Database connection timed out. Please try again.');
+    }
+    
+    if (error.message === 'Query timeout') {
+      throw new Error('The request took too long to process. Please try again.');
+    }
+    
     if (error.code === '57014') {
       throw new Error('The request took too long to process. Please try again.');
     }

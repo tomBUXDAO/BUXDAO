@@ -1,5 +1,5 @@
-import pkg from 'pg';
-const { Pool } = pkg;
+import pg from 'pg';
+const { Pool } = pg;
 
 // In production, environment variables are set through the platform
 // In development, we load from .env file
@@ -28,65 +28,67 @@ if (!process.env.POSTGRES_URL) {
       ? 'Ensure POSTGRES_URL is set in your production environment variables'
       : 'Ensure your .env file exists and contains POSTGRES_URL'
   });
-  throw new Error('Database connection failed: POSTGRES_URL is not set');
+  throw new Error('POSTGRES_URL environment variable is required');
 }
 
-// Serverless-optimized pool configuration
-const poolConfig = {
-  connectionString: process.env.POSTGRES_URL,
-  ssl: { rejectUnauthorized: false },
-  max: 20,
-  min: 2,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 10000,
-  maxUses: 7500,
-  allowExitOnIdle: true,
-  keepAlive: true,
-  keepAliveInitialDelayMillis: 1000,
-  application_name: 'buxdao_auth',
-  statement_timeout: 30000,
-  query_timeout: 30000,
-  idle_in_transaction_session_timeout: 30000
-};
+// Parse the connection string
+const connectionString = process.env.POSTGRES_URL;
 
-const pool = new pkg.Pool(poolConfig);
-
-// Simplified error handling
-pool.on('error', (err, client) => {
-  console.error('Unexpected error on idle client', err);
-  if (client) {
-    client.release(true);
+// Configure the connection pool with appropriate settings for serverless
+export const pool = new Pool({
+  connectionString,
+  max: 1, // Keep only 1 connection in serverless environment
+  connectionTimeoutMillis: 5000, // 5 second timeout
+  idleTimeoutMillis: 120000, // Close idle connections after 2 minutes
+  allowExitOnIdle: true, // Allow the pool to exit when all clients are finished
+  ssl: {
+    rejectUnauthorized: false // Required for Neon database
   }
 });
 
-async function connectDB() {
-  let retries = 5;
-  let lastError;
+// Add error handler to the pool
+pool.on('error', (err, client) => {
+  console.error('Unexpected error on idle client', err);
+});
+
+// Add connection handler
+pool.on('connect', (client) => {
+  console.log('New database connection established');
   
-  while (retries > 0) {
-    try {
-      const client = await pool.connect();
-      await client.query('SELECT NOW()');
-      client.release();
-      console.log('Database connection successful');
-      return true;
-    } catch (error) {
-      lastError = error;
-      console.error('Database connection attempt failed:', {
-        message: error.message,
-        code: error.code,
-        retries: retries - 1
-      });
-      retries--;
-      if (retries === 0) break;
-      await new Promise(resolve => setTimeout(resolve, 1000));
+  // Set session parameters
+  client.query('SET statement_timeout = 5000')
+    .catch(err => console.error('Error setting statement timeout:', err));
+});
+
+// Export a function to test the connection
+export async function testConnection() {
+  let client;
+  try {
+    client = await pool.connect();
+    await client.query('SELECT 1');
+    console.log('Database connection test successful');
+    return true;
+  } catch (error) {
+    console.error('Database connection test failed:', error);
+    return false;
+  } finally {
+    if (client) {
+      try {
+        await client.release();
+      } catch (releaseError) {
+        console.error('Error releasing client:', releaseError);
+      }
     }
   }
-  
-  if (lastError) {
-    console.error('All database connection attempts failed:', lastError);
-  }
-  return false;
 }
 
-export { pool, connectDB }; 
+// Initialize connection
+testConnection()
+  .then(success => {
+    if (!success) {
+      console.error('Failed to establish initial database connection');
+    }
+  })
+  .catch(err => {
+    console.error('Error during initial connection test:', err);
+  }); 
