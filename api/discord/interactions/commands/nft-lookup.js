@@ -150,7 +150,7 @@ async function getNFTDetails(collection, tokenId) {
         tts: false,
         content: "",
         embeds: [{
-          title: nft.name.replace(/ /g, ' '), // Replace any potential non-breaking spaces with regular spaces
+          title: `${collectionConfig.name} #${tokenId}`,
           description: `[View on Magic Eden](https://magiceden.io/item-details/${nft.mint_address}) • [View on Tensor](https://www.tensor.trade/item/${nft.mint_address})`,
           color: collectionConfig.color,
           fields: fields,
