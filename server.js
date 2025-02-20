@@ -85,6 +85,8 @@ console.log('Importing monitor router...');
 import monitorRouter from './api/routes/monitor.js';
 console.log('Monitor router imported successfully');
 
+import discordInteractionsHandler from './api/discord-interactions.js';
+
 const app = express();
 
 // Trust proxy in production
@@ -411,90 +413,7 @@ rewardsRouter.use('/events', rewardsEventsRouter);
 app.use('/api/rewards', rewardsRouter);
 
 // Discord Interactions endpoint
-app.post('/api/discord-interactions', express.raw({ type: 'application/json' }), async (req, res) => {
-  try {
-    const signature = req.headers['x-signature-ed25519'];
-    const timestamp = req.headers['x-signature-timestamp'];
-    const rawBody = req.body;
-
-    console.log('Raw interaction:', JSON.parse(rawBody));
-
-    const isValidRequest = verifyKey(
-      rawBody,
-      signature,
-      timestamp,
-      process.env.DISCORD_PUBLIC_KEY
-    );
-
-    if (!isValidRequest) {
-      return res.status(401).send('Invalid request signature');
-    }
-
-    const interaction = JSON.parse(rawBody);
-    console.log('Full interaction data:', {
-      type: interaction.type,
-      data: {
-        ...interaction.data,
-        options: JSON.stringify(interaction.data?.options)
-      }
-    });
-
-    // Handle ping
-    if (interaction.type === 1) {
-      return res.json({ type: 1 });
-    }
-
-    // Handle application commands
-    if (interaction.type === 2 && interaction.data) {
-      const command = interaction.data;
-
-      // Handle NFT command
-      if (command.name === 'nft') {
-        try {
-          const nftInput = command.options[0]?.value;
-          
-          if (!nftInput) {
-            return res.json({
-              type: 4,
-              data: {
-                content: 'Please provide a collection and token ID in the format: collection.tokenId',
-                flags: 64
-              }
-            });
-          }
-
-          const result = await handleNFTLookup(nftInput);
-          return res.json(result);
-        } catch (error) {
-          return res.json({
-            type: 4,
-            data: {
-              content: `Error: ${error.message}`,
-              flags: 64
-            }
-          });
-        }
-      }
-    }
-
-    return res.json({
-      type: 4,
-      data: {
-        content: 'Unknown command',
-        flags: 64
-      }
-    });
-  } catch (error) {
-    console.error('Critical interaction error:', error);
-    return res.json({
-      type: 4,
-      data: {
-        content: 'An error occurred processing the command',
-        flags: 64
-      }
-    });
-  }
-});
+app.post('/api/discord-interactions', express.raw({ type: 'application/json' }), discordInteractionsHandler);
 
 // API 404 handler (must be last)
 app.use('/api/*', (req, res) => {
