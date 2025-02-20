@@ -34,63 +34,64 @@ if (!process.env.POSTGRES_URL) {
 // Parse the connection string
 const connectionString = process.env.POSTGRES_URL;
 
-// Configure the connection pool with appropriate settings for serverless
-export const pool = new Pool({
-  connectionString,
-  max: 1, // Keep only 1 connection in serverless environment
-  connectionTimeoutMillis: 10000, // 10 second timeout for cold starts
-  idleTimeoutMillis: 30000, // Close idle connections after 30 seconds
-  allowExitOnIdle: true,
-  ssl: {
-    rejectUnauthorized: false // Required for Neon database
+// Configure a single client for serverless environment
+let client = null;
+let connecting = null;
+
+async function getClient() {
+  // Return existing client if it's already connected
+  if (client?.connection?.stream?.readable) {
+    return client;
   }
-});
 
-// Add error handler to the pool
-pool.on('error', (err, client) => {
-  console.error('Unexpected error on idle client', err);
-  process.exit(-1); // Terminate on pool errors to trigger container restart
-});
+  // Wait for existing connection attempt if one is in progress
+  if (connecting) {
+    return connecting;
+  }
 
-// Add connection handler
-pool.on('connect', (client) => {
-  console.log('New database connection established');
-  client.on('error', err => {
-    console.error('Client error:', err);
-  });
-});
+  // Create new connection
+  connecting = new Promise(async (resolve, reject) => {
+    try {
+      const pool = new Pool({
+        connectionString,
+        max: 1,
+        connectionTimeoutMillis: 10000,
+        ssl: {
+          rejectUnauthorized: false
+        }
+      });
 
-// Export a function to test the connection
-export async function testConnection() {
-  let client;
-  try {
-    client = await pool.connect();
-    const result = await client.query('SELECT NOW()');
-    console.log('Database connection test successful:', result.rows[0]);
-    return true;
-  } catch (error) {
-    console.error('Database connection test failed:', error);
-    return false;
-  } finally {
-    if (client) {
-      try {
-        await client.release();
-      } catch (releaseError) {
-        console.error('Error releasing client:', releaseError);
-      }
+      client = await pool.connect();
+      console.log('New database connection established');
+      
+      // Handle connection errors
+      client.on('error', err => {
+        console.error('Client error:', err);
+        client = null;
+      });
+
+      resolve(client);
+    } catch (error) {
+      console.error('Connection error:', error);
+      client = null;
+      reject(error);
+    } finally {
+      connecting = null;
     }
-  }
+  });
+
+  return connecting;
 }
 
-// Initialize connection
-testConnection()
-  .then(success => {
-    if (!success) {
-      console.error('Failed to establish initial database connection');
-      process.exit(1); // Exit on connection failure to trigger container restart
-    }
+// Export the getClient function
+export { getClient };
+
+// Test the connection
+getClient()
+  .then(client => {
+    console.log('Initial database connection successful');
+    client.release();
   })
   .catch(err => {
-    console.error('Error during initial connection test:', err);
-    process.exit(1);
+    console.error('Initial database connection failed:', err);
   }); 

@@ -1,4 +1,4 @@
-import { pool } from '../../../config/database.js';
+import { getClient } from '../../../config/database.js';
 
 // Collection configurations
 export const COLLECTIONS = {
@@ -43,9 +43,9 @@ async function getNFTDetails(collection, tokenId) {
 
   let client;
   try {
-    // Get a client from the pool with a longer timeout for cold starts
+    // Get a client with timeout
     client = await Promise.race([
-      pool.connect(),
+      getClient(),
       new Promise((_, reject) => 
         setTimeout(() => reject(new Error('Connection timeout')), 8000)
       )
@@ -185,7 +185,7 @@ async function getNFTDetails(collection, tokenId) {
   } finally {
     if (client) {
       try {
-        await client.release();
+        await client.release(true); // Force release
         console.log('Database connection released');
       } catch (releaseError) {
         console.error('Error releasing client:', releaseError);
