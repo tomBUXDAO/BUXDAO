@@ -144,13 +144,15 @@ async function getNFTDetails(collection, tokenId) {
     }
 
     // Format the embed response
+    const title = `${collectionConfig.name} #${tokenId}`.split('').join('\u200B');  // Add zero-width space between each character
+
     return {
       type: 4, // CHANNEL_MESSAGE_WITH_SOURCE
       data: {
         tts: false,
         content: "",
         embeds: [{
-          title: `${collectionConfig.name} #${tokenId}`,
+          title: title,
           description: `[View on Magic Eden](https://magiceden.io/item-details/${nft.mint_address}) • [View on Tensor](https://www.tensor.trade/item/${nft.mint_address})`,
           color: collectionConfig.color,
           fields: fields,
