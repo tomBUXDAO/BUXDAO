@@ -30,22 +30,49 @@ export const COLLECTIONS = {
 };
 
 async function getNFTDetails(collection, tokenId) {
+  console.log('Looking up NFT:', { collection, tokenId });
+  
   const collectionConfig = COLLECTIONS[collection];
   if (!collectionConfig) {
-    throw new Error('Invalid collection');
+    throw new Error(`Invalid collection "${collection}"`);
   }
 
-  const client = await pool.connect();
+  if (!tokenId || isNaN(tokenId)) {
+    throw new Error(`Invalid token ID "${tokenId}"`);
+  }
+
+  let client;
   try {
+    client = await pool.connect();
+    console.log('Database connection acquired');
+    
+    // Set a shorter statement timeout for this query
+    await client.query('SET statement_timeout = 5000');
+    
     // Query NFT details
+    console.log('Executing NFT query:', {
+      symbol: collectionConfig.symbol,
+      namePattern: `%#${tokenId}`
+    });
+    
     const result = await client.query(`
       SELECT *
       FROM nft_metadata
       WHERE symbol = $1 AND name LIKE $2
+      LIMIT 1
     `, [collectionConfig.symbol, `%#${tokenId}`]);
 
-    if (result.rows.length === 0) {
-      throw new Error('NFT not found');
+    console.log('Query result:', {
+      rowCount: result.rows.length,
+      firstRow: result.rows[0] ? {
+        name: result.rows[0].name,
+        symbol: result.rows[0].symbol,
+        owner: result.rows[0].owner_wallet?.slice(0, 8)
+      } : null
+    });
+
+    if (!result || result.rows.length === 0) {
+      throw new Error(`NFT not found: ${collectionConfig.name} #${tokenId}`);
     }
 
     const nft = result.rows[0];
@@ -58,7 +85,9 @@ async function getNFTDetails(collection, tokenId) {
       name: 'Owner',
       value: nft.owner_name 
         ? `<@${nft.owner_discord_id}>`
-        : `\`${nft.owner_wallet.slice(0, 4)}...${nft.owner_wallet.slice(-4)}\``,
+        : nft.owner_wallet
+          ? `\`${nft.owner_wallet.slice(0, 4)}...${nft.owner_wallet.slice(-4)}\``
+          : 'Unknown',
       inline: true
     });
 
@@ -99,52 +128,58 @@ async function getNFTDetails(collection, tokenId) {
           color: 0x9C44FB, // Purple color
           fields: fields,
           thumbnail: {
-            url: nft.image_url
+            url: nft.image_url || null
           },
           footer: {
-            text: `${collectionConfig.name} • Mint: ${nft.mint_address}`
+            text: `${collectionConfig.name} • Mint: ${nft.mint_address || 'Unknown'}`
           }
         }]
       }
     };
   } catch (error) {
-    console.error('NFT lookup error:', error);
-    return {
-      type: 4,
-      data: {
-        content: error.message,
-        flags: 64 // Ephemeral message
-      }
-    };
+    console.error('NFT lookup error:', {
+      collection,
+      tokenId,
+      error: error.message,
+      stack: error.stack,
+      code: error.code
+    });
+    
+    // Handle specific database errors
+    if (error.code === '57014') {
+      throw new Error('The request took too long to process. Please try again.');
+    }
+    
+    if (error.code === '3D000') {
+      throw new Error('Database connection error. Please try again.');
+    }
+    
+    throw error;
   } finally {
-    client.release();
+    if (client) {
+      try {
+        await client.release();
+        console.log('Database connection released');
+      } catch (releaseError) {
+        console.error('Error releasing client:', releaseError);
+      }
+    }
   }
 }
 
 export async function handleNFTLookup(command) {
+  console.log('Handling NFT lookup command:', command);
+  
+  if (!command || typeof command !== 'string') {
+    throw new Error('Invalid command format');
+  }
+
   const [collection, tokenIdStr] = command.split('.');
   const tokenId = parseInt(tokenIdStr);
 
   if (!collection || isNaN(tokenId)) {
-    return {
-      type: 4,
-      data: {
-        content: 'Invalid command format. Use: collection.tokenId (e.g., cat.1073)',
-        flags: 64 // Ephemeral message
-      }
-    };
+    throw new Error('Invalid command format. Use: collection.tokenId (e.g., cat.1073)');
   }
 
-  try {
-    return await getNFTDetails(collection, tokenId);
-  } catch (error) {
-    console.error('NFT lookup error:', error);
-    return {
-      type: 4,
-      data: {
-        content: error.message,
-        flags: 64 // Ephemeral message
-      }
-    };
-  }
+  return getNFTDetails(collection, tokenId);
 } 
