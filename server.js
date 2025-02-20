@@ -413,38 +413,30 @@ app.use('/api/rewards', rewardsRouter);
 // Discord Interactions endpoint
 app.post('/api/discord-interactions', express.raw({ type: 'application/json' }), async (req, res) => {
   try {
-    // Get the raw body buffer
-    const rawBody = req.body;
-    
     const signature = req.headers['x-signature-ed25519'];
     const timestamp = req.headers['x-signature-timestamp'];
+    const body = req.body;
 
-    if (!signature || !timestamp || !rawBody) {
-      console.error('Missing required headers:', { signature: !!signature, timestamp: !!timestamp, hasBody: !!rawBody });
-      return res.status(401).send('Invalid request signature');
-    }
-
-    // Verify the request
     const isValidRequest = verifyKey(
-      rawBody,
+      body, // Pass the raw buffer directly
       signature,
       timestamp,
       process.env.DISCORD_PUBLIC_KEY
     );
 
     if (!isValidRequest) {
-      console.error('Invalid request signature');
       return res.status(401).send('Invalid request signature');
     }
 
-    const interaction = JSON.parse(rawBody);
-    console.log('Interaction received:', interaction.type);
+    const interaction = JSON.parse(body);
+    console.log('Interaction received:', {
+      type: interaction.type,
+      data: interaction.data
+    });
 
     // Handle ping (type 1)
     if (interaction.type === 1) {
-      return res.send({
-        type: 1
-      });
+      return res.send({ type: 1 });
     }
 
     // Handle commands (type 2)
@@ -453,14 +445,19 @@ app.post('/api/discord-interactions', express.raw({ type: 'application/json' }),
 
       if (name === 'nft') {
         try {
-          const input = options[0]?.value;
-          const [collection, tokenIdStr] = input.split('.');
-          const tokenId = parseInt(tokenIdStr);
+          // Properly access the first option's value
+          const input = options?.[0]?.value;
+          if (!input) {
+            return res.send({
+              type: 4,
+              data: {
+                content: 'Please provide a collection and token ID in the format: collection.tokenId',
+                flags: 64
+              }
+            });
+          }
 
-          // Process the command
-          const result = await handleNFTLookup(`${collection}.${tokenId}`);
-          
-          // Send response in Discord's expected format
+          const result = await handleNFTLookup(input);
           return res.send(result);
         } catch (error) {
           return res.send({
@@ -473,7 +470,6 @@ app.post('/api/discord-interactions', express.raw({ type: 'application/json' }),
         }
       }
 
-      // Handle unknown command
       return res.send({
         type: 4,
         data: {
@@ -483,7 +479,6 @@ app.post('/api/discord-interactions', express.raw({ type: 'application/json' }),
       });
     }
 
-    // Handle unknown interaction type
     return res.send({
       type: 4,
       data: {
@@ -493,7 +488,7 @@ app.post('/api/discord-interactions', express.raw({ type: 'application/json' }),
     });
   } catch (error) {
     console.error('Global interaction error:', error);
-    return res.status(500).send({
+    return res.send({
       type: 4,
       data: {
         content: 'An error occurred while processing the command',

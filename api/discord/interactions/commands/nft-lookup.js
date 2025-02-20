@@ -187,6 +187,10 @@ export async function handleNFTLookup(command) {
     throw new Error('Missing collection. Available collections: ' + Object.keys(COLLECTIONS).join(', '));
   }
 
+  if (!tokenIdStr) {
+    throw new Error('Missing token ID. Format: collection.tokenId');
+  }
+
   const tokenId = parseInt(tokenIdStr);
   console.log('Parsed token ID:', { tokenId, type: typeof tokenId });
 
@@ -194,5 +198,18 @@ export async function handleNFTLookup(command) {
     throw new Error(`Invalid token ID "${tokenIdStr}". Please provide a valid number.`);
   }
 
-  return getNFTDetails(collection, tokenId);
+  // Get NFT details and format response
+  const response = await getNFTDetails(collection, tokenId);
+  
+  // Ensure response matches Discord's expected format
+  return {
+    type: 4, // CHANNEL_MESSAGE_WITH_SOURCE
+    data: {
+      tts: false,
+      content: "",
+      embeds: response.data.embeds,
+      flags: 0, // Public response
+      allowed_mentions: { parse: [] }
+    }
+  };
 } 
