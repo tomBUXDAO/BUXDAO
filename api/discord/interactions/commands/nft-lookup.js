@@ -52,15 +52,15 @@ async function getNFTDetails(collection, tokenId) {
     // Query NFT details
     console.log('Executing NFT query:', {
       symbol: collectionConfig.symbol,
-      namePattern: `%#${tokenId}`
+      namePattern: `${collectionConfig.name} #${tokenId}`
     });
     
     const result = await client.query(`
       SELECT *
       FROM nft_metadata
-      WHERE symbol = $1 AND name LIKE $2
+      WHERE symbol = $1 AND name = $2
       LIMIT 1
-    `, [collectionConfig.symbol, `%#${tokenId}`]);
+    `, [collectionConfig.symbol, `${collectionConfig.name} #${tokenId}`]);
 
     console.log('Query result:', {
       rowCount: result.rows.length,
