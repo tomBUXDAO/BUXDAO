@@ -153,7 +153,7 @@ async function getNFTDetails(collection, tokenId) {
             url: nft.image_url || null
           },
           thumbnail: {
-            url: `${process.env.NODE_ENV === 'production' ? 'https://buxdao.com' : 'http://localhost:3001'}/public${collectionConfig.logo}`
+            url: `${process.env.NODE_ENV === 'production' ? 'https://buxdao.com' : 'http://localhost:3001'}${collectionConfig.logo}`
           },
           footer: {
             text: `Mint: ${nft.mint_address || 'Unknown'}`
