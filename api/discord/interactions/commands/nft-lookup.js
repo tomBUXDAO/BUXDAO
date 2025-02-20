@@ -173,15 +173,11 @@ async function getNFTDetails(collection, tokenId) {
 }
 
 export async function handleNFTLookup(command) {
-  console.log('handleNFTLookup called with:', command);
-
   if (!command || typeof command !== 'string') {
-    console.error('Invalid command format:', { command, type: typeof command });
     throw new Error('Invalid command format. Expected string in format: collection.tokenId');
   }
 
   const [collection, tokenIdStr] = command.split('.');
-  console.log('Parsed command:', { collection, tokenIdStr });
 
   if (!collection) {
     throw new Error('Missing collection. Available collections: ' + Object.keys(COLLECTIONS).join(', '));
@@ -192,24 +188,11 @@ export async function handleNFTLookup(command) {
   }
 
   const tokenId = parseInt(tokenIdStr);
-  console.log('Parsed token ID:', { tokenId, type: typeof tokenId });
 
   if (isNaN(tokenId)) {
     throw new Error(`Invalid token ID "${tokenIdStr}". Please provide a valid number.`);
   }
 
-  // Get NFT details and format response
-  const response = await getNFTDetails(collection, tokenId);
-  
-  // Ensure response matches Discord's expected format
-  return {
-    type: 4, // CHANNEL_MESSAGE_WITH_SOURCE
-    data: {
-      tts: false,
-      content: "",
-      embeds: response.data.embeds,
-      flags: 0, // Public response
-      allowed_mentions: { parse: [] }
-    }
-  };
+  // Get NFT details - already formatted for Discord
+  return getNFTDetails(collection, tokenId);
 } 
