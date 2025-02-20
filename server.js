@@ -413,11 +413,15 @@ app.use('/api/rewards', rewardsRouter);
 // Discord Interactions endpoint
 app.post('/api/discord-interactions', express.raw({ type: 'application/json' }), async (req, res) => {
   try {
-    // Get the raw body as a buffer and convert to string
-    const rawBody = req.body.toString('utf8');
+    // Get the raw body as a string, handling both Buffer and parsed JSON cases
+    const rawBody = Buffer.isBuffer(req.body) 
+      ? req.body.toString('utf8')
+      : JSON.stringify(req.body);
     
     console.log('Discord interaction received:', {
       headers: req.headers,
+      bodyType: typeof req.body,
+      isBuffer: Buffer.isBuffer(req.body),
       rawBody: rawBody
     });
 
@@ -453,7 +457,9 @@ app.post('/api/discord-interactions', express.raw({ type: 'application/json' }),
       });
     }
 
-    const interaction = JSON.parse(rawBody);
+    // Parse the interaction data, handling both string and object cases
+    const interaction = typeof rawBody === 'string' ? JSON.parse(rawBody) : req.body;
+    
     console.log('Processing interaction:', {
       type: interaction.type,
       command: interaction.data?.name,
@@ -503,7 +509,10 @@ app.post('/api/discord-interactions', express.raw({ type: 'application/json' }),
           });
 
           // Send the "thinking" state FIRST
-          await res.json({ type: 5 }); // Changed to type 5 for "thinking" state
+          await res.json({ 
+            type: 5,
+            data: { flags: 64 }
+          });
 
           // Then process the command
           const result = await handleNFTLookup(`${collection}.${tokenId}`);
