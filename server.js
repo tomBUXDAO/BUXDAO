@@ -447,13 +447,11 @@ app.post('/api/discord-interactions', express.raw({ type: 'application/json' }),
     // Handle application commands
     if (interaction.type === 2 && interaction.data) {
       const command = interaction.data;
-      console.log('Command options:', JSON.stringify(command.options));
 
       // Handle NFT command
       if (command.name === 'nft') {
         try {
-          const nftInput = command.options?.[0]?.value;
-          console.log('NFT input:', nftInput);
+          const nftInput = command.options[0]?.value;
           
           if (!nftInput) {
             return res.json({
@@ -466,10 +464,8 @@ app.post('/api/discord-interactions', express.raw({ type: 'application/json' }),
           }
 
           const result = await handleNFTLookup(nftInput);
-          console.log('NFT lookup result:', result);
           return res.json(result);
         } catch (error) {
-          console.error('NFT command error:', error);
           return res.json({
             type: 4,
             data: {
