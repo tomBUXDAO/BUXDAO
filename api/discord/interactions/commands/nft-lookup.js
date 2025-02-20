@@ -4,7 +4,7 @@ import { pool } from '../../../config/database.js';
 // Collection configurations
 export const COLLECTIONS = {
   'cat': {
-    name: 'Fcked Catz',
+    name: 'Fcked Cat',
     symbol: 'FCKEDCATZ',
     hasRarity: true
   },
@@ -19,7 +19,7 @@ export const COLLECTIONS = {
     hasRarity: true
   },
   'mm3d': {
-    name: '3D Money Monsters',
+    name: 'Money Monsters 3D',
     symbol: 'MM3D',
     hasRarity: true
   },
