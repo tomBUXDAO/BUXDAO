@@ -1,3 +1,4 @@
+// Version 1.0.1 - Fixed database connection handling
 import { pool } from '../../../config/database.js';
 
 // Collection configurations
