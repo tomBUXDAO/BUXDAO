@@ -9,10 +9,10 @@ const CALLBACK_URL = `${API_URL}/api/auth/discord/callback`;
 // Cookie settings
 const COOKIE_OPTIONS = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+  secure: true, // Always use secure cookies
+  sameSite: 'lax',
   path: '/',
-  domain: process.env.NODE_ENV === 'production' ? 'buxdao.com' : undefined,
+  domain: process.env.NODE_ENV === 'production' ? '.buxdao.com' : 'localhost',
   maxAge: 7 * 24 * 60 * 60 * 1000 // 1 week
 };
 
@@ -106,22 +106,34 @@ export default async function handler(req, res) {
 
     console.log('Database record updated');
 
-    // Set cookies
+    // Set user info
     const userInfo = {
       discord_id: userData.id,
       discord_username: userData.username,
       avatar: userData.avatar
     };
 
+    // Set session data
+    if (req.session) {
+      req.session.user = userInfo;
+      req.session.token = tokenData.access_token;
+      await new Promise((resolve, reject) => {
+        req.session.save(err => {
+          if (err) reject(err);
+          else resolve();
+        });
+      });
+    }
+
     // Set CORS headers
     res.setHeader('Access-Control-Allow-Credentials', 'true');
     res.setHeader('Access-Control-Allow-Origin', FRONTEND_URL);
 
-    // Set cookies
+    // Set cookies as backup
     res.cookie('discord_user', JSON.stringify(userInfo), COOKIE_OPTIONS);
     res.cookie('discord_token', tokenData.access_token, COOKIE_OPTIONS);
 
-    console.log('Cookies set, redirecting to verify page');
+    console.log('Session and cookies set, redirecting to verify page');
 
     // Release client before redirect
     if (client) {
@@ -139,7 +151,10 @@ export default async function handler(req, res) {
       client = null;
     }
 
-    // Clear cookies on error
+    // Clear session and cookies on error
+    if (req.session) {
+      req.session.destroy();
+    }
     res.clearCookie('discord_user', COOKIE_OPTIONS);
     res.clearCookie('discord_token', COOKIE_OPTIONS);
 

@@ -221,17 +221,17 @@ const sessionConfig = {
   }),
   name: 'buxdao.sid',
   secret: process.env.SESSION_SECRET || 'your-secret-key',
-  resave: true,
-  saveUninitialized: true,
+  resave: false,
+  saveUninitialized: false,
   rolling: true,
   proxy: true,
   cookie: {
     maxAge: 30 * 24 * 60 * 60 * 1000,
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    secure: true,
+    sameSite: 'lax',
     path: '/',
-    domain: process.env.NODE_ENV === 'production' ? '.buxdao.com' : undefined
+    domain: process.env.NODE_ENV === 'production' ? '.buxdao.com' : 'localhost'
   }
 };
 
@@ -282,11 +282,30 @@ app.use('/api', (req, res, next) => {
 
 // Authentication middleware
 app.use('/api/user', (req, res, next) => {
-  if (!req.session?.user) {
-    return res.status(401).json({ error: 'Not authenticated' });
+  // Check session first
+  if (req.session?.user?.discord_id) {
+    req.user = req.session.user;
+    return next();
   }
-  req.user = req.session.user;
-  next();
+
+  // Fallback to cookies if session is not available
+  const cookies = req.cookies;
+  if (cookies?.discord_user) {
+    try {
+      const userInfo = JSON.parse(cookies.discord_user);
+      if (userInfo?.discord_id) {
+        // Set session data from cookies
+        req.session.user = userInfo;
+        req.session.token = cookies.discord_token;
+        req.user = userInfo;
+        return next();
+      }
+    } catch (e) {
+      console.error('Error parsing discord_user cookie:', e);
+    }
+  }
+
+  return res.status(401).json({ error: 'Not authenticated' });
 });
 
 // Printful API configuration
