@@ -56,33 +56,36 @@ async function getNFTDetails(collection, tokenId) {
     const nft = result.rows[0];
 
     return {
-      content: '',
-      embeds: [{
-        title: nft.name,
-        description: `[View on Magic Eden](https://magiceden.io/item-details/${nft.mint_address}) • [View on Tensor](https://www.tensor.trade/item/${nft.mint_address})\n\nMint: \`${nft.mint_address}\``,
-        color: collectionConfig.color,
-        fields: [
-          {
-            name: '👤 Owner',
-            value: `\`${nft.owner_wallet.slice(0, 4)}...${nft.owner_wallet.slice(-4)}\``,
-            inline: true
+      type: 4,
+      data: {
+        content: "",
+        embeds: [{
+          title: nft.name,
+          description: `[View on Magic Eden](https://magiceden.io/item-details/${nft.mint_address}) • [View on Tensor](https://www.tensor.trade/item/${nft.mint_address})\n\nMint: \`${nft.mint_address}\``,
+          color: collectionConfig.color,
+          fields: [
+            {
+              name: '👤 Owner',
+              value: `\`${nft.owner_wallet.slice(0, 4)}...${nft.owner_wallet.slice(-4)}\``,
+              inline: true
+            },
+            {
+              name: '🏷️ Status',
+              value: 'Not Listed',
+              inline: true
+            }
+          ],
+          thumbnail: {
+            url: `https://buxdao.com${collectionConfig.logo}`
           },
-          {
-            name: '🏷️ Status',
-            value: 'Not Listed',
-            inline: true
+          image: {
+            url: nft.image_url
+          },
+          footer: {
+            text: 'BUXDAO • Putting Community First'
           }
-        ],
-        thumbnail: {
-          url: `https://buxdao.com${collectionConfig.logo}`
-        },
-        image: {
-          url: nft.image_url
-        },
-        footer: {
-          text: 'BUXDAO • Putting Community First'
-        }
-      }]
+        }]
+      }
     };
   } finally {
     client.release();
