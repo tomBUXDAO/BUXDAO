@@ -121,8 +121,9 @@ export default async function handler(req, res) {
       } : null
     });
 
-    if (!result.rows.length) {
-      return res.status(404).json({
+    if (!result || result.rows.length === 0) {
+      console.log('NFT not found:', { collection, rank });
+      return res.status(200).json({
         type: 4,
         data: {
           embeds: [{
