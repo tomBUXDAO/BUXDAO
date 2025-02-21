@@ -201,13 +201,8 @@ export default async function handler(request) {
             })
           });
 
-          // Get the response data
-          const result = await response.json();
-          
-          // Return it exactly as-is
-          return new Response(JSON.stringify(result), {
-            headers: { 'Content-Type': 'application/json' }
-          });
+          // Return the response directly
+          return response;
         }
 
         // Handle rank command
@@ -259,13 +254,8 @@ export default async function handler(request) {
             })
           });
 
-          // Get the response data
-          const result = await response.json();
-          
-          // Return it exactly as-is
-          return new Response(JSON.stringify(result), {
-            headers: { 'Content-Type': 'application/json' }
-          });
+          // Return the response directly
+          return response;
         }
 
         return new Response(JSON.stringify({
