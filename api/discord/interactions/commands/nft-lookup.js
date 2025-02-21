@@ -32,7 +32,7 @@ export const COLLECTIONS = {
     color: 0x4DFF4D // Green
   },
   'bot': {
-    name: 'A.I. BitBots',
+    name: 'AI Bitbot',
     symbol: 'AIBB',
     hasRarity: false,
     logo: '/logos/bot.PNG',
