@@ -1,4 +1,4 @@
-import { verifyKey } from 'discord-interactions';
+import nacl from 'tweetnacl';
 
 export const config = {
   runtime: 'edge',
@@ -60,6 +60,24 @@ function hexToUint8Array(hex) {
   return new Uint8Array(hex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
 }
 
+function verifyDiscordRequest(body, signature, timestamp, clientPublicKey) {
+  try {
+    const timestampData = new TextEncoder().encode(timestamp);
+    const bodyData = new TextEncoder().encode(body);
+    const message = new Uint8Array(timestampData.length + bodyData.length);
+    message.set(timestampData);
+    message.set(bodyData, timestampData.length);
+
+    const signatureData = hexToUint8Array(signature);
+    const publicKeyData = hexToUint8Array(clientPublicKey);
+
+    return nacl.sign.detached.verify(message, signatureData, publicKeyData);
+  } catch (err) {
+    console.error('Error verifying request:', err);
+    return false;
+  }
+}
+
 export default async function handler(request) {
   try {
     // 1. Get the raw body and headers
@@ -71,7 +89,8 @@ export default async function handler(request) {
     console.log('Discord headers:', {
       signature,
       timestamp,
-      hasBody: !!rawBody
+      hasBody: !!rawBody,
+      bodyLength: rawBody.length
     });
 
     // 3. Validate required headers
@@ -85,9 +104,9 @@ export default async function handler(request) {
     }
 
     // 4. Verify the request is from Discord
-    const isValidRequest = verifyKey(
-      new TextEncoder().encode(rawBody),
-      hexToUint8Array(signature),
+    const isValidRequest = verifyDiscordRequest(
+      rawBody,
+      signature,
       timestamp,
       process.env.DISCORD_PUBLIC_KEY
     );
