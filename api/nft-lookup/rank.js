@@ -37,8 +37,11 @@ export default async function handler(req, res) {
     return res.status(405).json({
       type: 4,
       data: {
-        content: 'Only POST requests are allowed',
-        flags: 64
+        embeds: [{
+          title: 'Error',
+          description: 'Only POST requests are allowed',
+          color: 0xFF0000
+        }]
       }
     });
   }
@@ -57,8 +60,11 @@ export default async function handler(req, res) {
     return res.status(400).json({
       type: 4,
       data: {
-        content: 'Collection, symbol, and rank are required',
-        flags: 64
+        embeds: [{
+          title: 'Error',
+          description: 'Collection, symbol, and rank are required',
+          color: 0xFF0000
+        }]
       }
     });
   }
@@ -68,8 +74,11 @@ export default async function handler(req, res) {
     return res.status(400).json({
       type: 4,
       data: {
-        content: `Collection "${collection}" not found. Available collections: ${Object.keys(COLLECTIONS).join(', ')}`,
-        flags: 64
+        embeds: [{
+          title: 'Error',
+          description: `Collection "${collection}" not found. Available collections: ${Object.keys(COLLECTIONS).join(', ')}`,
+          color: 0xFF0000
+        }]
       }
     });
   }
@@ -78,8 +87,11 @@ export default async function handler(req, res) {
     return res.status(400).json({
       type: 4,
       data: {
-        content: `Collection "${collectionConfig.name}" does not support rarity ranking`,
-        flags: 64
+        embeds: [{
+          title: 'Error',
+          description: `Collection "${collectionConfig.name}" does not support rarity ranking`,
+          color: 0xFF0000
+        }]
       }
     });
   }
@@ -113,8 +125,11 @@ export default async function handler(req, res) {
       return res.status(404).json({
         type: 4,
         data: {
-          content: `No NFT found with rank #${rank} in ${collectionConfig.name}`,
-          flags: 64
+          embeds: [{
+            title: 'Error',
+            description: `No NFT found with rank #${rank} in ${collectionConfig.name}`,
+            color: 0xFF0000
+          }]
         }
       });
     }
@@ -188,8 +203,11 @@ export default async function handler(req, res) {
     return res.status(500).json({
       type: 4,
       data: {
-        content: `Error looking up NFT: ${error.message}`,
-        flags: 64
+        embeds: [{
+          title: 'Database Error',
+          description: error.message,
+          color: 0xFF0000
+        }]
       }
     });
   } finally {
