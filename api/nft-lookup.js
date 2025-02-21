@@ -144,9 +144,11 @@ export default async function handler(req, res) {
       });
     }
 
-    return res.status(200).json({
+    const response = {
       type: 4,
       data: {
+        tts: false,
+        content: "",
         embeds: [{
           title: nft.name,
           description: `[View on Magic Eden](https://magiceden.io/item-details/${nft.mint_address}) • [View on Tensor](https://www.tensor.trade/item/${nft.mint_address})\n\nMint: \`${nft.mint_address || 'Unknown'}\``,
@@ -155,15 +157,18 @@ export default async function handler(req, res) {
           thumbnail: {
             url: `https://buxdao.com${collectionConfig.logo}`
           },
-          image: {
-            url: nft.image_url || null
-          },
+          image: nft.image_url ? {
+            url: nft.image_url.startsWith('http') ? nft.image_url : `https://buxdao.com${nft.image_url}`
+          } : null,
           footer: {
             text: "BUXDAO • Putting Community First"
           }
-        }]
+        }],
+        allowed_mentions: { parse: [] }
       }
-    });
+    };
+
+    return res.status(200).json(response);
   } catch (error) {
     console.error('Error looking up NFT:', error);
     return res.status(500).json({
