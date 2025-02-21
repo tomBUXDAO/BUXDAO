@@ -172,20 +172,19 @@ export default async function handler(request) {
           // Validate collection and check if it supports rarity
           const collectionConfig = validateCollection(collection, true);
 
-          // Call the rank lookup API endpoint
+          // Call the rank lookup API endpoint - exactly like NFT command
           const response = await fetch(`${baseUrl}/api/nft-lookup/rank`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
-              collection,
-              symbol: collectionConfig.symbol,
-              rank 
+              collection, 
+              rank,
+              symbol: collectionConfig.symbol 
             })
           });
 
           if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || `Error looking up rank #${rank} in ${collectionConfig.name}`);
+            throw new Error(`No NFT found with rank #${rank} in ${collectionConfig.name}`);
           }
 
           const result = await response.json();
