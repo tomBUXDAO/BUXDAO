@@ -64,17 +64,16 @@ async function getNFTDetails(collection, tokenId) {
   }
 
   const baseUrl = process.env.API_BASE_URL || 'https://buxdao.com';
-  const nftName = `${collectionConfig.name} #${tokenId}`;
-  const requestBody = {
-    symbol: collectionConfig.symbol,
-    name: nftName
-  };
   
   try {
     console.log('NFT lookup request:', {
       url: `${baseUrl}/api/nft-lookup`,
       method: 'POST',
-      body: requestBody
+      body: {
+        collection: collection,
+        tokenId: tokenId,
+        webhookUrl: null // We don't need webhook since we're handling the response directly
+      }
     });
 
     // Fetch NFT data from database
@@ -83,7 +82,11 @@ async function getNFTDetails(collection, tokenId) {
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(requestBody)
+      body: JSON.stringify({
+        collection: collection,
+        tokenId: tokenId,
+        webhookUrl: null
+      })
     });
 
     if (!response.ok) {
@@ -92,9 +95,9 @@ async function getNFTDetails(collection, tokenId) {
         status: response.status,
         statusText: response.statusText,
         error: errorText,
-        request: requestBody
+        request: { collection, tokenId }
       });
-      throw new Error(`NFT not found: ${nftName} (${response.status}: ${errorText || response.statusText})`);
+      throw new Error(`NFT not found: ${collectionConfig.name} #${tokenId} (${response.status}: ${errorText || response.statusText})`);
     }
 
     const nft = await response.json();
@@ -102,7 +105,7 @@ async function getNFTDetails(collection, tokenId) {
       name: nft.name,
       symbol: nft.symbol,
       owner: nft.owner_discord_id || nft.owner_wallet,
-      request: requestBody
+      request: { collection, tokenId }
     });
 
     // Build fields array based on available data
