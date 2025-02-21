@@ -77,34 +77,34 @@ async function getNFTDetails(collection, tokenId) {
         image_url
       FROM nft_metadata
       WHERE symbol = $1 AND name = $2
-      LIMIT 1
     `;
     const values = [collectionConfig.symbol, `${collectionConfig.name} #${tokenId}`];
     
-    console.log('Executing query:', { query, values });
+    console.log('Executing query:', {
+      query,
+      values,
+      symbol: collectionConfig.symbol,
+      expectedName: `${collectionConfig.name} #${tokenId}`
+    });
+
     const result = await client.query(query, values);
-    console.log('Query result:', { 
+    
+    console.log('Query result:', {
       rowCount: result?.rows?.length,
-      firstRow: result?.rows?.[0] ? {
+      row: result?.rows?.[0] ? {
         name: result.rows[0].name,
         symbol: result.rows[0].symbol,
-        image_url: result.rows[0].image_url
+        mint: result.rows[0].mint_address,
+        owner: result.rows[0].owner_wallet,
+        image: result.rows[0].image_url
       } : null
     });
 
     if (!result || result.rows.length === 0) {
-      console.log('NFT not found:', { collection, tokenId });
       throw new Error(`NFT not found: ${collectionConfig.name} #${tokenId}`);
     }
 
     const nft = result.rows[0];
-    console.log('Found NFT data:', {
-      name: nft.name,
-      owner: nft.owner_discord_id || nft.owner_wallet,
-      listed: nft.is_listed,
-      price: nft.list_price,
-      image_url: nft.image_url
-    });
 
     // Build fields array based on available data
     const fields = [];
@@ -147,7 +147,7 @@ async function getNFTDetails(collection, tokenId) {
       });
     }
 
-    return {
+    const response = {
       type: 4,
       data: {
         embeds: [{
@@ -167,11 +167,15 @@ async function getNFTDetails(collection, tokenId) {
         }]
       }
     };
+
+    console.log('Prepared response:', JSON.stringify(response, null, 2));
+    return response;
   } catch (error) {
-    console.error('Error in getNFTDetails:', error);
-    if (error.code === '57014') {
-      throw new Error('The request took too long to process. Please try again.');
-    }
+    console.error('Error in getNFTDetails:', {
+      message: error.message,
+      code: error.code,
+      stack: error.stack
+    });
     throw error;
   } finally {
     if (client) {
