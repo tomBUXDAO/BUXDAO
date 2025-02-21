@@ -56,6 +56,10 @@ function validateCollection(collection, requireRarity = false) {
   return config;
 }
 
+function hexToUint8Array(hex) {
+  return new Uint8Array(hex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+}
+
 export default async function handler(request) {
   try {
     // 1. Get the raw body and headers
@@ -83,7 +87,7 @@ export default async function handler(request) {
     // 4. Verify the request is from Discord
     const isValidRequest = verifyKey(
       new TextEncoder().encode(rawBody),
-      signature,
+      hexToUint8Array(signature),
       timestamp,
       process.env.DISCORD_PUBLIC_KEY
     );
