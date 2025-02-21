@@ -6,6 +6,11 @@ import { verifyKey } from 'discord-interactions';
 import { handleNFTLookup } from './discord/interactions/commands/nft-lookup.js';
 import { handleRankLookup } from './discord/interactions/commands/rank-lookup.js';
 
+// Helper function to convert hex string to Uint8Array
+function hexToUint8Array(hex) {
+  return new Uint8Array(hex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+}
+
 export default async function handler(request) {
   try {
     const signature = request.headers.get('x-signature-ed25519');
@@ -13,15 +18,11 @@ export default async function handler(request) {
     
     // Get the raw body
     const rawBody = await request.text();
-    const interaction = JSON.parse(rawBody);
-
-    // Log full interaction data
-    console.log('Full Discord interaction:', JSON.stringify(interaction, null, 2));
 
     // Verify the request is from Discord
     const isValidRequest = verifyKey(
-      Buffer.from(rawBody),
-      signature,
+      new TextEncoder().encode(rawBody),
+      hexToUint8Array(signature),
       timestamp,
       process.env.DISCORD_PUBLIC_KEY
     );
@@ -29,6 +30,8 @@ export default async function handler(request) {
     if (!isValidRequest) {
       return new Response('Invalid request signature', { status: 401 });
     }
+
+    const interaction = JSON.parse(rawBody);
 
     // Handle ping
     if (interaction.type === 1) {
