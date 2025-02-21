@@ -190,21 +190,19 @@ export default async function handler(request) {
 
           const result = await response.json();
           
-          // Ensure consistent response format
-          if (result.error) {
-            return new Response(JSON.stringify({
-              type: 4,
-              data: {
-                content: result.error,
-                flags: 64
-              }
-            }), { headers: { 'Content-Type': 'application/json' } });
-          }
+          // Log the response for debugging
+          console.log('NFT lookup response:', JSON.stringify(result));
 
-          // Always wrap in type 4 response
+          // Return exact response structure
           return new Response(JSON.stringify({
             type: 4,
-            data: result.data || result
+            data: {
+              embeds: result.data?.embeds || result.embeds || [{
+                title: `Error retrieving NFT`,
+                description: result.error || 'Unknown error occurred',
+                color: 0xFF0000
+              }]
+            }
           }), { headers: { 'Content-Type': 'application/json' } });
         }
 
@@ -246,21 +244,19 @@ export default async function handler(request) {
 
           const result = await response.json();
           
-          // Ensure consistent response format
-          if (result.error) {
-            return new Response(JSON.stringify({
-              type: 4,
-              data: {
-                content: result.error,
-                flags: 64
-              }
-            }), { headers: { 'Content-Type': 'application/json' } });
-          }
+          // Log the response for debugging
+          console.log('Rank lookup response:', JSON.stringify(result));
 
-          // Always wrap in type 4 response
+          // Return exact response structure
           return new Response(JSON.stringify({
             type: 4,
-            data: result.data || result
+            data: {
+              embeds: result.data?.embeds || result.embeds || [{
+                title: `Error retrieving rank`,
+                description: result.error || 'Unknown error occurred',
+                color: 0xFF0000
+              }]
+            }
           }), { headers: { 'Content-Type': 'application/json' } });
         }
 
