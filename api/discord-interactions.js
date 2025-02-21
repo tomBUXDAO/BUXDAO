@@ -190,20 +190,10 @@ export default async function handler(request) {
 
           const result = await response.json();
           
-          // Log the response for debugging
-          console.log('NFT lookup response:', JSON.stringify(result));
-
-          // Return exact response structure
-          return new Response(JSON.stringify({
-            type: 4,
-            data: {
-              embeds: result.data?.embeds || result.embeds || [{
-                title: `Error retrieving NFT`,
-                description: result.error || 'Unknown error occurred',
-                color: 0xFF0000
-              }]
-            }
-          }), { headers: { 'Content-Type': 'application/json' } });
+          // Just return the result directly - no modification
+          return new Response(JSON.stringify(result), {
+            headers: { 'Content-Type': 'application/json' }
+          });
         }
 
         // Handle rank command
@@ -244,20 +234,10 @@ export default async function handler(request) {
 
           const result = await response.json();
           
-          // Log the response for debugging
-          console.log('Rank lookup response:', JSON.stringify(result));
-
-          // Return exact response structure
-          return new Response(JSON.stringify({
-            type: 4,
-            data: {
-              embeds: result.data?.embeds || result.embeds || [{
-                title: `Error retrieving rank`,
-                description: result.error || 'Unknown error occurred',
-                color: 0xFF0000
-              }]
-            }
-          }), { headers: { 'Content-Type': 'application/json' } });
+          // Just return the result directly - no modification
+          return new Response(JSON.stringify(result), {
+            headers: { 'Content-Type': 'application/json' }
+          });
         }
 
         return new Response(JSON.stringify({
