@@ -1,8 +1,46 @@
-import { COLLECTIONS } from './discord/interactions/commands/nft-lookup.js';
-
+// Edge Function configuration
 export const config = {
   runtime: 'edge',
   regions: ['iad1']  // Use Virginia for lowest latency to Discord
+};
+
+// Collection configurations
+const COLLECTIONS = {
+  'cat': {
+    name: 'Fcked Cat',
+    symbol: 'FCKEDCATZ',
+    hasRarity: true,
+    logo: '/logos/cat.PNG',
+    color: 0xFFF44D // Yellow
+  },
+  'celeb': {
+    name: 'Celebrity Catz',
+    symbol: 'CelebCatz',
+    hasRarity: false,
+    logo: '/logos/celeb.PNG',
+    color: 0xFF4D4D // Red
+  },
+  'mm': {
+    name: 'Money Monsters',
+    symbol: 'MM',
+    hasRarity: true,
+    logo: '/logos/monster.PNG',
+    color: 0x4DFFFF // Cyan
+  },
+  'mm3d': {
+    name: 'Money Monsters 3D',
+    symbol: 'MM3D',
+    hasRarity: true,
+    logo: '/logos/monster.PNG',
+    color: 0x4DFF4D // Green
+  },
+  'bot': {
+    name: 'AI Bitbot',
+    symbol: 'AIBB',
+    hasRarity: false,
+    logo: '/logos/bot.PNG',
+    color: 0xFF4DFF // Pink
+  }
 };
 
 // Helper function to validate collection
