@@ -2,34 +2,35 @@ import { verifyKey } from 'discord-interactions';
 import { handleNFTLookup } from './discord/interactions/commands/nft-lookup.js';
 import { handleRankLookup } from './discord/interactions/commands/rank-lookup.js';
 
-export default async function handler(req, res) {
+export default async function handler(request) {
   try {
-    const signature = req.headers['x-signature-ed25519'];
-    const timestamp = req.headers['x-signature-timestamp'];
+    const signature = request.headers.get('x-signature-ed25519');
+    const timestamp = request.headers.get('x-signature-timestamp');
     
-    // Handle raw body properly
-    const rawBody = req.body instanceof Buffer ? req.body : Buffer.from(JSON.stringify(req.body));
-    const strBody = rawBody.toString('utf8');
-    const interaction = JSON.parse(strBody);
+    // Get the raw body
+    const rawBody = await request.text();
+    const interaction = JSON.parse(rawBody);
 
     // Log full interaction data
     console.log('Full Discord interaction:', JSON.stringify(interaction, null, 2));
 
     // Verify the request is from Discord
     const isValidRequest = verifyKey(
-      rawBody,
+      Buffer.from(rawBody),
       signature,
       timestamp,
       process.env.DISCORD_PUBLIC_KEY
     );
 
     if (!isValidRequest) {
-      return res.status(401).send('Invalid request signature');
+      return new Response('Invalid request signature', { status: 401 });
     }
 
     // Handle ping
     if (interaction.type === 1) {
-      return res.json({ type: 1 });
+      return new Response(JSON.stringify({ type: 1 }), {
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
 
     // Handle application commands
@@ -48,13 +49,13 @@ export default async function handler(req, res) {
           // Get the subcommand and token ID
           const subcommand = command.options?.[0];
           if (!subcommand) {
-            return res.json({
+            return new Response(JSON.stringify({
               type: 4,
               data: {
                 content: 'Please provide a collection and token ID',
                 flags: 64
               }
-            });
+            }), { headers: { 'Content-Type': 'application/json' } });
           }
 
           const collection = subcommand.name;
@@ -63,27 +64,29 @@ export default async function handler(req, res) {
           console.log('NFT lookup request:', { collection, tokenId });
 
           if (!tokenId) {
-            return res.json({
+            return new Response(JSON.stringify({
               type: 4,
               data: {
                 content: 'Please provide a token ID',
                 flags: 64
               }
-            });
+            }), { headers: { 'Content-Type': 'application/json' } });
           }
 
           const result = await handleNFTLookup(`${collection}.${tokenId}`);
           console.log('NFT lookup result:', result);
-          return res.json(result);
+          return new Response(JSON.stringify(result), {
+            headers: { 'Content-Type': 'application/json' }
+          });
         } catch (error) {
           console.error('NFT lookup error:', error);
-          return res.json({
+          return new Response(JSON.stringify({
             type: 4,
             data: {
               content: `Error: ${error.message}`,
               flags: 64
             }
-          });
+          }), { headers: { 'Content-Type': 'application/json' } });
         }
       }
 
@@ -93,13 +96,13 @@ export default async function handler(req, res) {
           // Get the subcommand and rank
           const subcommand = command.options?.[0];
           if (!subcommand) {
-            return res.json({
+            return new Response(JSON.stringify({
               type: 4,
               data: {
                 content: 'Please provide a collection and rank number',
                 flags: 64
               }
-            });
+            }), { headers: { 'Content-Type': 'application/json' } });
           }
 
           const collection = subcommand.name;
@@ -108,46 +111,48 @@ export default async function handler(req, res) {
           console.log('Rank lookup request:', { collection, rank });
 
           if (!rank) {
-            return res.json({
+            return new Response(JSON.stringify({
               type: 4,
               data: {
                 content: 'Please provide a rank number',
                 flags: 64
               }
-            });
+            }), { headers: { 'Content-Type': 'application/json' } });
           }
 
           const result = await handleRankLookup(`${collection}.${rank}`);
           console.log('Rank lookup result:', result);
-          return res.json(result);
+          return new Response(JSON.stringify(result), {
+            headers: { 'Content-Type': 'application/json' }
+          });
         } catch (error) {
           console.error('Rank lookup error:', error);
-          return res.json({
+          return new Response(JSON.stringify({
             type: 4,
             data: {
               content: `Error: ${error.message}`,
               flags: 64
             }
-          });
+          }), { headers: { 'Content-Type': 'application/json' } });
         }
       }
     }
 
-    return res.json({
+    return new Response(JSON.stringify({
       type: 4,
       data: {
         content: 'Unknown command',
         flags: 64
       }
-    });
+    }), { headers: { 'Content-Type': 'application/json' } });
   } catch (error) {
     console.error('Critical interaction error:', error);
-    return res.json({
+    return new Response(JSON.stringify({
       type: 4,
       data: {
         content: 'An error occurred processing the command',
         flags: 64
       }
-    });
+    }), { headers: { 'Content-Type': 'application/json' } });
   }
 } 
