@@ -19,24 +19,45 @@ router.post('/', async (req, res) => {
     const result = await handleNFTLookup(lookupCommand);
     
     // Log the full result for debugging
-    console.log('NFT lookup result:', JSON.stringify(result, null, 2));
+    console.log('NFT lookup result:', {
+      type: result?.type,
+      hasData: !!result?.data,
+      hasEmbeds: !!result?.data?.embeds,
+      firstEmbed: result?.data?.embeds?.[0] ? {
+        title: result.data.embeds[0].title,
+        hasImage: !!result.data.embeds[0].image,
+        imageUrl: result.data.embeds[0].image?.url,
+        fields: result.data.embeds[0].fields?.length
+      } : null
+    });
 
     if (!result?.data?.embeds?.[0]) {
-      console.error('Invalid result format:', result);
-      return res.status(500).json({ error: 'Invalid response format' });
+      console.error('Invalid result format:', {
+        result,
+        type: typeof result,
+        hasData: !!result?.data,
+        hasEmbeds: !!result?.data?.embeds
+      });
+      return res.status(500).json({ 
+        error: 'Invalid response format',
+        details: 'Response is missing required embed data'
+      });
     }
 
     return res.status(200).json(result);
   } catch (error) {
     console.error('NFT lookup failed:', {
       error: error.message,
-      stack: error.stack,
+      name: error.name,
+      code: error.code,
+      stack: error.stack?.split('\n'),
       type: error.constructor.name
     });
 
     return res.status(500).json({ 
       error: 'NFT lookup failed', 
-      details: error.message 
+      details: error.message,
+      code: error.code
     });
   }
 });

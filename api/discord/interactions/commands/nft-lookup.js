@@ -64,73 +64,83 @@ async function getNFTDetails(collection, tokenId) {
 
     const query = `
       SELECT 
+        id,
         name,
         symbol,
         mint_address,
         owner_wallet,
         owner_discord_id,
         owner_name,
-        is_listed,
-        list_price,
+        COALESCE(is_listed, false) as is_listed,
+        COALESCE(list_price, 0) as list_price,
         last_sale_price,
         rarity_rank,
         image_url
       FROM nft_metadata
-      WHERE symbol = $1 AND name = $2
+      WHERE symbol = $1 
+      AND name = $2
+      AND mint_address IS NOT NULL
     `;
-    const values = [collectionConfig.symbol, `${collectionConfig.name} #${tokenId}`];
+    const nftName = `${collectionConfig.name} #${tokenId}`;
+    const values = [collectionConfig.symbol, nftName];
     
-    console.log('Executing query:', {
-      query,
-      values,
-      symbol: collectionConfig.symbol,
-      expectedName: `${collectionConfig.name} #${tokenId}`
+    console.log('Query parameters:', {
+      symbol: values[0],
+      name: values[1],
+      collection,
+      tokenId
     });
 
     const result = await client.query(query, values);
     
-    console.log('Query result:', {
-      rowCount: result?.rows?.length,
-      row: result?.rows?.[0] ? {
-        name: result.rows[0].name,
-        symbol: result.rows[0].symbol,
-        mint: result.rows[0].mint_address,
-        owner: result.rows[0].owner_wallet,
-        image: result.rows[0].image_url
-      } : null
-    });
+    // Debug log the exact row
+    if (result?.rows?.[0]) {
+      console.log('Found NFT row:', JSON.stringify(result.rows[0], null, 2));
+    } else {
+      console.log('No NFT found with params:', values);
+    }
 
     if (!result || result.rows.length === 0) {
       throw new Error(`NFT not found: ${collectionConfig.name} #${tokenId}`);
     }
 
     const nft = result.rows[0];
+    console.log('Building response for NFT:', {
+      name: nft.name,
+      mint: nft.mint_address,
+      owner: nft.owner_wallet,
+      rank: nft.rarity_rank
+    });
 
     // Build fields array based on available data
     const fields = [];
 
     // Owner field - prefer Discord name if available
+    const ownerValue = nft.owner_name 
+      ? `<@${nft.owner_discord_id}>`
+      : nft.owner_wallet
+        ? `\`${nft.owner_wallet.slice(0, 4)}...${nft.owner_wallet.slice(-4)}\``
+        : 'Unknown';
+    
     fields.push({
       name: '👤 Owner',
-      value: nft.owner_name 
-        ? `<@${nft.owner_discord_id}>`
-        : nft.owner_wallet
-          ? `\`${nft.owner_wallet.slice(0, 4)}...${nft.owner_wallet.slice(-4)}\``
-          : 'Unknown',
+      value: ownerValue,
       inline: true
     });
 
     // Status field - show if listed and price
+    const statusValue = nft.is_listed === true
+      ? `Listed for ${(Number(nft.list_price) || 0).toFixed(2)} SOL`
+      : 'Not Listed';
+    
     fields.push({
       name: '🏷️ Status',
-      value: nft.is_listed 
-        ? `Listed for ${(Number(nft.list_price) || 0).toFixed(2)} SOL`
-        : 'Not Listed',
+      value: statusValue,
       inline: true
     });
 
     // Last sale if available
-    if (nft.last_sale_price) {
+    if (nft.last_sale_price && !isNaN(nft.last_sale_price)) {
       fields.push({
         name: '💰 Last Sale',
         value: `${Number(nft.last_sale_price).toFixed(2)} SOL`,
@@ -138,8 +148,8 @@ async function getNFTDetails(collection, tokenId) {
       });
     }
 
-    // Rarity rank if collection supports it
-    if (collectionConfig.hasRarity && nft.rarity_rank) {
+    // Rarity rank if collection supports it and rank exists
+    if (collectionConfig.hasRarity && nft.rarity_rank && !isNaN(nft.rarity_rank)) {
       fields.push({
         name: '✨ Rarity Rank',
         value: `#${nft.rarity_rank}`,
@@ -151,16 +161,18 @@ async function getNFTDetails(collection, tokenId) {
       type: 4,
       data: {
         embeds: [{
-          title: nft.name,
-          description: `[View on Magic Eden](https://magiceden.io/item-details/${nft.mint_address}) • [View on Tensor](https://www.tensor.trade/item/${nft.mint_address})\n\n**Mint:** \`${nft.mint_address}\``,
+          title: nft.name || `${collectionConfig.name} #${tokenId}`,
+          description: nft.mint_address 
+            ? `[View on Magic Eden](https://magiceden.io/item-details/${nft.mint_address}) • [View on Tensor](https://www.tensor.trade/item/${nft.mint_address})\n\n**Mint:** \`${nft.mint_address}\``
+            : 'Mint address not available',
           color: collectionConfig.color,
           fields: fields,
           thumbnail: {
             url: `https://buxdao.com${collectionConfig.logo}`
           },
-          image: {
+          image: nft.image_url ? {
             url: nft.image_url
-          },
+          } : null,
           footer: {
             text: "BUXDAO • Putting Community First"
           }
@@ -168,7 +180,7 @@ async function getNFTDetails(collection, tokenId) {
       }
     };
 
-    console.log('Prepared response:', JSON.stringify(response, null, 2));
+    console.log('Prepared embed:', JSON.stringify(response.data.embeds[0], null, 2));
     return response;
   } catch (error) {
     console.error('Error in getNFTDetails:', {
