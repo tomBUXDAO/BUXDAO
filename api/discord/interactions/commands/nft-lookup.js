@@ -74,8 +74,7 @@ async function getNFTDetails(collection, tokenId) {
         list_price,
         last_sale_price,
         rarity_rank,
-        image_url,
-        metadata_uri
+        image_url
       FROM nft_metadata
       WHERE symbol = $1 AND name = $2
       LIMIT 1
@@ -89,8 +88,7 @@ async function getNFTDetails(collection, tokenId) {
       firstRow: result?.rows?.[0] ? {
         name: result.rows[0].name,
         symbol: result.rows[0].symbol,
-        image_url: result.rows[0].image_url,
-        metadata_uri: result.rows[0].metadata_uri
+        image_url: result.rows[0].image_url
       } : null
     });
 
@@ -105,32 +103,8 @@ async function getNFTDetails(collection, tokenId) {
       owner: nft.owner_discord_id || nft.owner_wallet,
       listed: nft.is_listed,
       price: nft.list_price,
-      image_url: nft.image_url,
-      metadata_uri: nft.metadata_uri
+      image_url: nft.image_url
     });
-
-    // If image_url is missing but we have metadata_uri, try to fetch it
-    if (!nft.image_url && nft.metadata_uri) {
-      try {
-        console.log('Fetching metadata from URI:', nft.metadata_uri);
-        const metadataResponse = await fetch(nft.metadata_uri);
-        if (metadataResponse.ok) {
-          const metadata = await metadataResponse.json();
-          if (metadata.image) {
-            nft.image_url = metadata.image;
-            console.log('Updated image URL from metadata:', nft.image_url);
-            
-            // Update the database with the new image URL
-            await client.query(
-              'UPDATE nft_metadata SET image_url = $1 WHERE symbol = $2 AND name = $3',
-              [nft.image_url, nft.symbol, nft.name]
-            );
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching metadata:', error);
-      }
-    }
 
     // Build fields array based on available data
     const fields = [];
@@ -190,13 +164,15 @@ async function getNFTDetails(collection, tokenId) {
         content: "",
         embeds: [{
           title: nft.name,
-          description: `[View on Magic Eden](https://magiceden.io/item-details/${nft.mint_address}) • [View on Tensor](https://www.tensor.trade/item/${nft.mint_address})\n\n**Mint:** \`${nft.mint_address || 'Unknown'}\``,
+          description: `[View on Magic Eden](https://magiceden.io/item-details/${nft.mint_address}) • [View on Tensor](https://www.tensor.trade/item/${nft.mint_address})\n\n**Mint:** \`${nft.mint_address}\``,
           color: collectionConfig.color,
           fields: fields,
           thumbnail: {
             url: `https://buxdao.com${collectionConfig.logo}`
           },
-          image: nft.image_url ? { url: nft.image_url } : null,
+          image: {
+            url: nft.image_url
+          },
           footer: {
             text: "BUXDAO • Putting Community First"
           }
@@ -206,7 +182,7 @@ async function getNFTDetails(collection, tokenId) {
     };
 
     console.log('Embed data:', {
-      hasImage: !!nft.image_url,
+      hasImage: true,
       imageUrl: nft.image_url,
       embedFields: embedData.data.embeds[0].fields.length
     });
