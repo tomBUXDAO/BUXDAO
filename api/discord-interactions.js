@@ -283,27 +283,44 @@ async function getNFTByRank(collection, rank) {
 
 export default async function handler(request) {
   try {
-    // Verify required headers are present
+    // 1. Verify required headers are present
     const signature = request.headers.get('x-signature-ed25519');
     const timestamp = request.headers.get('x-signature-timestamp');
     
     if (!signature || !timestamp) {
-      console.error('Missing required headers:', { signature: !!signature, timestamp: !!timestamp });
-      return new Response('Missing required headers', { status: 401 });
+      console.error('Missing required Discord headers:', { 
+        hasSignature: !!signature, 
+        hasTimestamp: !!timestamp,
+        headers: Object.fromEntries(request.headers)
+      });
+      return new Response('Invalid request signature', { status: 401 });
     }
 
-    // Get the raw body
+    // 2. Get the raw body as a string
     const rawBody = await request.text();
-    
-    // Log full request details for debugging
+    if (!rawBody) {
+      console.error('Empty request body');
+      return new Response('Invalid request', { status: 401 });
+    }
+
+    // Log request details for debugging
     console.log('Discord interaction request:', {
       method: request.method,
       url: request.url,
-      headers: Object.fromEntries(request.headers),
-      body: rawBody
+      headers: {
+        signature: signature.slice(0, 8) + '...',
+        timestamp,
+        contentType: request.headers.get('content-type')
+      },
+      bodyLength: rawBody.length
     });
 
-    // Verify the request is from Discord
+    // 3. Verify the request is from Discord using Ed25519
+    if (!process.env.DISCORD_PUBLIC_KEY) {
+      console.error('DISCORD_PUBLIC_KEY not configured');
+      return new Response('Configuration error', { status: 500 });
+    }
+
     const isValidRequest = verifyKey(
       Buffer.from(rawBody),
       signature,
@@ -311,25 +328,40 @@ export default async function handler(request) {
       process.env.DISCORD_PUBLIC_KEY
     );
 
+    // 4. Return 401 if verification fails
     if (!isValidRequest) {
-      console.error('Invalid request signature');
+      console.error('Discord signature verification failed:', {
+        timestamp,
+        signaturePrefix: signature.slice(0, 8) + '...',
+        bodyLength: rawBody.length
+      });
       return new Response('Invalid request signature', { status: 401 });
     }
 
-    // Parse the interaction data
-    const interaction = JSON.parse(rawBody);
-    console.log('Interaction data:', interaction);
+    // 5. Parse the interaction data
+    let interaction;
+    try {
+      interaction = JSON.parse(rawBody);
+    } catch (error) {
+      console.error('Failed to parse interaction body:', error);
+      return new Response('Invalid request body', { status: 400 });
+    }
 
-    // Handle ping
+    // 6. Handle ping (PING interaction type)
     if (interaction.type === 1) {
       return new Response(JSON.stringify({ type: 1 }), {
         headers: { 'Content-Type': 'application/json' }
       });
     }
 
-    // Handle application commands
+    // 7. Handle application commands (APPLICATION_COMMAND interaction type)
     if (interaction.type === 2) {
       const command = interaction.data;
+      console.log('Processing command:', {
+        name: command.name,
+        options: command.options,
+        user: interaction.member?.user?.id || interaction.user?.id
+      });
 
       try {
         // Handle NFT command
@@ -385,7 +417,7 @@ export default async function handler(request) {
           type: 4,
           data: {
             content: `Error: ${error.message}`,
-            flags: 64
+            flags: 64 // EPHEMERAL flag
           }
         }), { headers: { 'Content-Type': 'application/json' } });
       }
@@ -397,7 +429,7 @@ export default async function handler(request) {
       type: 4,
       data: {
         content: 'Unknown interaction type',
-        flags: 64
+        flags: 64 // EPHEMERAL flag
       }
     }), { headers: { 'Content-Type': 'application/json' } });
 
@@ -407,7 +439,7 @@ export default async function handler(request) {
       type: 4,
       data: {
         content: 'An error occurred processing the command',
-        flags: 64
+        flags: 64 // EPHEMERAL flag
       }
     }), { headers: { 'Content-Type': 'application/json' } });
   }
