@@ -1,5 +1,6 @@
 export const config = {
-  runtime: 'edge'
+  runtime: 'edge',
+  regions: ['iad1']  // Use Virginia for lowest latency to Discord
 };
 
 import { verifyKey } from 'discord-interactions';
@@ -40,115 +41,21 @@ export default async function handler(request) {
       });
     }
 
-    // Handle application commands
-    if (interaction.type === 2 && interaction.data) {
-      const command = interaction.data;
-
-      // Log command data
-      console.log('Command data:', {
-        name: command.name,
-        options: command.options
-      });
-
-      // Handle NFT command
-      if (command.name === 'nft') {
-        try {
-          // Get the subcommand and token ID
-          const subcommand = command.options?.[0];
-          if (!subcommand) {
-            return new Response(JSON.stringify({
-              type: 4,
-              data: {
-                content: 'Please provide a collection and token ID',
-                flags: 64
-              }
-            }), { headers: { 'Content-Type': 'application/json' } });
-          }
-
-          const collection = subcommand.name;
-          const tokenId = subcommand.options?.[0]?.value;
-
-          console.log('NFT lookup request:', { collection, tokenId });
-
-          if (!tokenId) {
-            return new Response(JSON.stringify({
-              type: 4,
-              data: {
-                content: 'Please provide a token ID',
-                flags: 64
-              }
-            }), { headers: { 'Content-Type': 'application/json' } });
-          }
-
-          const result = await handleNFTLookup(`${collection}.${tokenId}`);
-          console.log('NFT lookup result:', result);
-          return new Response(JSON.stringify(result), {
-            headers: { 'Content-Type': 'application/json' }
-          });
-        } catch (error) {
-          console.error('NFT lookup error:', error);
-          return new Response(JSON.stringify({
-            type: 4,
-            data: {
-              content: `Error: ${error.message}`,
-              flags: 64
-            }
-          }), { headers: { 'Content-Type': 'application/json' } });
+    // For now, just acknowledge all commands
+    if (interaction.type === 2) {
+      return new Response(JSON.stringify({
+        type: 4,
+        data: {
+          content: 'Command received! The bot is being updated, please try again in a few minutes.',
+          flags: 64
         }
-      }
-
-      // Handle rank command
-      if (command.name === 'rank') {
-        try {
-          // Get the subcommand and rank
-          const subcommand = command.options?.[0];
-          if (!subcommand) {
-            return new Response(JSON.stringify({
-              type: 4,
-              data: {
-                content: 'Please provide a collection and rank number',
-                flags: 64
-              }
-            }), { headers: { 'Content-Type': 'application/json' } });
-          }
-
-          const collection = subcommand.name;
-          const rank = subcommand.options?.[0]?.value;
-
-          console.log('Rank lookup request:', { collection, rank });
-
-          if (!rank) {
-            return new Response(JSON.stringify({
-              type: 4,
-              data: {
-                content: 'Please provide a rank number',
-                flags: 64
-              }
-            }), { headers: { 'Content-Type': 'application/json' } });
-          }
-
-          const result = await handleRankLookup(`${collection}.${rank}`);
-          console.log('Rank lookup result:', result);
-          return new Response(JSON.stringify(result), {
-            headers: { 'Content-Type': 'application/json' }
-          });
-        } catch (error) {
-          console.error('Rank lookup error:', error);
-          return new Response(JSON.stringify({
-            type: 4,
-            data: {
-              content: `Error: ${error.message}`,
-              flags: 64
-            }
-          }), { headers: { 'Content-Type': 'application/json' } });
-        }
-      }
+      }), { headers: { 'Content-Type': 'application/json' } });
     }
 
     return new Response(JSON.stringify({
       type: 4,
       data: {
-        content: 'Unknown command',
+        content: 'Unknown interaction type',
         flags: 64
       }
     }), { headers: { 'Content-Type': 'application/json' } });
