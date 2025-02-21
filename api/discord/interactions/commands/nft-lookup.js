@@ -56,20 +56,18 @@ async function getNFTDetails(collection, tokenId) {
       SELECT *
       FROM nft_metadata
       WHERE symbol = $1 
-      AND name ILIKE $2
+      AND name LIKE '%#' || $2
     `;
     
-    // Use exact name format from database
-    const nftName = `${collectionConfig.name} #${tokenId}`;
-    const values = [collectionConfig.symbol, nftName];
+    const values = [collectionConfig.symbol, tokenId];
     
-    console.log('Query values:', { symbol: values[0], name: values[1] });
+    console.log('Query values:', { symbol: values[0], tokenId: values[1] });
     
     const result = await client.query(query, values);
     console.log('Query result:', result.rows[0]);
 
     if (!result || result.rows.length === 0) {
-      throw new Error(`NFT not found: ${nftName}`);
+      throw new Error(`NFT not found: ${collectionConfig.name} #${tokenId}`);
     }
 
     const nft = result.rows[0];
