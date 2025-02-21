@@ -63,32 +63,17 @@ async function getNFTDetails(collection, tokenId) {
     console.log('Database connection successful');
 
     const query = `
-      SELECT 
-        id,
-        name,
-        symbol,
-        mint_address,
-        owner_wallet,
-        owner_discord_id,
-        owner_name,
-        COALESCE(is_listed, false) as is_listed,
-        COALESCE(list_price, 0) as list_price,
-        last_sale_price,
-        rarity_rank,
-        image_url
+      SELECT *
       FROM nft_metadata
       WHERE symbol = $1 
       AND name = $2
-      AND mint_address IS NOT NULL
     `;
-    const nftName = `${collectionConfig.name} #${tokenId}`;
-    const values = [collectionConfig.symbol, nftName];
+    const values = [collectionConfig.symbol, `${collectionConfig.name} #${tokenId}`];
     
-    console.log('Query parameters:', {
+    console.log('Executing exact query:', {
       symbol: values[0],
       name: values[1],
-      collection,
-      tokenId
+      sql: query.replace('$1', `'${values[0]}'`).replace('$2', `'${values[1]}'`)
     });
 
     const result = await client.query(query, values);
