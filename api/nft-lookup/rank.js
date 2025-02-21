@@ -35,8 +35,11 @@ export default async function handler(req, res) {
 
   if (req.method !== 'POST') {
     return res.status(405).json({
-      error: 'Method not allowed',
-      message: 'Only POST requests are allowed'
+      type: 4,
+      data: {
+        content: 'Only POST requests are allowed',
+        flags: 64
+      }
     });
   }
 
@@ -52,24 +55,32 @@ export default async function handler(req, res) {
 
   if (!collection || !symbol || rank === undefined) {
     return res.status(400).json({
-      error: 'Missing required parameters',
-      message: 'Collection, symbol, and rank are required',
-      received: { collection, symbol, rank }
+      type: 4,
+      data: {
+        content: 'Collection, symbol, and rank are required',
+        flags: 64
+      }
     });
   }
 
   const collectionConfig = COLLECTIONS[collection];
   if (!collectionConfig) {
     return res.status(400).json({
-      error: 'Invalid collection',
-      message: `Collection "${collection}" not found. Available collections: ${Object.keys(COLLECTIONS).join(', ')}`
+      type: 4,
+      data: {
+        content: `Collection "${collection}" not found. Available collections: ${Object.keys(COLLECTIONS).join(', ')}`,
+        flags: 64
+      }
     });
   }
 
   if (!collectionConfig.hasRarity) {
     return res.status(400).json({
-      error: 'Collection does not support rarity',
-      message: `Collection "${collectionConfig.name}" does not support rarity ranking`
+      type: 4,
+      data: {
+        content: `Collection "${collectionConfig.name}" does not support rarity ranking`,
+        flags: 64
+      }
     });
   }
 
@@ -78,23 +89,7 @@ export default async function handler(req, res) {
     client = await pool.connect();
     console.log('Looking up NFT by rank:', { collection, symbol, rank });
 
-    // First, check if the rank exists
-    const countQuery = `
-      SELECT COUNT(*) as count 
-      FROM nft_metadata 
-      WHERE symbol = $1 AND rarity_rank = $2
-    `;
-    const countResult = await client.query(countQuery, [symbol, rank]);
-    console.log('Count result:', countResult.rows[0]);
-
-    if (parseInt(countResult.rows[0].count) === 0) {
-      return res.status(404).json({
-        error: 'NFT not found',
-        message: `No NFT found with rank #${rank} in ${collectionConfig.name}`
-      });
-    }
-
-    // Get the NFT details
+    // Get the NFT details directly - remove the count query
     const result = await client.query(
       `SELECT * 
        FROM nft_metadata 
@@ -165,7 +160,6 @@ export default async function handler(req, res) {
       inline: true
     });
 
-    // Return the exact same format that works for Money Monsters
     const response = {
       type: 4,
       data: {
@@ -192,14 +186,10 @@ export default async function handler(req, res) {
   } catch (error) {
     console.error('Error looking up NFT by rank:', error);
     return res.status(500).json({
-      error: 'Database error',
-      message: error.message,
-      details: {
-        collection,
-        symbol,
-        rank,
-        errorName: error.name,
-        errorCode: error.code
+      type: 4,
+      data: {
+        content: `Error looking up NFT: ${error.message}`,
+        flags: 64
       }
     });
   } finally {
