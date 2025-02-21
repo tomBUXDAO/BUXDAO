@@ -144,24 +144,73 @@ async function getNFTDetails(collection, tokenId) {
 
 export async function handleNFTLookup(command) {
   if (!command || typeof command !== 'string') {
-    throw new Error('Invalid command format. Expected string in format: collection.tokenId');
+    return {
+      type: 4,
+      data: {
+        embeds: [{
+          title: 'Error',
+          description: 'Invalid command format. Expected string in format: collection.tokenId',
+          color: 0xFF0000
+        }]
+      }
+    };
   }
 
   const [collection, tokenIdStr] = command.split('.');
 
   if (!collection) {
-    throw new Error('Missing collection. Available collections: ' + Object.keys(COLLECTIONS).join(', '));
+    return {
+      type: 4,
+      data: {
+        embeds: [{
+          title: 'Error',
+          description: 'Missing collection. Available collections: ' + Object.keys(COLLECTIONS).join(', '),
+          color: 0xFF0000
+        }]
+      }
+    };
   }
 
   if (!tokenIdStr) {
-    throw new Error('Missing token ID. Format: collection.tokenId');
+    return {
+      type: 4,
+      data: {
+        embeds: [{
+          title: 'Error',
+          description: 'Missing token ID. Format: collection.tokenId',
+          color: 0xFF0000
+        }]
+      }
+    };
   }
 
   const tokenId = parseInt(tokenIdStr);
 
   if (isNaN(tokenId)) {
-    throw new Error(`Invalid token ID "${tokenIdStr}". Please provide a valid number.`);
+    return {
+      type: 4,
+      data: {
+        embeds: [{
+          title: 'Error',
+          description: `Invalid token ID "${tokenIdStr}". Please provide a valid number.`,
+          color: 0xFF0000
+        }]
+      }
+    };
   }
 
-  return getNFTDetails(collection, tokenId);
+  try {
+    return await getNFTDetails(collection, tokenId);
+  } catch (error) {
+    return {
+      type: 4,
+      data: {
+        embeds: [{
+          title: 'Error',
+          description: error.message,
+          color: 0xFF0000
+        }]
+      }
+    };
+  }
 } 

@@ -169,25 +169,73 @@ async function getNFTByRank(collection, rank) {
 
 export async function handleRankLookup(command) {
   if (!command || typeof command !== 'string') {
-    throw new Error('Invalid command format. Expected string in format: collection.rank');
+    return {
+      type: 4,
+      data: {
+        embeds: [{
+          title: 'Error',
+          description: 'Invalid command format. Expected string in format: collection.rank',
+          color: 0xFF0000
+        }]
+      }
+    };
   }
 
   const [collection, rankStr] = command.split('.');
 
   if (!collection) {
-    throw new Error('Missing collection. Available collections: ' + Object.keys(COLLECTIONS).join(', '));
+    return {
+      type: 4,
+      data: {
+        embeds: [{
+          title: 'Error',
+          description: 'Missing collection. Available collections: ' + Object.keys(COLLECTIONS).join(', '),
+          color: 0xFF0000
+        }]
+      }
+    };
   }
 
   if (!rankStr) {
-    throw new Error('Missing rank. Format: collection.rank');
+    return {
+      type: 4,
+      data: {
+        embeds: [{
+          title: 'Error',
+          description: 'Missing rank. Format: collection.rank',
+          color: 0xFF0000
+        }]
+      }
+    };
   }
 
   const rank = parseInt(rankStr);
 
   if (isNaN(rank)) {
-    throw new Error(`Invalid rank "${rankStr}". Please provide a valid number.`);
+    return {
+      type: 4,
+      data: {
+        embeds: [{
+          title: 'Error',
+          description: `Invalid rank "${rankStr}". Please provide a valid number.`,
+          color: 0xFF0000
+        }]
+      }
+    };
   }
 
-  // Get NFT details by rank - already formatted for Discord
-  return getNFTByRank(collection, rank);
+  try {
+    return await getNFTByRank(collection, rank);
+  } catch (error) {
+    return {
+      type: 4,
+      data: {
+        embeds: [{
+          title: 'Error',
+          description: error.message,
+          color: 0xFF0000
+        }]
+      }
+    };
+  }
 } 
