@@ -44,6 +44,18 @@ const COLLECTIONS = {
   }
 };
 
+// Helper function to validate collection
+function validateCollection(collection, requireRarity = false) {
+  const config = COLLECTIONS[collection];
+  if (!config) {
+    throw new Error(`Invalid collection "${collection}". Available collections: ${Object.keys(COLLECTIONS).join(', ')}`);
+  }
+  if (requireRarity && !config.hasRarity) {
+    throw new Error(`Collection "${config.name}" does not support rarity ranking. Available collections for rank lookup: ${Object.keys(COLLECTIONS).filter(k => COLLECTIONS[k].hasRarity).map(k => COLLECTIONS[k].name).join(', ')}`);
+  }
+  return config;
+}
+
 export default async function handler(request) {
   try {
     // 1. Verify required headers are present
@@ -102,6 +114,7 @@ export default async function handler(request) {
     // 6. Handle application commands (APPLICATION_COMMAND interaction type)
     if (interaction.type === 2) {
       const command = interaction.data;
+      const baseUrl = process.env.API_BASE_URL || 'https://buxdao.com';
       
       try {
         // Handle NFT command
@@ -118,15 +131,22 @@ export default async function handler(request) {
             throw new Error('Please provide a token ID');
           }
 
+          // Validate collection before making API call
+          const collectionConfig = validateCollection(collection);
+
           // Call the NFT lookup API endpoint
-          const response = await fetch(`${process.env.API_BASE_URL || 'https://buxdao.com'}/api/nft-lookup`, {
+          const response = await fetch(`${baseUrl}/api/nft-lookup`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ collection, tokenId })
+            body: JSON.stringify({ 
+              collection, 
+              tokenId,
+              symbol: collectionConfig.symbol 
+            })
           });
 
           if (!response.ok) {
-            throw new Error(`NFT not found: ${COLLECTIONS[collection].name} #${tokenId}`);
+            throw new Error(`NFT not found: ${collectionConfig.name} #${tokenId}`);
           }
 
           const result = await response.json();
@@ -149,18 +169,22 @@ export default async function handler(request) {
             throw new Error('Please provide a rank number');
           }
 
+          // Validate collection and check if it supports rarity
+          const collectionConfig = validateCollection(collection, true);
+
           // Call the rank lookup API endpoint
-          const response = await fetch(`${process.env.API_BASE_KEY || 'https://buxdao.com'}/api/nft-lookup/rank`, {
+          const response = await fetch(`${baseUrl}/api/nft-lookup/rank`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
-              symbol: COLLECTIONS[collection].symbol,
+              collection,
+              symbol: collectionConfig.symbol,
               rank 
             })
           });
 
           if (!response.ok) {
-            throw new Error(`No NFT found with rank #${rank} in ${COLLECTIONS[collection].name}`);
+            throw new Error(`No NFT found with rank #${rank} in ${collectionConfig.name}`);
           }
 
           const result = await response.json();
