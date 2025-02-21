@@ -81,25 +81,36 @@ async function getNFTDetails(collection, tokenId) {
     `;
     const values = [collectionConfig.symbol, `${collectionConfig.name} #${tokenId}`];
     
-    console.log('Executing query:', { query, values });
+    console.log('Executing database query:', {
+      query,
+      values,
+      symbol: collectionConfig.symbol,
+      name: `${collectionConfig.name} #${tokenId}`
+    });
+
     const result = await client.query(query, values);
-    console.log('Query result:', { 
+    console.log('Database query result:', { 
       rowCount: result?.rows?.length,
       firstRow: result?.rows?.[0] ? {
         name: result.rows[0].name,
         symbol: result.rows[0].symbol,
-        image_url: result.rows[0].image_url
+        image_url: result.rows[0].image_url,
+        mint_address: result.rows[0].mint_address,
+        owner_wallet: result.rows[0].owner_wallet,
+        owner_discord_id: result.rows[0].owner_discord_id
       } : null
     });
 
     if (!result || result.rows.length === 0) {
-      console.log('NFT not found:', { collection, tokenId });
+      console.log('NFT not found in database:', { collection, tokenId });
       throw new Error(`NFT not found: ${collectionConfig.name} #${tokenId}`);
     }
 
     const nft = result.rows[0];
-    console.log('Found NFT data:', {
+    console.log('Processing NFT data:', {
       name: nft.name,
+      symbol: nft.symbol,
+      mint_address: nft.mint_address,
       owner: nft.owner_discord_id || nft.owner_wallet,
       listed: nft.is_listed,
       price: nft.list_price,
@@ -181,10 +192,12 @@ async function getNFTDetails(collection, tokenId) {
       }
     };
 
-    console.log('Embed data:', {
+    console.log('Final embed data:', {
       hasImage: true,
       imageUrl: nft.image_url,
-      embedFields: embedData.data.embeds[0].fields.length
+      embedFields: embedData.data.embeds[0].fields.length,
+      embedTitle: embedData.data.embeds[0].title,
+      embedDescription: embedData.data.embeds[0].description
     });
 
     return embedData;

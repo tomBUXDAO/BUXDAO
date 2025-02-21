@@ -7,7 +7,9 @@ const router = express.Router();
 router.post('/', async (req, res) => {
   console.log('NFT lookup request received:', {
     body: req.body,
-    headers: req.headers
+    headers: req.headers,
+    url: req.url,
+    method: req.method
   });
 
   try {
@@ -19,32 +21,55 @@ router.post('/', async (req, res) => {
     }
 
     // Process NFT lookup
-    console.log('Processing NFT lookup:', { collection, tokenId });
-    const result = await handleNFTLookup(`${collection}.${tokenId}`);
-
-    // If webhookUrl is provided, send result via webhook
-    if (webhookUrl) {
-      console.log('Sending webhook response:', {
-        webhookUrl: webhookUrl.replace(/\d{10,}/g, '***'),
-        resultType: result.type,
-        hasEmbed: !!result.data?.embeds
+    console.log('Starting NFT lookup process:', { collection, tokenId });
+    
+    try {
+      const result = await handleNFTLookup(`${collection}.${tokenId}`);
+      console.log('NFT lookup successful:', {
+        type: result.type,
+        hasEmbed: !!result.data?.embeds,
+        embedData: result.data?.embeds?.[0] ? {
+          title: result.data.embeds[0].title,
+          hasImage: !!result.data.embeds[0].image,
+          imageUrl: result.data.embeds[0].image?.url,
+          fields: result.data.embeds[0].fields?.length
+        } : null
       });
 
-      const webhookResponse = await fetch(webhookUrl, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(result.data)
-      });
+      // If webhookUrl is provided, send result via webhook
+      if (webhookUrl) {
+        console.log('Sending webhook response:', {
+          webhookUrl: webhookUrl.replace(/\d{10,}/g, '***'),
+          resultType: result.type,
+          hasEmbed: !!result.data?.embeds
+        });
 
-      if (!webhookResponse.ok) {
-        throw new Error(`Webhook failed with status ${webhookResponse.status}`);
+        const webhookResponse = await fetch(webhookUrl, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(result.data)
+        });
+
+        if (!webhookResponse.ok) {
+          console.error('Webhook request failed:', {
+            status: webhookResponse.status,
+            statusText: webhookResponse.statusText
+          });
+          throw new Error(`Webhook failed with status ${webhookResponse.status}`);
+        }
+
+        return res.status(200).json({ success: true });
       }
 
-      return res.status(200).json({ success: true });
+      // If no webhookUrl, return the result directly
+      return res.status(200).json(result);
+    } catch (lookupError) {
+      console.error('NFT lookup process failed:', {
+        error: lookupError.message,
+        stack: lookupError.stack
+      });
+      throw lookupError;
     }
-
-    // If no webhookUrl, return the result directly
-    return res.status(200).json(result);
   } catch (error) {
     console.error('NFT lookup error:', {
       message: error.message,
