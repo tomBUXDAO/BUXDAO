@@ -26,6 +26,14 @@ const COLLECTIONS = {
 };
 
 export default async function handler(req, res) {
+  console.log('Rank lookup request:', {
+    method: req.method,
+    body: req.body,
+    headers: {
+      'content-type': req.headers['content-type']
+    }
+  });
+
   if (req.method !== 'POST') {
     return res.status(405).json({
       error: 'Method not allowed',
@@ -34,11 +42,13 @@ export default async function handler(req, res) {
   }
 
   const { collection, symbol, rank } = req.body;
+  console.log('Request parameters:', { collection, symbol, rank, type: typeof rank });
 
-  if (!collection || !symbol || !rank) {
+  if (!collection || !symbol || rank === undefined) {
     return res.status(400).json({
       error: 'Missing required parameters',
-      message: 'Collection, symbol, and rank are required'
+      message: 'Collection, symbol, and rank are required',
+      received: { collection, symbol, rank }
     });
   }
 
@@ -62,8 +72,29 @@ export default async function handler(req, res) {
     client = await pool.connect();
     console.log('Looking up NFT by rank:', { collection, symbol, rank });
 
+    // First, check if the rank exists
+    const countQuery = `
+      SELECT COUNT(*) as count 
+      FROM nft_metadata 
+      WHERE symbol = $1 AND rarity_rank = $2
+    `;
+    const countResult = await client.query(countQuery, [symbol, rank]);
+    console.log('Count result:', countResult.rows[0]);
+
+    if (countResult.rows[0].count === '0') {
+      return res.status(404).json({
+        error: 'NFT not found',
+        message: `No NFT found with rank #${rank} in ${collectionConfig.name}`
+      });
+    }
+
+    // Get the NFT details
     const result = await client.query(
-      'SELECT * FROM nft_metadata WHERE symbol = $1 AND rarity_rank = $2 LIMIT 1',
+      `SELECT * 
+       FROM nft_metadata 
+       WHERE symbol = $1 
+       AND rarity_rank = $2 
+       LIMIT 1`,
       [symbol, rank]
     );
 
@@ -150,7 +181,14 @@ export default async function handler(req, res) {
     console.error('Error looking up NFT by rank:', error);
     return res.status(500).json({
       error: 'Database error',
-      message: error.message
+      message: error.message,
+      details: {
+        collection,
+        symbol,
+        rank,
+        errorName: error.name,
+        errorCode: error.code
+      }
     });
   } finally {
     if (client) {
