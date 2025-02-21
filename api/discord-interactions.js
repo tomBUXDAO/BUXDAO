@@ -63,88 +63,95 @@ async function getNFTDetails(collection, tokenId) {
     throw new Error(`Invalid token ID "${tokenId}". Please provide a valid number.`);
   }
 
-  // Fetch NFT data from database
-  const response = await fetch(`${process.env.API_BASE_URL}/api/nft-lookup`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      symbol: collectionConfig.symbol,
-      name: `${collectionConfig.name} #${tokenId}`
-    })
-  });
-
-  if (!response.ok) {
-    throw new Error(`NFT not found: ${collectionConfig.name} #${tokenId}`);
-  }
-
-  const nft = await response.json();
-
-  // Build fields array based on available data
-  const fields = [];
-
-  // Owner field - prefer Discord name if available
-  fields.push({
-    name: '👤 Owner',
-    value: nft.owner_name 
-      ? `<@${nft.owner_discord_id}>`
-      : nft.owner_wallet
-        ? `\`${nft.owner_wallet.slice(0, 4)}...${nft.owner_wallet.slice(-4)}\``
-        : 'Unknown',
-    inline: true
-  });
-
-  // Status field - show if listed and price
-  fields.push({
-    name: '🏷️ Status',
-    value: nft.is_listed 
-      ? `Listed for ${(Number(nft.list_price) || 0).toFixed(2)} SOL`
-      : 'Not Listed',
-    inline: true
-  });
-
-  // Last sale if available
-  if (nft.last_sale_price) {
-    fields.push({
-      name: '💰 Last Sale',
-      value: `${Number(nft.last_sale_price).toFixed(2)} SOL`,
-      inline: true
+  const baseUrl = process.env.API_BASE_URL || 'https://buxdao.com';
+  
+  try {
+    // Fetch NFT data from database
+    const response = await fetch(`${baseUrl}/api/nft-lookup`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        symbol: collectionConfig.symbol,
+        name: `${collectionConfig.name} #${tokenId}`
+      })
     });
-  }
 
-  // Rarity rank if collection supports it
-  if (collectionConfig.hasRarity && nft.rarity_rank) {
-    fields.push({
-      name: '✨ Rarity Rank',
-      value: `#${nft.rarity_rank}`,
-      inline: true
-    });
-  }
-
-  return {
-    type: 4,
-    data: {
-      tts: false,
-      content: "",
-      embeds: [{
-        title: nft.name,
-        description: `[View on Magic Eden](https://magiceden.io/item-details/${nft.mint_address}) • [View on Tensor](https://www.tensor.trade/item/${nft.mint_address})\n\n**Mint:** \`${nft.mint_address || 'Unknown'}\``,
-        color: collectionConfig.color,
-        fields: fields,
-        thumbnail: {
-          url: `https://buxdao.com${collectionConfig.logo}`
-        },
-        image: {
-          url: nft.image_url || null
-        },
-        footer: {
-          text: "BUXDAO • Putting Community First"
-        }
-      }],
-      allowed_mentions: { parse: [] }
+    if (!response.ok) {
+      throw new Error(`NFT not found: ${collectionConfig.name} #${tokenId}`);
     }
-  };
+
+    const nft = await response.json();
+
+    // Build fields array based on available data
+    const fields = [];
+
+    // Owner field - prefer Discord name if available
+    fields.push({
+      name: '👤 Owner',
+      value: nft.owner_name 
+        ? `<@${nft.owner_discord_id}>`
+        : nft.owner_wallet
+          ? `\`${nft.owner_wallet.slice(0, 4)}...${nft.owner_wallet.slice(-4)}\``
+          : 'Unknown',
+      inline: true
+    });
+
+    // Status field - show if listed and price
+    fields.push({
+      name: '🏷️ Status',
+      value: nft.is_listed 
+        ? `Listed for ${(Number(nft.list_price) || 0).toFixed(2)} SOL`
+        : 'Not Listed',
+      inline: true
+    });
+
+    // Last sale if available
+    if (nft.last_sale_price) {
+      fields.push({
+        name: '💰 Last Sale',
+        value: `${Number(nft.last_sale_price).toFixed(2)} SOL`,
+        inline: true
+      });
+    }
+
+    // Rarity rank if collection supports it
+    if (collectionConfig.hasRarity && nft.rarity_rank) {
+      fields.push({
+        name: '✨ Rarity Rank',
+        value: `#${nft.rarity_rank}`,
+        inline: true
+      });
+    }
+
+    return {
+      type: 4,
+      data: {
+        tts: false,
+        content: "",
+        embeds: [{
+          title: nft.name,
+          description: `[View on Magic Eden](https://magiceden.io/item-details/${nft.mint_address}) • [View on Tensor](https://www.tensor.trade/item/${nft.mint_address})\n\n**Mint:** \`${nft.mint_address || 'Unknown'}\``,
+          color: collectionConfig.color,
+          fields: fields,
+          thumbnail: {
+            url: `https://buxdao.com${collectionConfig.logo}`
+          },
+          image: {
+            url: nft.image_url || null
+          },
+          footer: {
+            text: "BUXDAO • Putting Community First"
+          }
+        }],
+        allowed_mentions: { parse: [] }
+      }
+    };
+  } catch (error) {
+    console.error('Error fetching NFT details:', error);
+    throw new Error(`Failed to fetch NFT details: ${error.message}`);
+  }
 }
 
 async function getNFTByRank(collection, rank) {
@@ -157,86 +164,93 @@ async function getNFTByRank(collection, rank) {
     throw new Error(`Invalid rank "${rank}". Please provide a valid number.`);
   }
 
-  // Fetch NFT data from database
-  const response = await fetch(`${process.env.API_BASE_URL}/api/nft-lookup/rank`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      symbol: collectionConfig.symbol,
-      rank: rank
-    })
-  });
+  const baseUrl = process.env.API_BASE_URL || 'https://buxdao.com';
 
-  if (!response.ok) {
-    throw new Error(`No NFT found with rank #${rank} in ${collectionConfig.name}`);
-  }
+  try {
+    // Fetch NFT data from database
+    const response = await fetch(`${baseUrl}/api/nft-lookup/rank`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        symbol: collectionConfig.symbol,
+        rank: rank
+      })
+    });
 
-  const nft = await response.json();
+    if (!response.ok) {
+      throw new Error(`No NFT found with rank #${rank} in ${collectionConfig.name}`);
+    }
 
-  // Build fields array based on available data
-  const fields = [];
+    const nft = await response.json();
 
-  // Owner field - prefer Discord name if available
-  fields.push({
-    name: '👤 Owner',
-    value: nft.owner_name 
-      ? `<@${nft.owner_discord_id}>`
-      : nft.owner_wallet
-        ? `\`${nft.owner_wallet.slice(0, 4)}...${nft.owner_wallet.slice(-4)}\``
-        : 'Unknown',
-    inline: true
-  });
+    // Build fields array based on available data
+    const fields = [];
 
-  // Status field - show if listed and price
-  fields.push({
-    name: '🏷️ Status',
-    value: nft.is_listed 
-      ? `Listed for ${(Number(nft.list_price) || 0).toFixed(2)} SOL`
-      : 'Not Listed',
-    inline: true
-  });
-
-  // Last sale if available
-  if (nft.last_sale_price) {
+    // Owner field - prefer Discord name if available
     fields.push({
-      name: '💰 Last Sale',
-      value: `${Number(nft.last_sale_price).toFixed(2)} SOL`,
+      name: '👤 Owner',
+      value: nft.owner_name 
+        ? `<@${nft.owner_discord_id}>`
+        : nft.owner_wallet
+          ? `\`${nft.owner_wallet.slice(0, 4)}...${nft.owner_wallet.slice(-4)}\``
+          : 'Unknown',
       inline: true
     });
-  }
 
-  // Always show rarity rank since these collections have it
-  fields.push({
-    name: '✨ Rarity Rank',
-    value: `#${nft.rarity_rank}`,
-    inline: true
-  });
+    // Status field - show if listed and price
+    fields.push({
+      name: '🏷️ Status',
+      value: nft.is_listed 
+        ? `Listed for ${(Number(nft.list_price) || 0).toFixed(2)} SOL`
+        : 'Not Listed',
+      inline: true
+    });
 
-  return {
-    type: 4,
-    data: {
-      tts: false,
-      content: "",
-      embeds: [{
-        title: nft.name,
-        description: `[View on Magic Eden](https://magiceden.io/item-details/${nft.mint_address}) • [View on Tensor](https://www.tensor.trade/item/${nft.mint_address})\n\n**Mint:** \`${nft.mint_address || 'Unknown'}\``,
-        color: collectionConfig.color,
-        fields: fields,
-        thumbnail: {
-          url: `https://buxdao.com${collectionConfig.logo}`
-        },
-        image: {
-          url: nft.image_url || null
-        },
-        footer: {
-          text: "BUXDAO • Putting Community First"
-        }
-      }],
-      allowed_mentions: { parse: [] }
+    // Last sale if available
+    if (nft.last_sale_price) {
+      fields.push({
+        name: '💰 Last Sale',
+        value: `${Number(nft.last_sale_price).toFixed(2)} SOL`,
+        inline: true
+      });
     }
-  };
+
+    // Always show rarity rank since these collections have it
+    fields.push({
+      name: '✨ Rarity Rank',
+      value: `#${nft.rarity_rank}`,
+      inline: true
+    });
+
+    return {
+      type: 4,
+      data: {
+        tts: false,
+        content: "",
+        embeds: [{
+          title: nft.name,
+          description: `[View on Magic Eden](https://magiceden.io/item-details/${nft.mint_address}) • [View on Tensor](https://www.tensor.trade/item/${nft.mint_address})\n\n**Mint:** \`${nft.mint_address || 'Unknown'}\``,
+          color: collectionConfig.color,
+          fields: fields,
+          thumbnail: {
+            url: `https://buxdao.com${collectionConfig.logo}`
+          },
+          image: {
+            url: nft.image_url || null
+          },
+          footer: {
+            text: "BUXDAO • Putting Community First"
+          }
+        }],
+        allowed_mentions: { parse: [] }
+      }
+    };
+  } catch (error) {
+    console.error('Error fetching NFT by rank:', error);
+    throw new Error(`Failed to fetch NFT by rank: ${error.message}`);
+  }
 }
 
 export default async function handler(request) {
