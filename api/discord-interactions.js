@@ -1,47 +1,8 @@
-import nacl from 'tweetnacl';
+import { COLLECTIONS } from './discord/interactions/commands/nft-lookup.js';
 
 export const config = {
   runtime: 'edge',
   regions: ['iad1']  // Use Virginia for lowest latency to Discord
-};
-
-// Collection configurations
-const COLLECTIONS = {
-  'cat': {
-    name: 'Fcked Cat',
-    symbol: 'FCKEDCATZ',
-    hasRarity: true,
-    logo: '/logos/cat.PNG',
-    color: 0xFFF44D // Yellow
-  },
-  'celeb': {
-    name: 'Celebrity Catz',
-    symbol: 'CelebCatz',
-    hasRarity: false,
-    logo: '/logos/celeb.PNG',
-    color: 0xFF4D4D // Red
-  },
-  'mm': {
-    name: 'Money Monsters',
-    symbol: 'MM',
-    hasRarity: true,
-    logo: '/logos/monster.PNG',
-    color: 0x4DFFFF // Cyan
-  },
-  'mm3d': {
-    name: 'Money Monsters 3D',
-    symbol: 'MM3D',
-    hasRarity: true,
-    logo: '/logos/monster.PNG',
-    color: 0x4DFF4D // Green
-  },
-  'bot': {
-    name: 'AI Bitbot',
-    symbol: 'AIBB',
-    hasRarity: false,
-    logo: '/logos/bot.PNG',
-    color: 0xFF4DFF // Pink
-  }
 };
 
 // Helper function to validate collection
@@ -56,22 +17,43 @@ function validateCollection(collection, requireRarity = false) {
   return config;
 }
 
-function hexToUint8Array(hex) {
-  return new Uint8Array(hex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
-}
-
-function verifyDiscordRequest(body, signature, timestamp, clientPublicKey) {
+async function verifyDiscordRequest(body, signature, timestamp, clientPublicKey) {
   try {
+    // Convert hex strings to Uint8Arrays
+    const signatureUint8 = new Uint8Array(
+      signature.match(/.{2}/g).map(byte => parseInt(byte, 16))
+    );
+    
+    const publicKeyUint8 = new Uint8Array(
+      clientPublicKey.match(/.{2}/g).map(byte => parseInt(byte, 16))
+    );
+
+    // Concatenate timestamp and body
     const timestampData = new TextEncoder().encode(timestamp);
     const bodyData = new TextEncoder().encode(body);
     const message = new Uint8Array(timestampData.length + bodyData.length);
     message.set(timestampData);
     message.set(bodyData, timestampData.length);
 
-    const signatureData = hexToUint8Array(signature);
-    const publicKeyData = hexToUint8Array(clientPublicKey);
+    // Import public key
+    const key = await crypto.subtle.importKey(
+      'raw',
+      publicKeyUint8,
+      {
+        name: 'Ed25519',
+        namedCurve: 'Ed25519'
+      },
+      false,
+      ['verify']
+    );
 
-    return nacl.sign.detached.verify(message, signatureData, publicKeyData);
+    // Verify signature
+    return await crypto.subtle.verify(
+      'Ed25519',
+      key,
+      signatureUint8,
+      message
+    );
   } catch (err) {
     console.error('Error verifying request:', err);
     return false;
@@ -80,12 +62,12 @@ function verifyDiscordRequest(body, signature, timestamp, clientPublicKey) {
 
 export default async function handler(request) {
   try {
-    // 1. Get the raw body and headers
+    // Get the raw body and headers
     const signature = request.headers.get('x-signature-ed25519');
     const timestamp = request.headers.get('x-signature-timestamp');
     const rawBody = await request.text();
 
-    // 2. Log headers for debugging
+    // Log headers for debugging
     console.log('Discord headers:', {
       signature,
       timestamp,
@@ -93,7 +75,7 @@ export default async function handler(request) {
       bodyLength: rawBody.length
     });
 
-    // 3. Validate required headers
+    // Validate required headers
     if (!signature || !timestamp || !rawBody) {
       console.error('Missing required Discord headers:', {
         hasSignature: !!signature,
@@ -103,8 +85,8 @@ export default async function handler(request) {
       return new Response('Invalid request signature', { status: 401 });
     }
 
-    // 4. Verify the request is from Discord
-    const isValidRequest = verifyDiscordRequest(
+    // Verify the request is from Discord
+    const isValidRequest = await verifyDiscordRequest(
       rawBody,
       signature,
       timestamp,
@@ -116,17 +98,17 @@ export default async function handler(request) {
       return new Response('Invalid request signature', { status: 401 });
     }
 
-    // 5. Parse the interaction data
+    // Parse the interaction data
     const interaction = JSON.parse(rawBody);
 
-    // 6. Handle ping (PING interaction type)
+    // Handle ping (PING interaction type)
     if (interaction.type === 1) {
       return new Response(JSON.stringify({ type: 1 }), {
         headers: { 'Content-Type': 'application/json' }
       });
     }
 
-    // 7. Handle commands
+    // Handle commands
     if (interaction.type === 2) {
       const command = interaction.data;
       const baseUrl = process.env.API_BASE_URL || 'https://buxdao.com';
