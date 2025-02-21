@@ -3,6 +3,7 @@ const { Pool } = pkg;
 import axios from 'axios';
 import authHandler from './auth/index.js';
 import collectionCountsHandler from './collection-counts/[discord_id].js';
+import nftLookupHandler from './nft-lookup.js';
 
 const pool = new Pool({
   connectionString: process.env.POSTGRES_URL,
@@ -30,6 +31,11 @@ export default async function handler(req, res) {
   console.log('Request method:', req.method);
   console.log('Environment:', process.env.NODE_ENV);
   console.log('Database URL exists:', !!process.env.POSTGRES_URL);
+
+  // Handle NFT lookup endpoint
+  if (req.url === '/api/nft-lookup' && req.method === 'POST') {
+    return nftLookupHandler(req, res);
+  }
 
   // Handle auth endpoints
   if (req.url.startsWith('/api/auth/')) {
