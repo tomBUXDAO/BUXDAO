@@ -82,7 +82,7 @@ export default async function handler(request) {
 
     // 4. Verify the request is from Discord
     const isValidRequest = verifyKey(
-      Buffer.from(rawBody),
+      new TextEncoder().encode(rawBody),
       signature,
       timestamp,
       process.env.DISCORD_PUBLIC_KEY
