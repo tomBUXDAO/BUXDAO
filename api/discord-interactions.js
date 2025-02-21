@@ -5,7 +5,13 @@ export const config = {
 
 // Helper function to convert hex string to Uint8Array
 function hexToUint8Array(hex) {
-  return new Uint8Array(hex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+  if (!hex) return null;
+  try {
+    return new Uint8Array(hex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+  } catch (error) {
+    console.error('Error converting hex to Uint8Array:', error);
+    return null;
+  }
 }
 
 // Collection configurations
@@ -235,40 +241,61 @@ async function getNFTByRank(collection, rank) {
 
 export default async function handler(request) {
   try {
+    // Verify required headers are present
     const signature = request.headers.get('x-signature-ed25519');
     const timestamp = request.headers.get('x-signature-timestamp');
     
+    if (!signature || !timestamp) {
+      console.error('Missing headers:', { signature: !!signature, timestamp: !!timestamp });
+      return new Response('Missing required headers', { status: 401 });
+    }
+
     // Get the raw body
     const rawBody = await request.text();
+    if (!rawBody) {
+      console.error('Empty request body');
+      return new Response('Empty request body', { status: 401 });
+    }
 
-    // Convert signature to Uint8Array
+    // Convert signature and public key
     const signatureBytes = hexToUint8Array(signature);
     const publicKeyBytes = hexToUint8Array(process.env.DISCORD_PUBLIC_KEY);
-    
+
+    if (!signatureBytes || !publicKeyBytes) {
+      console.error('Invalid signature or public key format');
+      return new Response('Invalid signature format', { status: 401 });
+    }
+
     // Create the message
     const message = new TextEncoder().encode(timestamp + rawBody);
 
-    // Import the public key
-    const publicKey = await crypto.subtle.importKey(
-      'raw',
-      publicKeyBytes,
-      {
-        name: 'Ed25519'
-      },
-      false,
-      ['verify']
-    );
+    try {
+      // Import the public key
+      const publicKey = await crypto.subtle.importKey(
+        'raw',
+        publicKeyBytes,
+        {
+          name: 'Ed25519'
+        },
+        false,
+        ['verify']
+      );
 
-    // Verify the signature
-    const isValidRequest = await crypto.subtle.verify(
-      'Ed25519',
-      publicKey,
-      signatureBytes,
-      message
-    );
+      // Verify the signature
+      const isValidRequest = await crypto.subtle.verify(
+        'Ed25519',
+        publicKey,
+        signatureBytes,
+        message
+      );
 
-    if (!isValidRequest) {
-      return new Response('Invalid request signature', { status: 401 });
+      if (!isValidRequest) {
+        console.error('Invalid signature verification');
+        return new Response('Invalid request signature', { status: 401 });
+      }
+    } catch (error) {
+      console.error('Error during signature verification:', error);
+      return new Response('Signature verification failed', { status: 401 });
     }
 
     const interaction = JSON.parse(rawBody);
