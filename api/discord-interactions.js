@@ -3,13 +3,28 @@ export const config = {
   regions: ['iad1']  // Use Virginia for lowest latency to Discord
 };
 
-import { verifyKey } from 'discord-interactions';
+import crypto from 'crypto';
 import { handleNFTLookup } from './discord/interactions/commands/nft-lookup.js';
 import { handleRankLookup } from './discord/interactions/commands/rank-lookup.js';
 
 // Helper function to convert hex string to Uint8Array
 function hexToUint8Array(hex) {
   return new Uint8Array(hex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+}
+
+// Helper function to format Ed25519 public key
+function formatPublicKey(publicKeyHex) {
+  // Ed25519 ASN.1 DER prefix
+  const prefix = '302a300506032b6570032100';
+  // Combine prefix with key
+  const derKey = prefix + publicKeyHex;
+  // Convert to PEM format
+  const pemKey = [
+    '-----BEGIN PUBLIC KEY-----',
+    Buffer.from(derKey, 'hex').toString('base64'),
+    '-----END PUBLIC KEY-----'
+  ].join('\n');
+  return pemKey;
 }
 
 export default async function handler(request) {
@@ -20,12 +35,18 @@ export default async function handler(request) {
     // Get the raw body
     const rawBody = await request.text();
 
-    // Verify the request is from Discord
-    const isValidRequest = verifyKey(
-      new TextEncoder().encode(rawBody),
-      hexToUint8Array(signature),
-      timestamp,
-      process.env.DISCORD_PUBLIC_KEY
+    // Format the public key
+    const publicKey = formatPublicKey(process.env.DISCORD_PUBLIC_KEY);
+
+    // Create verify instance
+    const verifier = crypto.createVerify('sha512');
+    verifier.update(timestamp + rawBody);
+
+    // Verify the signature
+    const isValidRequest = verifier.verify(
+      publicKey,
+      Buffer.from(signature, 'hex'),
+      'hex'
     );
 
     if (!isValidRequest) {

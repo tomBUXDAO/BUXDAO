@@ -1,7 +1,7 @@
 {
   "version": 2,
   "env": {
-    "DEPLOY_TIME": "2024-03-21-9"
+    "DEPLOY_TIME": "2024-03-21-11"
   },
   "crons": [
     {
@@ -32,7 +32,7 @@
       "dest": "/api/discord-interactions.js"
     },
     {
-      "src": "/api/((?!discord-interactions).*)",
+      "src": "/api/(.*)",
       "dest": "/server.js"
     },
     {
