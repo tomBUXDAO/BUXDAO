@@ -42,89 +42,47 @@ export const COLLECTIONS = {
 
 async function getNFTDetails(collection, tokenId) {
   const collectionConfig = COLLECTIONS[collection];
-  if (!collectionConfig) {
-    throw new Error(`Invalid collection "${collection}"`);
-  }
-
-  if (!tokenId || isNaN(tokenId)) {
-    throw new Error(`Invalid token ID "${tokenId}"`);
-  }
+  if (!collectionConfig) throw new Error(`Invalid collection "${collection}"`);
+  if (!tokenId || isNaN(tokenId)) throw new Error(`Invalid token ID "${tokenId}"`);
 
   const client = await pool.connect();
   try {
-    const query = `
-      SELECT *
-      FROM nft_metadata
-      WHERE symbol = $1 
-      AND name LIKE '%#' || $2
-    `;
-    
-    const values = [collectionConfig.symbol, tokenId];
-    
-    console.log('Query values:', { symbol: values[0], tokenId: values[1] });
-    
-    const result = await client.query(query, values);
-    console.log('Query result:', result.rows[0]);
+    const result = await client.query(
+      'SELECT * FROM nft_metadata WHERE symbol = $1 AND name LIKE $2',
+      [collectionConfig.symbol, '%#' + tokenId]
+    );
 
-    if (!result || result.rows.length === 0) {
-      throw new Error(`NFT not found: ${collectionConfig.name} #${tokenId}`);
-    }
-
+    if (!result?.rows?.[0]) throw new Error(`NFT not found: ${collectionConfig.name} #${tokenId}`);
     const nft = result.rows[0];
-    
-    // Build the embed response
-    const embed = {
-      title: nft.name,
-      description: nft.mint_address 
-        ? `[View on Magic Eden](https://magiceden.io/item-details/${nft.mint_address}) • [View on Tensor](https://www.tensor.trade/item/${nft.mint_address})\n\nMint: \`${nft.mint_address}\``
-        : 'Mint address not available',
-      color: collectionConfig.color,
-      fields: [
-        {
-          name: '👤 Owner',
-          value: nft.owner_wallet ? `\`${nft.owner_wallet.slice(0, 4)}...${nft.owner_wallet.slice(-4)}\`` : 'Unknown',
-          inline: true
-        },
-        {
-          name: '🏷️ Status',
-          value: nft.is_listed === true ? `Listed for ${(Number(nft.list_price) || 0).toFixed(2)} SOL` : 'Not Listed',
-          inline: true
-        }
-      ],
-      thumbnail: {
-        url: `https://buxdao.com${collectionConfig.logo}`
-      },
-      image: {
-        url: nft.image_url
-      },
-      footer: {
-        text: "BUXDAO • Putting Community First"
-      }
-    };
-
-    // Add last sale if available
-    if (nft.last_sale_price && !isNaN(nft.last_sale_price)) {
-      embed.fields.push({
-        name: '💰 Last Sale',
-        value: `${Number(nft.last_sale_price).toFixed(2)} SOL`,
-        inline: true
-      });
-    }
-
-    // Add rarity if available
-    if (collectionConfig.hasRarity && nft.rarity_rank && !isNaN(nft.rarity_rank)) {
-      embed.fields.push({
-        name: '✨ Rarity Rank',
-        value: `#${nft.rarity_rank}`,
-        inline: true
-      });
-    }
 
     return {
-      type: 4,
-      data: {
-        embeds: [embed]
-      }
+      content: '',
+      embeds: [{
+        title: nft.name,
+        description: `[View on Magic Eden](https://magiceden.io/item-details/${nft.mint_address}) • [View on Tensor](https://www.tensor.trade/item/${nft.mint_address})\n\nMint: \`${nft.mint_address}\``,
+        color: collectionConfig.color,
+        fields: [
+          {
+            name: '👤 Owner',
+            value: `\`${nft.owner_wallet.slice(0, 4)}...${nft.owner_wallet.slice(-4)}\``,
+            inline: true
+          },
+          {
+            name: '🏷️ Status',
+            value: 'Not Listed',
+            inline: true
+          }
+        ],
+        thumbnail: {
+          url: `https://buxdao.com${collectionConfig.logo}`
+        },
+        image: {
+          url: nft.image_url
+        },
+        footer: {
+          text: 'BUXDAO • Putting Community First'
+        }
+      }]
     };
   } finally {
     client.release();
