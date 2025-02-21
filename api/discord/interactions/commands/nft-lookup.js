@@ -63,7 +63,19 @@ async function getNFTDetails(collection, tokenId) {
     console.log('Database connection successful');
 
     const query = `
-      SELECT *
+      SELECT 
+        name,
+        symbol,
+        mint_address,
+        owner_wallet,
+        owner_discord_id,
+        owner_name,
+        is_listed,
+        list_price,
+        last_sale_price,
+        rarity_rank,
+        image_url,
+        metadata_uri
       FROM nft_metadata
       WHERE symbol = $1 AND name = $2
       LIMIT 1
@@ -76,7 +88,9 @@ async function getNFTDetails(collection, tokenId) {
       rowCount: result?.rows?.length,
       firstRow: result?.rows?.[0] ? {
         name: result.rows[0].name,
-        symbol: result.rows[0].symbol
+        symbol: result.rows[0].symbol,
+        image_url: result.rows[0].image_url,
+        metadata_uri: result.rows[0].metadata_uri
       } : null
     });
 
@@ -90,8 +104,33 @@ async function getNFTDetails(collection, tokenId) {
       name: nft.name,
       owner: nft.owner_discord_id || nft.owner_wallet,
       listed: nft.is_listed,
-      price: nft.list_price
+      price: nft.list_price,
+      image_url: nft.image_url,
+      metadata_uri: nft.metadata_uri
     });
+
+    // If image_url is missing but we have metadata_uri, try to fetch it
+    if (!nft.image_url && nft.metadata_uri) {
+      try {
+        console.log('Fetching metadata from URI:', nft.metadata_uri);
+        const metadataResponse = await fetch(nft.metadata_uri);
+        if (metadataResponse.ok) {
+          const metadata = await metadataResponse.json();
+          if (metadata.image) {
+            nft.image_url = metadata.image;
+            console.log('Updated image URL from metadata:', nft.image_url);
+            
+            // Update the database with the new image URL
+            await client.query(
+              'UPDATE nft_metadata SET image_url = $1 WHERE symbol = $2 AND name = $3',
+              [nft.image_url, nft.symbol, nft.name]
+            );
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching metadata:', error);
+      }
+    }
 
     // Build fields array based on available data
     const fields = [];
@@ -144,7 +183,7 @@ async function getNFTDetails(collection, tokenId) {
     }
 
     // Format the embed response
-    return {
+    const embedData = {
       type: 4, // CHANNEL_MESSAGE_WITH_SOURCE
       data: {
         tts: false,
@@ -157,9 +196,7 @@ async function getNFTDetails(collection, tokenId) {
           thumbnail: {
             url: `https://buxdao.com${collectionConfig.logo}`
           },
-          image: {
-            url: nft.image_url || null
-          },
+          image: nft.image_url ? { url: nft.image_url } : null,
           footer: {
             text: "BUXDAO • Putting Community First"
           }
@@ -167,6 +204,14 @@ async function getNFTDetails(collection, tokenId) {
         allowed_mentions: { parse: [] }
       }
     };
+
+    console.log('Embed data:', {
+      hasImage: !!nft.image_url,
+      imageUrl: nft.image_url,
+      embedFields: embedData.data.embeds[0].fields.length
+    });
+
+    return embedData;
   } catch (error) {
     console.error('Error in getNFTDetails:', error);
     if (error.code === '57014') {
