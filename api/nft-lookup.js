@@ -129,7 +129,6 @@ export default async function handler(req, res) {
     return res.status(200).json({
       type: 4,
       data: {
-        content: "",
         embeds: [{
           title: nft.name,
           description: `[View on Magic Eden](https://magiceden.io/item-details/${nft.mint_address}) • [View on Tensor](https://www.tensor.trade/item/${nft.mint_address})\n\nMint: \`${nft.mint_address || 'Unknown'}\``,
