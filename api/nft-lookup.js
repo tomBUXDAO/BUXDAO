@@ -1,6 +1,23 @@
 import { handleNFTLookup } from './discord/interactions/commands/nft-lookup.js';
+import { verifyKey } from 'discord-interactions';
 
 export default async function handler(req, res) {
+  // Verify Discord signature
+  const signature = req.headers['x-signature-ed25519'];
+  const timestamp = req.headers['x-signature-timestamp'];
+  const body = JSON.stringify(req.body);
+
+  const isValidRequest = verifyKey(
+    body,
+    signature,
+    timestamp,
+    process.env.DISCORD_PUBLIC_KEY
+  );
+
+  if (!isValidRequest) {
+    return res.status(401).json({ error: 'Invalid request signature' });
+  }
+
   const { collection, tokenId } = req.body;
   if (!collection || !tokenId) return res.status(400).json({ error: 'Missing required parameters' });
 
