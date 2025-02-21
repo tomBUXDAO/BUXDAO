@@ -56,7 +56,7 @@ async function getNFTDetails(collection, tokenId) {
       SELECT *
       FROM nft_metadata
       WHERE symbol = $1 
-      AND name = $2
+      AND name ILIKE $2
     `;
     
     // Use exact name format from database
