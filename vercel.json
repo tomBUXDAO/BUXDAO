@@ -25,7 +25,7 @@
   "routes": [
     {
       "src": "/api/discord-interactions",
-      "dest": "/server.js"
+      "dest": "/api/discord-interactions.js"
     },
     {
       "src": "/api/((?!discord-interactions).*)",
