@@ -71,30 +71,49 @@ async function getNFTDetails(collection, tokenId) {
     }
 
     const nft = result.rows[0];
-    const fields = [];
+    
+    // Build the embed response
+    const embed = {
+      title: nft.name,
+      description: nft.mint_address 
+        ? `[View on Magic Eden](https://magiceden.io/item-details/${nft.mint_address}) • [View on Tensor](https://www.tensor.trade/item/${nft.mint_address})\n\nMint: \`${nft.mint_address}\``
+        : 'Mint address not available',
+      color: collectionConfig.color,
+      fields: [
+        {
+          name: '👤 Owner',
+          value: nft.owner_wallet ? `\`${nft.owner_wallet.slice(0, 4)}...${nft.owner_wallet.slice(-4)}\`` : 'Unknown',
+          inline: true
+        },
+        {
+          name: '🏷️ Status',
+          value: nft.is_listed === true ? `Listed for ${(Number(nft.list_price) || 0).toFixed(2)} SOL` : 'Not Listed',
+          inline: true
+        }
+      ],
+      thumbnail: {
+        url: `https://buxdao.com${collectionConfig.logo}`
+      },
+      image: {
+        url: nft.image_url
+      },
+      footer: {
+        text: "BUXDAO • Putting Community First"
+      }
+    };
 
-    fields.push({
-      name: '👤 Owner',
-      value: nft.owner_wallet ? `\`${nft.owner_wallet.slice(0, 4)}...${nft.owner_wallet.slice(-4)}\`` : 'Unknown',
-      inline: true
-    });
-
-    fields.push({
-      name: '🏷️ Status',
-      value: nft.is_listed === true ? `Listed for ${(Number(nft.list_price) || 0).toFixed(2)} SOL` : 'Not Listed',
-      inline: true
-    });
-
+    // Add last sale if available
     if (nft.last_sale_price && !isNaN(nft.last_sale_price)) {
-      fields.push({
+      embed.fields.push({
         name: '💰 Last Sale',
         value: `${Number(nft.last_sale_price).toFixed(2)} SOL`,
         inline: true
       });
     }
 
+    // Add rarity if available
     if (collectionConfig.hasRarity && nft.rarity_rank && !isNaN(nft.rarity_rank)) {
-      fields.push({
+      embed.fields.push({
         name: '✨ Rarity Rank',
         value: `#${nft.rarity_rank}`,
         inline: true
@@ -104,23 +123,7 @@ async function getNFTDetails(collection, tokenId) {
     return {
       type: 4,
       data: {
-        embeds: [{
-          title: nft.name,
-          description: nft.mint_address 
-            ? `[View on Magic Eden](https://magiceden.io/item-details/${nft.mint_address}) • [View on Tensor](https://www.tensor.trade/item/${nft.mint_address})\n\nMint: \`${nft.mint_address}\``
-            : 'Mint address not available',
-          color: collectionConfig.color,
-          fields: fields,
-          thumbnail: {
-            url: `https://buxdao.com${collectionConfig.logo}`
-          },
-          image: {
-            url: nft.image_url
-          },
-          footer: {
-            text: "BUXDAO • Putting Community First"
-          }
-        }]
+        embeds: [embed]
       }
     };
   } finally {

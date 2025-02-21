@@ -13,6 +13,13 @@ router.post('/', async (req, res) => {
   try {
     const lookupCommand = `${collection}.${tokenId}`;
     const result = await handleNFTLookup(lookupCommand);
+    
+    // Log the response
+    console.log('NFT lookup response:', {
+      type: result.type,
+      embed: result.data.embeds[0]
+    });
+    
     return res.status(200).json(result);
   } catch (error) {
     return res.status(500).json({ error: error.message });
