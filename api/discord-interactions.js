@@ -157,40 +157,65 @@ export default async function handler(request) {
 
         // Handle rank command
         if (command.name === 'rank') {
-          const subcommand = command.options?.[0];
-          if (!subcommand) {
-            throw new Error('Please provide a collection and rank number');
+          try {
+            const subcommand = command.options?.[0];
+            if (!subcommand) {
+              return new Response(JSON.stringify({
+                type: 4,
+                data: {
+                  content: 'Please provide a collection and rank number',
+                  flags: 64
+                }
+              }), { headers: { 'Content-Type': 'application/json' } });
+            }
+
+            const collection = subcommand.name;
+            const rank = subcommand.options?.[0]?.value;
+
+            console.log('Rank lookup request:', { collection, rank });
+
+            if (!rank) {
+              return new Response(JSON.stringify({
+                type: 4,
+                data: {
+                  content: 'Please provide a rank number',
+                  flags: 64
+                }
+              }), { headers: { 'Content-Type': 'application/json' } });
+            }
+
+            // Validate collection and check if it supports rarity
+            const collectionConfig = validateCollection(collection, true);
+
+            // Call the rank lookup API endpoint - exactly like NFT command
+            const response = await fetch(`${baseUrl}/api/nft-lookup/rank`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ 
+                collection, 
+                rank,
+                symbol: collectionConfig.symbol 
+              })
+            });
+
+            if (!response.ok) {
+              throw new Error(`No NFT found with rank #${rank} in ${collectionConfig.name}`);
+            }
+
+            const result = await response.json();
+            return new Response(JSON.stringify(result), {
+              headers: { 'Content-Type': 'application/json' }
+            });
+          } catch (error) {
+            console.error('Rank lookup error:', error);
+            return new Response(JSON.stringify({
+              type: 4,
+              data: {
+                content: `Error: ${error.message}`,
+                flags: 64
+              }
+            }), { headers: { 'Content-Type': 'application/json' } });
           }
-
-          const collection = subcommand.name;
-          const rank = subcommand.options?.[0]?.value;
-
-          if (!rank) {
-            throw new Error('Please provide a rank number');
-          }
-
-          // Validate collection and check if it supports rarity
-          const collectionConfig = validateCollection(collection, true);
-
-          // Call the rank lookup API endpoint - exactly like NFT command
-          const response = await fetch(`${baseUrl}/api/nft-lookup/rank`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              collection, 
-              rank,
-              symbol: collectionConfig.symbol 
-            })
-          });
-
-          if (!response.ok) {
-            throw new Error(`No NFT found with rank #${rank} in ${collectionConfig.name}`);
-          }
-
-          const result = await response.json();
-          return new Response(JSON.stringify(result), {
-            headers: { 'Content-Type': 'application/json' }
-          });
         }
 
         throw new Error('Unknown command');
