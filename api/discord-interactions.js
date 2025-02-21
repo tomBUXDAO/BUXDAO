@@ -58,31 +58,29 @@ function validateCollection(collection, requireRarity = false) {
 
 export default async function handler(request) {
   try {
-    // 1. Verify required headers are present
+    // 1. Get the raw body and headers
     const signature = request.headers.get('x-signature-ed25519');
     const timestamp = request.headers.get('x-signature-timestamp');
-    
-    if (!signature || !timestamp) {
-      console.error('Missing required Discord headers:', { 
-        hasSignature: !!signature, 
-        hasTimestamp: !!timestamp
+    const rawBody = await request.text();
+
+    // 2. Log headers for debugging
+    console.log('Discord headers:', {
+      signature,
+      timestamp,
+      hasBody: !!rawBody
+    });
+
+    // 3. Validate required headers
+    if (!signature || !timestamp || !rawBody) {
+      console.error('Missing required Discord headers:', {
+        hasSignature: !!signature,
+        hasTimestamp: !!timestamp,
+        hasBody: !!rawBody
       });
       return new Response('Invalid request signature', { status: 401 });
     }
 
-    // 2. Get the raw body as a string
-    const rawBody = await request.text();
-    if (!rawBody) {
-      console.error('Empty request body');
-      return new Response('Invalid request', { status: 401 });
-    }
-
-    // 3. Verify the request is from Discord using Ed25519
-    if (!process.env.DISCORD_PUBLIC_KEY) {
-      console.error('DISCORD_PUBLIC_KEY not configured');
-      return new Response('Configuration error', { status: 500 });
-    }
-
+    // 4. Verify the request is from Discord
     const isValidRequest = verifyKey(
       Buffer.from(rawBody),
       signature,
@@ -95,59 +93,57 @@ export default async function handler(request) {
       return new Response('Invalid request signature', { status: 401 });
     }
 
-    // 4. Parse the interaction data
-    let interaction;
-    try {
-      interaction = JSON.parse(rawBody);
-    } catch (error) {
-      console.error('Failed to parse interaction body:', error);
-      return new Response('Invalid request body', { status: 400 });
-    }
+    // 5. Parse the interaction data
+    const interaction = JSON.parse(rawBody);
 
-    // 5. Handle ping (PING interaction type)
+    // 6. Handle ping (PING interaction type)
     if (interaction.type === 1) {
       return new Response(JSON.stringify({ type: 1 }), {
         headers: { 'Content-Type': 'application/json' }
       });
     }
 
-    // 6. Handle application commands (APPLICATION_COMMAND interaction type)
+    // 7. Handle commands
     if (interaction.type === 2) {
       const command = interaction.data;
       const baseUrl = process.env.API_BASE_URL || 'https://buxdao.com';
-      
+
       try {
         // Handle NFT command
         if (command.name === 'nft') {
           const subcommand = command.options?.[0];
           if (!subcommand) {
-            throw new Error('Please provide a collection and token ID');
+            return new Response(JSON.stringify({
+              type: 4,
+              data: {
+                content: 'Please provide a collection and token ID',
+                flags: 64
+              }
+            }), { headers: { 'Content-Type': 'application/json' } });
           }
 
           const collection = subcommand.name;
           const tokenId = subcommand.options?.[0]?.value;
 
           if (!tokenId) {
-            throw new Error('Please provide a token ID');
+            return new Response(JSON.stringify({
+              type: 4,
+              data: {
+                content: 'Please provide a token ID',
+                flags: 64
+              }
+            }), { headers: { 'Content-Type': 'application/json' } });
           }
 
-          // Validate collection before making API call
+          // Validate collection
           const collectionConfig = validateCollection(collection);
 
-          // Call the NFT lookup API endpoint
+          // Call NFT lookup
           const response = await fetch(`${baseUrl}/api/nft-lookup`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              collection, 
-              tokenId,
-              symbol: collectionConfig.symbol 
-            })
+            body: JSON.stringify({ collection, tokenId, symbol: collectionConfig.symbol })
           });
-
-          if (!response.ok) {
-            throw new Error(`NFT not found: ${collectionConfig.name} #${tokenId}`);
-          }
 
           const result = await response.json();
           return new Response(JSON.stringify(result), {
@@ -171,8 +167,6 @@ export default async function handler(request) {
           const collection = subcommand.name;
           const rank = subcommand.options?.[0]?.value;
 
-          console.log('Rank lookup request:', { collection, rank });
-
           if (!rank) {
             return new Response(JSON.stringify({
               type: 4,
@@ -183,70 +177,56 @@ export default async function handler(request) {
             }), { headers: { 'Content-Type': 'application/json' } });
           }
 
-          try {
-            // Validate collection and check if it supports rarity
-            const collectionConfig = validateCollection(collection, true);
+          // Validate collection
+          const collectionConfig = validateCollection(collection, true);
 
-            // Call the rank lookup API endpoint
-            const response = await fetch(`${baseUrl}/api/nft-lookup/rank`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ 
-                collection, 
-                rank,
-                symbol: collectionConfig.symbol 
-              })
-            });
+          // Call rank lookup
+          const response = await fetch(`${baseUrl}/api/nft-lookup/rank`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ collection, rank, symbol: collectionConfig.symbol })
+          });
 
-            if (!response.ok) {
-              throw new Error(`No NFT found with rank #${rank} in ${collectionConfig.name}`);
-            }
-
-            const result = await response.json();
-            return new Response(JSON.stringify(result), {
-              headers: { 'Content-Type': 'application/json' }
-            });
-          } catch (error) {
-            console.error('Rank lookup error:', error);
-            return new Response(JSON.stringify({
-              type: 4,
-              data: {
-                content: `Error: ${error.message}`,
-                flags: 64
-              }
-            }), { headers: { 'Content-Type': 'application/json' } });
-          }
+          const result = await response.json();
+          return new Response(JSON.stringify(result), {
+            headers: { 'Content-Type': 'application/json' }
+          });
         }
 
-        throw new Error('Unknown command');
+        return new Response(JSON.stringify({
+          type: 4,
+          data: {
+            content: 'Unknown command',
+            flags: 64
+          }
+        }), { headers: { 'Content-Type': 'application/json' } });
       } catch (error) {
-        console.error('Command processing error:', error);
+        console.error('Command error:', error);
         return new Response(JSON.stringify({
           type: 4,
           data: {
             content: `Error: ${error.message}`,
-            flags: 64 // EPHEMERAL flag
+            flags: 64
           }
         }), { headers: { 'Content-Type': 'application/json' } });
       }
     }
 
-    // Handle unknown interaction type
     return new Response(JSON.stringify({
       type: 4,
       data: {
         content: 'Unknown interaction type',
-        flags: 64 // EPHEMERAL flag
+        flags: 64
       }
     }), { headers: { 'Content-Type': 'application/json' } });
 
   } catch (error) {
-    console.error('Critical interaction error:', error);
+    console.error('Critical error:', error);
     return new Response(JSON.stringify({
       type: 4,
       data: {
         content: 'An error occurred processing the command',
-        flags: 64 // EPHEMERAL flag
+        flags: 64
       }
     }), { headers: { 'Content-Type': 'application/json' } });
   }
