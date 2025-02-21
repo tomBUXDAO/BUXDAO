@@ -184,7 +184,8 @@ export default async function handler(request) {
           });
 
           if (!response.ok) {
-            throw new Error(`No NFT found with rank #${rank} in ${collectionConfig.name}`);
+            const errorData = await response.json();
+            throw new Error(errorData.message || `Error looking up rank #${rank} in ${collectionConfig.name}`);
           }
 
           const result = await response.json();
