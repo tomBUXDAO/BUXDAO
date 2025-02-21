@@ -8,21 +8,6 @@ function hexToUint8Array(hex) {
   return new Uint8Array(hex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
 }
 
-// Helper function to format Ed25519 public key
-function formatPublicKey(publicKeyHex) {
-  // Ed25519 ASN.1 DER prefix
-  const prefix = '302a300506032b6570032100';
-  // Combine prefix with key
-  const derKey = prefix + publicKeyHex;
-  // Convert to PEM format
-  const pemKey = [
-    '-----BEGIN PUBLIC KEY-----',
-    Buffer.from(derKey, 'hex').toString('base64'),
-    '-----END PUBLIC KEY-----'
-  ].join('\n');
-  return pemKey;
-}
-
 export default async function handler(request) {
   try {
     const signature = request.headers.get('x-signature-ed25519');
@@ -43,8 +28,7 @@ export default async function handler(request) {
       'raw',
       publicKeyBytes,
       {
-        name: 'Ed25519',
-        namedCurve: 'Ed25519'
+        name: 'Ed25519'
       },
       false,
       ['verify']

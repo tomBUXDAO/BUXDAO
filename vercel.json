@@ -23,7 +23,11 @@
     },
     {
       "src": "api/discord-interactions.js",
-      "use": "@vercel/edge"
+      "use": "@vercel/edge",
+      "config": {
+        "runtime": "edge",
+        "regions": ["iad1"]
+      }
     }
   ],
   "routes": [
