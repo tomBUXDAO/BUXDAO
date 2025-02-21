@@ -23,6 +23,10 @@
       "use": "@vercel/node"
     },
     {
+      "src": "api/nft-lookup/rank.js",
+      "use": "@vercel/node"
+    },
+    {
       "src": "api/discord-interactions.js",
       "use": "@vercel/node",
       "config": {
@@ -31,6 +35,10 @@
     }
   ],
   "routes": [
+    {
+      "src": "/api/nft-lookup/rank",
+      "dest": "/api/nft-lookup/rank.js"
+    },
     {
       "src": "/api/discord-interactions",
       "dest": "/api/discord-interactions.js"
