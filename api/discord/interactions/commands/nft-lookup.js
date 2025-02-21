@@ -81,36 +81,25 @@ async function getNFTDetails(collection, tokenId) {
     `;
     const values = [collectionConfig.symbol, `${collectionConfig.name} #${tokenId}`];
     
-    console.log('Executing database query:', {
-      query,
-      values,
-      symbol: collectionConfig.symbol,
-      name: `${collectionConfig.name} #${tokenId}`
-    });
-
+    console.log('Executing query:', { query, values });
     const result = await client.query(query, values);
-    console.log('Database query result:', { 
+    console.log('Query result:', { 
       rowCount: result?.rows?.length,
       firstRow: result?.rows?.[0] ? {
         name: result.rows[0].name,
         symbol: result.rows[0].symbol,
-        image_url: result.rows[0].image_url,
-        mint_address: result.rows[0].mint_address,
-        owner_wallet: result.rows[0].owner_wallet,
-        owner_discord_id: result.rows[0].owner_discord_id
+        image_url: result.rows[0].image_url
       } : null
     });
 
     if (!result || result.rows.length === 0) {
-      console.log('NFT not found in database:', { collection, tokenId });
+      console.log('NFT not found:', { collection, tokenId });
       throw new Error(`NFT not found: ${collectionConfig.name} #${tokenId}`);
     }
 
     const nft = result.rows[0];
-    console.log('Processing NFT data:', {
+    console.log('Found NFT data:', {
       name: nft.name,
-      symbol: nft.symbol,
-      mint_address: nft.mint_address,
       owner: nft.owner_discord_id || nft.owner_wallet,
       listed: nft.is_listed,
       price: nft.list_price,
@@ -121,7 +110,7 @@ async function getNFTDetails(collection, tokenId) {
     const fields = [];
 
     // Owner field - prefer Discord name if available
-    const ownerField = {
+    fields.push({
       name: '👤 Owner',
       value: nft.owner_name 
         ? `<@${nft.owner_discord_id}>`
@@ -129,50 +118,38 @@ async function getNFTDetails(collection, tokenId) {
           ? `\`${nft.owner_wallet.slice(0, 4)}...${nft.owner_wallet.slice(-4)}\``
           : 'Unknown',
       inline: true
-    };
-    console.log('Owner field:', ownerField);
-    fields.push(ownerField);
+    });
 
     // Status field - show if listed and price
-    const status = nft.is_listed 
-      ? `Listed for ${(Number(nft.list_price) || 0).toFixed(2)} SOL`
-      : 'Not Listed';
-    const statusField = {
+    fields.push({
       name: '🏷️ Status',
-      value: status,
+      value: nft.is_listed 
+        ? `Listed for ${(Number(nft.list_price) || 0).toFixed(2)} SOL`
+        : 'Not Listed',
       inline: true
-    };
-    console.log('Status field:', statusField);
-    fields.push(statusField);
+    });
 
     // Last sale if available
     if (nft.last_sale_price) {
-      const saleField = {
+      fields.push({
         name: '💰 Last Sale',
         value: `${Number(nft.last_sale_price).toFixed(2)} SOL`,
         inline: true
-      };
-      console.log('Sale field:', saleField);
-      fields.push(saleField);
+      });
     }
 
     // Rarity rank if collection supports it
     if (collectionConfig.hasRarity && nft.rarity_rank) {
-      const rarityField = {
+      fields.push({
         name: '✨ Rarity Rank',
         value: `#${nft.rarity_rank}`,
         inline: true
-      };
-      console.log('Rarity field:', rarityField);
-      fields.push(rarityField);
+      });
     }
 
-    // Format the embed response
-    const embedData = {
-      type: 4, // CHANNEL_MESSAGE_WITH_SOURCE
+    return {
+      type: 4,
       data: {
-        tts: false,
-        content: "",
         embeds: [{
           title: nft.name,
           description: `[View on Magic Eden](https://magiceden.io/item-details/${nft.mint_address}) • [View on Tensor](https://www.tensor.trade/item/${nft.mint_address})\n\n**Mint:** \`${nft.mint_address}\``,
@@ -187,20 +164,9 @@ async function getNFTDetails(collection, tokenId) {
           footer: {
             text: "BUXDAO • Putting Community First"
           }
-        }],
-        allowed_mentions: { parse: [] }
+        }]
       }
     };
-
-    console.log('Final embed data:', {
-      hasImage: true,
-      imageUrl: nft.image_url,
-      embedFields: embedData.data.embeds[0].fields.length,
-      embedTitle: embedData.data.embeds[0].title,
-      embedDescription: embedData.data.embeds[0].description
-    });
-
-    return embedData;
   } catch (error) {
     console.error('Error in getNFTDetails:', error);
     if (error.code === '57014') {
