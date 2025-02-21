@@ -192,22 +192,14 @@ export default async function handler(req, res) {
           thumbnail: {
             url: `https://buxdao.com${collectionConfig.logo}`
           },
-          image: nft.image_url ? (
-            nft.image_url.startsWith('http') ? 
-            { url: nft.image_url } : // Remote URL
-            { url: `attachment://${nft.image_url.split('/').pop()}` } // Local file
-          ) : null,
+          image: nft.image_url ? {
+            url: nft.image_url.startsWith('http') ? nft.image_url : `https://buxdao.com${nft.image_url}`
+          } : null,
           footer: {
             text: "BUXDAO • Putting Community First"
           }
         }],
-        allowed_mentions: { parse: [] },
-        // Add attachments for local files
-        attachments: nft.image_url && !nft.image_url.startsWith('http') ? [{
-          id: 0,
-          filename: nft.image_url.split('/').pop(),
-          uploaded_filename: nft.image_url
-        }] : []
+        allowed_mentions: { parse: [] }
       }
     };
 
