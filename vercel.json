@@ -20,6 +20,10 @@
     {
       "src": "server.js",
       "use": "@vercel/node"
+    },
+    {
+      "src": "api/discord-interactions.js",
+      "use": "@vercel/edge"
     }
   ],
   "routes": [

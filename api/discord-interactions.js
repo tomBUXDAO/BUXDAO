@@ -1,3 +1,7 @@
+export const config = {
+  runtime: 'edge'
+};
+
 import { verifyKey } from 'discord-interactions';
 import { handleNFTLookup } from './discord/interactions/commands/nft-lookup.js';
 import { handleRankLookup } from './discord/interactions/commands/rank-lookup.js';
