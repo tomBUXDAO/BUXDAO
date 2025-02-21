@@ -82,6 +82,7 @@ import collectionCountsRouter from './api/collection-counts/index.js';
 import processRewardsRouter from './api/rewards/process-daily.js';
 import rewardsEventsRouter from './api/rewards/events.js';
 import nftLookupRouter from './api/nft-lookup.js';
+import rankLookupRouter from './api/nft-lookup/rank.js';
 import webhookRouter from './api/discord/webhook.js';
 
 // Import monitor router with debug logging
@@ -383,7 +384,10 @@ app.use('/api/token-metrics', tokenMetricsRouter);
 app.use('/api/user', userRouter);
 app.use('/api/user/balance', balanceRouter);
 app.use('/api/collection-counts', collectionCountsRouter);
+app.use('/api/rewards/process-daily', processRewardsRouter);
+app.use('/api/rewards/events', rewardsEventsRouter);
 app.use('/api/nft-lookup', nftLookupRouter);
+app.use('/api/nft-lookup/rank', rankLookupRouter);
 app.use('/api/discord/webhook', webhookRouter);
 
 // Mount monitor routes with more detailed logging
