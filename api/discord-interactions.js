@@ -188,9 +188,9 @@ export default async function handler(request) {
             body: JSON.stringify({ collection, tokenId, symbol: collectionConfig.symbol })
           });
 
+          // Pass through response exactly as-is
           const result = await response.json();
-          
-          // Just return the result directly - no modification
+          console.log('API Response:', JSON.stringify(result));
           return new Response(JSON.stringify(result), {
             headers: { 'Content-Type': 'application/json' }
           });
@@ -232,9 +232,9 @@ export default async function handler(request) {
             body: JSON.stringify({ collection, rank, symbol: collectionConfig.symbol })
           });
 
+          // Pass through response exactly as-is
           const result = await response.json();
-          
-          // Just return the result directly - no modification
+          console.log('API Response:', JSON.stringify(result));
           return new Response(JSON.stringify(result), {
             headers: { 'Content-Type': 'application/json' }
           });
