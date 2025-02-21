@@ -29,9 +29,8 @@ export default async function handler(req, res) {
   console.log('Rank lookup request:', {
     method: req.method,
     body: req.body,
-    headers: {
-      'content-type': req.headers['content-type']
-    }
+    headers: req.headers,
+    url: req.url
   });
 
   if (req.method !== 'POST') {
@@ -42,7 +41,14 @@ export default async function handler(req, res) {
   }
 
   const { collection, symbol, rank } = req.body;
-  console.log('Request parameters:', { collection, symbol, rank, type: typeof rank });
+  console.log('Request parameters:', { 
+    collection, 
+    symbol, 
+    rank, 
+    typeRank: typeof rank,
+    typeCollection: typeof collection,
+    typeSymbol: typeof symbol
+  });
 
   if (!collection || !symbol || rank === undefined) {
     return res.status(400).json({
