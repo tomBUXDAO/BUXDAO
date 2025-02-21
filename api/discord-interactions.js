@@ -64,25 +64,46 @@ async function getNFTDetails(collection, tokenId) {
   }
 
   const baseUrl = process.env.API_BASE_URL || 'https://buxdao.com';
+  const nftName = `${collectionConfig.name} #${tokenId}`;
+  const requestBody = {
+    symbol: collectionConfig.symbol,
+    name: nftName
+  };
   
   try {
+    console.log('NFT lookup request:', {
+      url: `${baseUrl}/api/nft-lookup`,
+      method: 'POST',
+      body: requestBody
+    });
+
     // Fetch NFT data from database
     const response = await fetch(`${baseUrl}/api/nft-lookup`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        symbol: collectionConfig.symbol,
-        name: `${collectionConfig.name} #${tokenId}`
-      })
+      body: JSON.stringify(requestBody)
     });
 
     if (!response.ok) {
-      throw new Error(`NFT not found: ${collectionConfig.name} #${tokenId}`);
+      const errorText = await response.text();
+      console.error('NFT lookup failed:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText,
+        request: requestBody
+      });
+      throw new Error(`NFT not found: ${nftName} (${response.status}: ${errorText || response.statusText})`);
     }
 
     const nft = await response.json();
+    console.log('NFT lookup successful:', {
+      name: nft.name,
+      symbol: nft.symbol,
+      owner: nft.owner_discord_id || nft.owner_wallet,
+      request: requestBody
+    });
 
     // Build fields array based on available data
     const fields = [];
