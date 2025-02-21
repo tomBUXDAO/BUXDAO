@@ -13,8 +13,8 @@ router.post('/', async (req, res) => {
   try {
     const { collection, tokenId, webhookUrl } = req.body;
 
-    if (!collection || !tokenId || !webhookUrl) {
-      console.error('Missing parameters:', { collection, tokenId, webhookUrl });
+    if (!collection || !tokenId) {
+      console.error('Missing parameters:', { collection, tokenId });
       return res.status(400).json({ error: 'Missing required parameters' });
     }
 
@@ -22,24 +22,29 @@ router.post('/', async (req, res) => {
     console.log('Processing NFT lookup:', { collection, tokenId });
     const result = await handleNFTLookup(`${collection}.${tokenId}`);
 
-    // Send result via webhook
-    console.log('Sending webhook response:', {
-      webhookUrl: webhookUrl.replace(/\d{10,}/g, '***'),
-      resultType: result.type,
-      hasEmbed: !!result.data?.embeds
-    });
+    // If webhookUrl is provided, send result via webhook
+    if (webhookUrl) {
+      console.log('Sending webhook response:', {
+        webhookUrl: webhookUrl.replace(/\d{10,}/g, '***'),
+        resultType: result.type,
+        hasEmbed: !!result.data?.embeds
+      });
 
-    const webhookResponse = await fetch(webhookUrl, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(result.data)
-    });
+      const webhookResponse = await fetch(webhookUrl, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(result.data)
+      });
 
-    if (!webhookResponse.ok) {
-      throw new Error(`Webhook failed with status ${webhookResponse.status}`);
+      if (!webhookResponse.ok) {
+        throw new Error(`Webhook failed with status ${webhookResponse.status}`);
+      }
+
+      return res.status(200).json({ success: true });
     }
 
-    return res.status(200).json({ success: true });
+    // If no webhookUrl, return the result directly
+    return res.status(200).json(result);
   } catch (error) {
     console.error('NFT lookup error:', {
       message: error.message,
