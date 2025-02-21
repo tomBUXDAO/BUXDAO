@@ -81,7 +81,7 @@ export default async function handler(req, res) {
     const countResult = await client.query(countQuery, [symbol, rank]);
     console.log('Count result:', countResult.rows[0]);
 
-    if (countResult.rows[0].count === '0') {
+    if (parseInt(countResult.rows[0].count) === 0) {
       return res.status(404).json({
         error: 'NFT not found',
         message: `No NFT found with rank #${rank} in ${collectionConfig.name}`
