@@ -116,8 +116,11 @@ export default async function handler(req, res) {
 
     if (!result.rows.length) {
       return res.status(404).json({
-        error: 'NFT not found',
-        message: `No NFT found with rank #${rank} in ${collectionConfig.name}`
+        type: 4,
+        data: {
+          content: `No NFT found with rank #${rank} in ${collectionConfig.name}`,
+          flags: 64
+        }
       });
     }
 
@@ -162,10 +165,10 @@ export default async function handler(req, res) {
       inline: true
     });
 
-    return res.status(200).json({
+    // Return the exact same format that works for Money Monsters
+    const response = {
       type: 4,
       data: {
-        content: "",
         embeds: [{
           title: nft.name,
           description: `[View on Magic Eden](https://magiceden.io/item-details/${nft.mint_address}) • [View on Tensor](https://www.tensor.trade/item/${nft.mint_address})\n\nMint: \`${nft.mint_address || 'Unknown'}\``,
@@ -182,7 +185,10 @@ export default async function handler(req, res) {
           }
         }]
       }
-    });
+    };
+
+    console.log('Sending response:', JSON.stringify(response));
+    return res.status(200).json(response);
   } catch (error) {
     console.error('Error looking up NFT by rank:', error);
     return res.status(500).json({
