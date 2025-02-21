@@ -70,7 +70,7 @@ async function getNFTDetails(collection, tokenId) {
 
     fields.push({
       name: '👤 Owner',
-      value: nft.owner_name ? `<@${nft.owner_discord_id}>` : (nft.owner_wallet ? `\`${nft.owner_wallet.slice(0, 4)}...${nft.owner_wallet.slice(-4)}\`` : 'Unknown'),
+      value: nft.owner_wallet ? `\`${nft.owner_wallet.slice(0, 4)}...${nft.owner_wallet.slice(-4)}\`` : 'Unknown',
       inline: true
     });
 
@@ -100,7 +100,7 @@ async function getNFTDetails(collection, tokenId) {
       type: 4,
       data: {
         embeds: [{
-          title: nft.name || `${collectionConfig.name} #${tokenId}`,
+          title: nft.name,
           description: nft.mint_address 
             ? `[View on Magic Eden](https://magiceden.io/item-details/${nft.mint_address}) • [View on Tensor](https://www.tensor.trade/item/${nft.mint_address})\n\nMint: \`${nft.mint_address}\``
             : 'Mint address not available',
@@ -109,9 +109,9 @@ async function getNFTDetails(collection, tokenId) {
           thumbnail: {
             url: `https://buxdao.com${collectionConfig.logo}`
           },
-          image: nft.image_url ? {
+          image: {
             url: nft.image_url
-          } : null,
+          },
           footer: {
             text: "BUXDAO • Putting Community First"
           }
