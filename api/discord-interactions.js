@@ -159,8 +159,11 @@ export default async function handler(request) {
             return new Response(JSON.stringify({
               type: 4,
               data: {
-                content: 'Please provide a collection and token ID',
-                flags: 64
+                embeds: [{
+                  title: 'Error',
+                  description: 'Please provide a collection and token ID',
+                  color: 0xFF0000
+                }]
               }
             }), { headers: { 'Content-Type': 'application/json' } });
           }
@@ -172,8 +175,11 @@ export default async function handler(request) {
             return new Response(JSON.stringify({
               type: 4,
               data: {
-                content: 'Please provide a token ID',
-                flags: 64
+                embeds: [{
+                  title: 'Error',
+                  description: 'Please provide a token ID',
+                  color: 0xFF0000
+                }]
               }
             }), { headers: { 'Content-Type': 'application/json' } });
           }
@@ -203,8 +209,11 @@ export default async function handler(request) {
             return new Response(JSON.stringify({
               type: 4,
               data: {
-                content: 'Please provide a collection and rank number',
-                flags: 64
+                embeds: [{
+                  title: 'Error',
+                  description: 'Please provide a collection and rank number',
+                  color: 0xFF0000
+                }]
               }
             }), { headers: { 'Content-Type': 'application/json' } });
           }
@@ -216,8 +225,11 @@ export default async function handler(request) {
             return new Response(JSON.stringify({
               type: 4,
               data: {
-                content: 'Please provide a rank number',
-                flags: 64
+                embeds: [{
+                  title: 'Error',
+                  description: 'Please provide a rank number',
+                  color: 0xFF0000
+                }]
               }
             }), { headers: { 'Content-Type': 'application/json' } });
           }
@@ -243,8 +255,11 @@ export default async function handler(request) {
         return new Response(JSON.stringify({
           type: 4,
           data: {
-            content: 'Unknown command',
-            flags: 64
+            embeds: [{
+              title: 'Error',
+              description: 'Unknown command',
+              color: 0xFF0000
+            }]
           }
         }), { headers: { 'Content-Type': 'application/json' } });
       } catch (error) {
@@ -252,8 +267,11 @@ export default async function handler(request) {
         return new Response(JSON.stringify({
           type: 4,
           data: {
-            content: `Error: ${error.message}`,
-            flags: 64
+            embeds: [{
+              title: 'Error',
+              description: error.message,
+              color: 0xFF0000
+            }]
           }
         }), { headers: { 'Content-Type': 'application/json' } });
       }
@@ -262,8 +280,11 @@ export default async function handler(request) {
     return new Response(JSON.stringify({
       type: 4,
       data: {
-        content: 'Unknown interaction type',
-        flags: 64
+        embeds: [{
+          title: 'Error',
+          description: 'Unknown interaction type',
+          color: 0xFF0000
+        }]
       }
     }), { headers: { 'Content-Type': 'application/json' } });
 
@@ -272,8 +293,11 @@ export default async function handler(request) {
     return new Response(JSON.stringify({
       type: 4,
       data: {
-        content: 'An error occurred processing the command',
-        flags: 64
+        embeds: [{
+          title: 'Error',
+          description: 'An error occurred processing the command',
+          color: 0xFF0000
+        }]
       }
     }), { headers: { 'Content-Type': 'application/json' } });
   }

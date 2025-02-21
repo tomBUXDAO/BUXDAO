@@ -44,16 +44,28 @@ export default async function handler(req, res) {
 
   if (!collection || !tokenId) {
     return res.status(400).json({
-      error: 'Missing required parameters',
-      message: 'Both collection and tokenId are required'
+      type: 4,
+      data: {
+        embeds: [{
+          title: 'Error',
+          description: 'Both collection and tokenId are required',
+          color: 0xFF0000
+        }]
+      }
     });
   }
 
   const collectionConfig = COLLECTIONS[collection];
   if (!collectionConfig) {
     return res.status(400).json({
-      error: 'Invalid collection',
-      message: `Collection "${collection}" not found. Available collections: ${Object.keys(COLLECTIONS).join(', ')}`
+      type: 4,
+      data: {
+        embeds: [{
+          title: 'Error',
+          description: `Collection "${collection}" not found. Available collections: ${Object.keys(COLLECTIONS).join(', ')}`,
+          color: 0xFF0000
+        }]
+      }
     });
   }
 
@@ -78,8 +90,14 @@ export default async function handler(req, res) {
 
     if (!result.rows.length) {
       return res.status(404).json({
-        error: 'NFT not found',
-        message: `${collectionConfig.name} #${tokenId} not found in database`
+        type: 4,
+        data: {
+          embeds: [{
+            title: 'Error',
+            description: `${collectionConfig.name} #${tokenId} not found in database`,
+            color: 0xFF0000
+          }]
+        }
       });
     }
 
@@ -149,8 +167,14 @@ export default async function handler(req, res) {
   } catch (error) {
     console.error('Error looking up NFT:', error);
     return res.status(500).json({
-      error: 'Database error',
-      message: error.message
+      type: 4,
+      data: {
+        embeds: [{
+          title: 'Database Error',
+          description: error.message,
+          color: 0xFF0000
+        }]
+      }
     });
   } finally {
     if (client) {
