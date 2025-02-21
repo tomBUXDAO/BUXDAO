@@ -1,38 +1,161 @@
-import { handleNFTLookup } from './discord/interactions/commands/nft-lookup.js';
-import { verifyKey } from 'discord-interactions';
+import { pool } from './config/database.js';
+
+// Collection configurations
+const COLLECTIONS = {
+  'cat': {
+    name: 'Fcked Cat',
+    symbol: 'FCKEDCATZ',
+    hasRarity: true,
+    logo: '/logos/cat.PNG',
+    color: 0xFFF44D // Yellow
+  },
+  'celeb': {
+    name: 'Celebrity Catz',
+    symbol: 'CelebCatz',
+    hasRarity: false,
+    logo: '/logos/celeb.PNG',
+    color: 0xFF4D4D // Red
+  },
+  'mm': {
+    name: 'Money Monsters',
+    symbol: 'MM',
+    hasRarity: true,
+    logo: '/logos/monster.PNG',
+    color: 0x4DFFFF // Cyan
+  },
+  'mm3d': {
+    name: 'Money Monsters 3D',
+    symbol: 'MM3D',
+    hasRarity: true,
+    logo: '/logos/monster.PNG',
+    color: 0x4DFF4D // Green
+  },
+  'bot': {
+    name: 'AI Bitbot',
+    symbol: 'AIBB',
+    hasRarity: false,
+    logo: '/logos/bot.PNG',
+    color: 0xFF4DFF // Pink
+  }
+};
 
 export default async function handler(req, res) {
-  // Return hardcoded response for testing
-  return res.status(200).json({
-    type: 4,
-    data: {
-      content: "",
-      embeds: [{
-        title: "Celebrity Catz #91",
-        description: "[View on Magic Eden](https://magiceden.io/item-details/6DomCCeXwHFuNXYVEqu5GjnCGDtQLxfN7yLEuDtmMQpu) • [View on Tensor](https://www.tensor.trade/item/6DomCCeXwHFuNXYVEqu5GjnCGDtQLxfN7yLEuDtmMQpu)\n\nMint: `6DomCCeXwHFuNXYVEqu5GjnCGDtQLxfN7yLEuDtmMQpu`",
-        color: 0xFF4D4D,
-        fields: [
-          {
-            name: '👤 Owner',
-            value: '`342t...Jb24`',
-            inline: true
-          },
-          {
-            name: '🏷️ Status',
-            value: 'Not Listed',
-            inline: true
-          }
-        ],
-        thumbnail: {
-          url: 'https://buxdao.com/logos/celeb.PNG'
-        },
-        image: {
-          url: 'https://nftstorage.link/ipfs/bafybeiaa4cjqgorisonu4bptgzzvy6nfadfhpmcgjrvq5cygknsaonq5nq/1.png'
-        },
-        footer: {
-          text: 'BUXDAO • Putting Community First'
-        }
-      }]
+  const { collection, tokenId } = req.body;
+
+  if (!collection || !tokenId) {
+    return res.status(400).json({
+      error: 'Missing required parameters',
+      message: 'Both collection and tokenId are required'
+    });
+  }
+
+  const collectionConfig = COLLECTIONS[collection];
+  if (!collectionConfig) {
+    return res.status(400).json({
+      error: 'Invalid collection',
+      message: `Collection "${collection}" not found. Available collections: ${Object.keys(COLLECTIONS).join(', ')}`
+    });
+  }
+
+  let client;
+  try {
+    client = await pool.connect();
+    console.log('Looking up NFT:', { collection, tokenId, symbol: collectionConfig.symbol });
+
+    const result = await client.query(
+      'SELECT * FROM nft_metadata WHERE symbol = $1 AND name LIKE $2',
+      [collectionConfig.symbol, `%#${tokenId}`]
+    );
+
+    console.log('Query result:', {
+      found: result.rows.length > 0,
+      firstRow: result.rows[0] ? {
+        name: result.rows[0].name,
+        owner: result.rows[0].owner_wallet,
+        mint: result.rows[0].mint_address
+      } : null
+    });
+
+    if (!result.rows.length) {
+      return res.status(404).json({
+        error: 'NFT not found',
+        message: `${collectionConfig.name} #${tokenId} not found in database`
+      });
     }
-  });
+
+    const nft = result.rows[0];
+
+    // Build fields array based on available data
+    const fields = [];
+
+    // Owner field - prefer Discord name if available
+    fields.push({
+      name: '👤 Owner',
+      value: nft.owner_name 
+        ? `<@${nft.owner_discord_id}>`
+        : nft.owner_wallet
+          ? `\`${nft.owner_wallet.slice(0, 4)}...${nft.owner_wallet.slice(-4)}\``
+          : 'Unknown',
+      inline: true
+    });
+
+    // Status field - show if listed and price
+    fields.push({
+      name: '🏷️ Status',
+      value: nft.is_listed 
+        ? `Listed for ${(Number(nft.list_price) || 0).toFixed(2)} SOL`
+        : 'Not Listed',
+      inline: true
+    });
+
+    // Last sale if available
+    if (nft.last_sale_price) {
+      fields.push({
+        name: '💰 Last Sale',
+        value: `${Number(nft.last_sale_price).toFixed(2)} SOL`,
+        inline: true
+      });
+    }
+
+    // Rarity rank if collection supports it
+    if (collectionConfig.hasRarity && nft.rarity_rank) {
+      fields.push({
+        name: '✨ Rarity Rank',
+        value: `#${nft.rarity_rank}`,
+        inline: true
+      });
+    }
+
+    return res.status(200).json({
+      type: 4,
+      data: {
+        content: "",
+        embeds: [{
+          title: nft.name,
+          description: `[View on Magic Eden](https://magiceden.io/item-details/${nft.mint_address}) • [View on Tensor](https://www.tensor.trade/item/${nft.mint_address})\n\nMint: \`${nft.mint_address || 'Unknown'}\``,
+          color: collectionConfig.color,
+          fields: fields,
+          thumbnail: {
+            url: `https://buxdao.com${collectionConfig.logo}`
+          },
+          image: {
+            url: nft.image_url || null
+          },
+          footer: {
+            text: "BUXDAO • Putting Community First"
+          }
+        }]
+      }
+    });
+  } catch (error) {
+    console.error('Error looking up NFT:', error);
+    return res.status(500).json({
+      error: 'Database error',
+      message: error.message
+    });
+  } finally {
+    if (client) {
+      await client.release();
+    }
+  }
 } 

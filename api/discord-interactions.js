@@ -1,3 +1,7 @@
+import { verifyKey } from 'discord-interactions';
+import { handleNFTLookup } from './discord/interactions/commands/nft-lookup.js';
+import { handleRankLookup } from './discord/interactions/commands/rank-lookup.js';
+
 export const config = {
   runtime: 'edge',
   regions: ['iad1']  // Use Virginia for lowest latency to Discord
@@ -284,59 +288,37 @@ export default async function handler(request) {
     const timestamp = request.headers.get('x-signature-timestamp');
     
     if (!signature || !timestamp) {
-      console.error('Missing headers:', { signature: !!signature, timestamp: !!timestamp });
+      console.error('Missing required headers:', { signature: !!signature, timestamp: !!timestamp });
       return new Response('Missing required headers', { status: 401 });
     }
 
     // Get the raw body
     const rawBody = await request.text();
-    if (!rawBody) {
-      console.error('Empty request body');
-      return new Response('Empty request body', { status: 401 });
+    
+    // Log full request details for debugging
+    console.log('Discord interaction request:', {
+      method: request.method,
+      url: request.url,
+      headers: Object.fromEntries(request.headers),
+      body: rawBody
+    });
+
+    // Verify the request is from Discord
+    const isValidRequest = verifyKey(
+      Buffer.from(rawBody),
+      signature,
+      timestamp,
+      process.env.DISCORD_PUBLIC_KEY
+    );
+
+    if (!isValidRequest) {
+      console.error('Invalid request signature');
+      return new Response('Invalid request signature', { status: 401 });
     }
 
-    // Convert signature and public key
-    const signatureBytes = hexToUint8Array(signature);
-    const publicKeyBytes = hexToUint8Array(process.env.DISCORD_PUBLIC_KEY);
-
-    if (!signatureBytes || !publicKeyBytes) {
-      console.error('Invalid signature or public key format');
-      return new Response('Invalid signature format', { status: 401 });
-    }
-
-    // Create the message
-    const message = new TextEncoder().encode(timestamp + rawBody);
-
-    try {
-      // Import the public key
-      const publicKey = await crypto.subtle.importKey(
-        'raw',
-        publicKeyBytes,
-        {
-          name: 'Ed25519'
-        },
-        false,
-        ['verify']
-      );
-
-      // Verify the signature
-      const isValidRequest = await crypto.subtle.verify(
-        'Ed25519',
-        publicKey,
-        signatureBytes,
-        message
-      );
-
-      if (!isValidRequest) {
-        console.error('Invalid signature verification');
-        return new Response('Invalid request signature', { status: 401 });
-      }
-    } catch (error) {
-      console.error('Error during signature verification:', error);
-      return new Response('Signature verification failed', { status: 401 });
-    }
-
+    // Parse the interaction data
     const interaction = JSON.parse(rawBody);
+    console.log('Interaction data:', interaction);
 
     // Handle ping
     if (interaction.type === 1) {
@@ -364,7 +346,10 @@ export default async function handler(request) {
             throw new Error('Please provide a token ID');
           }
 
-          const result = await getNFTDetails(collection, tokenId);
+          console.log('Processing NFT lookup:', { collection, tokenId });
+          const result = await handleNFTLookup(`${collection}.${tokenId}`);
+          console.log('NFT lookup result:', result);
+          
           return new Response(JSON.stringify(result), {
             headers: { 'Content-Type': 'application/json' }
           });
@@ -384,7 +369,10 @@ export default async function handler(request) {
             throw new Error('Please provide a rank number');
           }
 
-          const result = await getNFTByRank(collection, rank);
+          console.log('Processing rank lookup:', { collection, rank });
+          const result = await handleRankLookup(`${collection}.${rank}`);
+          console.log('Rank lookup result:', result);
+          
           return new Response(JSON.stringify(result), {
             headers: { 'Content-Type': 'application/json' }
           });
@@ -392,6 +380,7 @@ export default async function handler(request) {
 
         throw new Error('Unknown command');
       } catch (error) {
+        console.error('Command processing error:', error);
         return new Response(JSON.stringify({
           type: 4,
           data: {
@@ -402,6 +391,8 @@ export default async function handler(request) {
       }
     }
 
+    // Handle unknown interaction type
+    console.error('Unknown interaction type:', interaction.type);
     return new Response(JSON.stringify({
       type: 4,
       data: {
@@ -409,6 +400,7 @@ export default async function handler(request) {
         flags: 64
       }
     }), { headers: { 'Content-Type': 'application/json' } });
+
   } catch (error) {
     console.error('Critical interaction error:', error);
     return new Response(JSON.stringify({

@@ -43,50 +43,125 @@ export const COLLECTIONS = {
 async function getNFTDetails(collection, tokenId) {
   const client = await pool.connect();
   try {
+    console.log('Looking up NFT:', { collection, tokenId });
+
+    const collectionConfig = COLLECTIONS[collection];
+    if (!collectionConfig) {
+      throw new Error(`Invalid collection "${collection}". Available collections: ${Object.keys(COLLECTIONS).join(', ')}`);
+    }
+
     const result = await client.query(
-      'SELECT mint_address, owner_wallet, image_url, name FROM nft_metadata WHERE symbol = $1 AND name LIKE $2',
-      ['CelebCatz', '%#91']
+      'SELECT * FROM nft_metadata WHERE symbol = $1 AND name LIKE $2',
+      [collectionConfig.symbol, `%#${tokenId}`]
     );
+
+    console.log('Query result:', {
+      found: result.rows.length > 0,
+      firstRow: result.rows[0] ? {
+        name: result.rows[0].name,
+        owner: result.rows[0].owner_wallet,
+        mint: result.rows[0].mint_address
+      } : null
+    });
+
+    if (!result.rows.length) {
+      throw new Error(`${collectionConfig.name} #${tokenId} not found in database`);
+    }
+
+    const nft = result.rows[0];
+
+    // Build fields array based on available data
+    const fields = [];
+
+    // Owner field - prefer Discord name if available
+    fields.push({
+      name: '👤 Owner',
+      value: nft.owner_name 
+        ? `<@${nft.owner_discord_id}>`
+        : nft.owner_wallet
+          ? `\`${nft.owner_wallet.slice(0, 4)}...${nft.owner_wallet.slice(-4)}\``
+          : 'Unknown',
+      inline: true
+    });
+
+    // Status field - show if listed and price
+    fields.push({
+      name: '🏷️ Status',
+      value: nft.is_listed 
+        ? `Listed for ${(Number(nft.list_price) || 0).toFixed(2)} SOL`
+        : 'Not Listed',
+      inline: true
+    });
+
+    // Last sale if available
+    if (nft.last_sale_price) {
+      fields.push({
+        name: '💰 Last Sale',
+        value: `${Number(nft.last_sale_price).toFixed(2)} SOL`,
+        inline: true
+      });
+    }
+
+    // Rarity rank if collection supports it
+    if (collectionConfig.hasRarity && nft.rarity_rank) {
+      fields.push({
+        name: '✨ Rarity Rank',
+        value: `#${nft.rarity_rank}`,
+        inline: true
+      });
+    }
 
     return {
       type: 4,
       data: {
         content: "",
         embeds: [{
-          title: "Celebrity Catz #91",
-          description: "[View on Magic Eden](https://magiceden.io/item-details/6DomCCeXwHFuNXYVEqu5GjnCGDtQLxfN7yLEuDtmMQpu) • [View on Tensor](https://www.tensor.trade/item/6DomCCeXwHFuNXYVEqu5GjnCGDtQLxfN7yLEuDtmMQpu)\n\nMint: `6DomCCeXwHFuNXYVEqu5GjnCGDtQLxfN7yLEuDtmMQpu`",
-          color: 0xFF4D4D,
-          fields: [
-            {
-              name: '👤 Owner',
-              value: '`342t...Jb24`',
-              inline: true
-            },
-            {
-              name: '🏷️ Status',
-              value: 'Not Listed',
-              inline: true
-            }
-          ],
+          title: nft.name,
+          description: `[View on Magic Eden](https://magiceden.io/item-details/${nft.mint_address}) • [View on Tensor](https://www.tensor.trade/item/${nft.mint_address})\n\nMint: \`${nft.mint_address || 'Unknown'}\``,
+          color: collectionConfig.color,
+          fields: fields,
           thumbnail: {
-            url: 'https://buxdao.com/logos/celeb.PNG'
+            url: `https://buxdao.com${collectionConfig.logo}`
           },
           image: {
-            url: 'https://nftstorage.link/ipfs/bafybeiaa4cjqgorisonu4bptgzzvy6nfadfhpmcgjrvq5cygknsaonq5nq/1.png'
+            url: nft.image_url || null
           },
           footer: {
-            text: 'BUXDAO • Putting Community First'
+            text: "BUXDAO • Putting Community First"
           }
         }]
       }
     };
+  } catch (error) {
+    console.error('Error in getNFTDetails:', error);
+    throw error;
   } finally {
-    client.release();
+    if (client) {
+      await client.release();
+    }
   }
 }
 
 export async function handleNFTLookup(command) {
+  if (!command || typeof command !== 'string') {
+    throw new Error('Invalid command format. Expected string in format: collection.tokenId');
+  }
+
   const [collection, tokenIdStr] = command.split('.');
+
+  if (!collection) {
+    throw new Error('Missing collection. Available collections: ' + Object.keys(COLLECTIONS).join(', '));
+  }
+
+  if (!tokenIdStr) {
+    throw new Error('Missing token ID. Format: collection.tokenId');
+  }
+
   const tokenId = parseInt(tokenIdStr);
+
+  if (isNaN(tokenId)) {
+    throw new Error(`Invalid token ID "${tokenIdStr}". Please provide a valid number.`);
+  }
+
   return getNFTDetails(collection, tokenId);
 } 
