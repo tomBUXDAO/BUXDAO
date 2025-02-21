@@ -189,9 +189,23 @@ export default async function handler(request) {
           });
 
           const result = await response.json();
-          return new Response(JSON.stringify(result), {
-            headers: { 'Content-Type': 'application/json' }
-          });
+          
+          // Ensure consistent response format
+          if (result.error) {
+            return new Response(JSON.stringify({
+              type: 4,
+              data: {
+                content: result.error,
+                flags: 64
+              }
+            }), { headers: { 'Content-Type': 'application/json' } });
+          }
+
+          // Always wrap in type 4 response
+          return new Response(JSON.stringify({
+            type: 4,
+            data: result.data || result
+          }), { headers: { 'Content-Type': 'application/json' } });
         }
 
         // Handle rank command
@@ -231,9 +245,23 @@ export default async function handler(request) {
           });
 
           const result = await response.json();
-          return new Response(JSON.stringify(result), {
-            headers: { 'Content-Type': 'application/json' }
-          });
+          
+          // Ensure consistent response format
+          if (result.error) {
+            return new Response(JSON.stringify({
+              type: 4,
+              data: {
+                content: result.error,
+                flags: 64
+              }
+            }), { headers: { 'Content-Type': 'application/json' } });
+          }
+
+          // Always wrap in type 4 response
+          return new Response(JSON.stringify({
+            type: 4,
+            data: result.data || result
+          }), { headers: { 'Content-Type': 'application/json' } });
         }
 
         return new Response(JSON.stringify({
