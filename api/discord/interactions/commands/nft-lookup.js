@@ -41,14 +41,24 @@ export const COLLECTIONS = {
 };
 
 async function getNFTDetails(collection, tokenId) {
-  const client = await pool.connect();
-  try {
-    console.log('Looking up NFT:', { collection, tokenId });
+  const collectionConfig = COLLECTIONS[collection];
+  if (!collectionConfig) {
+    return {
+      type: 4,
+      data: {
+        embeds: [{
+          title: 'Error',
+          description: `Invalid collection "${collection}". Available collections: ${Object.keys(COLLECTIONS).join(', ')}`,
+          color: 0xFF0000
+        }]
+      }
+    };
+  }
 
-    const collectionConfig = COLLECTIONS[collection];
-    if (!collectionConfig) {
-      throw new Error(`Invalid collection "${collection}". Available collections: ${Object.keys(COLLECTIONS).join(', ')}`);
-    }
+  let client;
+  try {
+    client = await pool.connect();
+    console.log('Looking up NFT:', { collection, tokenId });
 
     const result = await client.query(
       'SELECT * FROM nft_metadata WHERE symbol = $1 AND name LIKE $2',
@@ -65,7 +75,16 @@ async function getNFTDetails(collection, tokenId) {
     });
 
     if (!result.rows.length) {
-      throw new Error(`${collectionConfig.name} #${tokenId} not found in database`);
+      return {
+        type: 4,
+        data: {
+          embeds: [{
+            title: 'Error',
+            description: `${collectionConfig.name} #${tokenId} not found in database`,
+            color: 0xFF0000
+          }]
+        }
+      };
     }
 
     const nft = result.rows[0];
@@ -134,7 +153,16 @@ async function getNFTDetails(collection, tokenId) {
     };
   } catch (error) {
     console.error('Error in getNFTDetails:', error);
-    throw error;
+    return {
+      type: 4,
+      data: {
+        embeds: [{
+          title: 'Database Error',
+          description: error.message,
+          color: 0xFF0000
+        }]
+      }
+    };
   } finally {
     if (client) {
       await client.release();

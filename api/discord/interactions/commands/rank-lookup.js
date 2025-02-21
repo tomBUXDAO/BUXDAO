@@ -31,12 +31,30 @@ async function getNFTByRank(collection, rank) {
 
   if (!collectionConfig) {
     console.error('Invalid collection:', collection);
-    throw new Error(`Invalid collection "${collection}". Available collections: ${Object.keys(COLLECTIONS).join(', ')}`);
+    return {
+      type: 4,
+      data: {
+        embeds: [{
+          title: 'Error',
+          description: `Invalid collection "${collection}". Available collections: ${Object.keys(COLLECTIONS).join(', ')}`,
+          color: 0xFF0000
+        }]
+      }
+    };
   }
 
   if (!rank || isNaN(rank)) {
     console.error('Invalid rank:', { rank, type: typeof rank });
-    throw new Error(`Invalid rank "${rank}". Please provide a valid number.`);
+    return {
+      type: 4,
+      data: {
+        embeds: [{
+          title: 'Error',
+          description: `Invalid rank "${rank}". Please provide a valid number.`,
+          color: 0xFF0000
+        }]
+      }
+    };
   }
 
   let client;
@@ -66,7 +84,16 @@ async function getNFTByRank(collection, rank) {
 
     if (!result || result.rows.length === 0) {
       console.log('NFT not found:', { collection, rank });
-      throw new Error(`No NFT found with rank #${rank} in ${collectionConfig.name}`);
+      return {
+        type: 4,
+        data: {
+          embeds: [{
+            title: 'Error',
+            description: `No NFT found with rank #${rank} in ${collectionConfig.name}`,
+            color: 0xFF0000
+          }]
+        }
+      };
     }
 
     const nft = result.rows[0];
@@ -151,10 +178,18 @@ async function getNFTByRank(collection, rank) {
     };
   } catch (error) {
     console.error('Error in getNFTByRank:', error);
-    if (error.code === '57014') {
-      throw new Error('The request took too long to process. Please try again.');
-    }
-    throw error;
+    return {
+      type: 4,
+      data: {
+        embeds: [{
+          title: 'Database Error',
+          description: error.code === '57014' 
+            ? 'The request took too long to process. Please try again.'
+            : error.message,
+          color: 0xFF0000
+        }]
+      }
+    };
   } finally {
     if (client) {
       try {
