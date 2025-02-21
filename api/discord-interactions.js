@@ -1,5 +1,6 @@
 import { verifyKey } from 'discord-interactions';
 import { handleNFTLookup } from './discord/interactions/commands/nft-lookup.js';
+import { handleRankLookup } from './discord/interactions/commands/rank-lookup.js';
 
 export default async function handler(req, res) {
   try {
@@ -76,6 +77,51 @@ export default async function handler(req, res) {
           return res.json(result);
         } catch (error) {
           console.error('NFT lookup error:', error);
+          return res.json({
+            type: 4,
+            data: {
+              content: `Error: ${error.message}`,
+              flags: 64
+            }
+          });
+        }
+      }
+
+      // Handle rank command
+      if (command.name === 'rank') {
+        try {
+          // Get the subcommand and rank
+          const subcommand = command.options?.[0];
+          if (!subcommand) {
+            return res.json({
+              type: 4,
+              data: {
+                content: 'Please provide a collection and rank number',
+                flags: 64
+              }
+            });
+          }
+
+          const collection = subcommand.name;
+          const rank = subcommand.options?.[0]?.value;
+
+          console.log('Rank lookup request:', { collection, rank });
+
+          if (!rank) {
+            return res.json({
+              type: 4,
+              data: {
+                content: 'Please provide a rank number',
+                flags: 64
+              }
+            });
+          }
+
+          const result = await handleRankLookup(`${collection}.${rank}`);
+          console.log('Rank lookup result:', result);
+          return res.json(result);
+        } catch (error) {
+          console.error('Rank lookup error:', error);
           return res.json({
             type: 4,
             data: {

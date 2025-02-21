@@ -1,26 +1,45 @@
 import 'dotenv/config';
 import { COLLECTIONS } from './interactions/commands/nft-lookup.js';
+import { COLLECTIONS as RANK_COLLECTIONS } from './interactions/commands/rank-lookup.js';
 import fetch from 'node-fetch';
 
 const DISCORD_API = 'https://discord.com/api/v10';
 
-// Create a single command with subcommands for each collection
-const commands = [{
-  name: 'nft',
-  description: 'Look up NFT details',
-  type: 1, // CHAT_INPUT
-  options: Object.entries(COLLECTIONS).map(([prefix, config]) => ({
-    type: 1, // Subcommand
-    name: prefix,
-    description: `Look up ${config.name} NFT details`,
-    options: [{
-      type: 4, // INTEGER
-      name: 'id',
-      description: 'Token ID number',
-      required: true
-    }]
-  }))
-}];
+// Create commands array with both NFT and rank commands
+const commands = [
+  {
+    name: 'nft',
+    description: 'Look up NFT details',
+    type: 1, // CHAT_INPUT
+    options: Object.entries(COLLECTIONS).map(([prefix, config]) => ({
+      type: 1, // Subcommand
+      name: prefix,
+      description: `Look up ${config.name} NFT details`,
+      options: [{
+        type: 4, // INTEGER
+        name: 'id',
+        description: 'Token ID number',
+        required: true
+      }]
+    }))
+  },
+  {
+    name: 'rank',
+    description: 'Look up NFT by rarity rank',
+    type: 1, // CHAT_INPUT
+    options: Object.entries(RANK_COLLECTIONS).map(([prefix, config]) => ({
+      type: 1, // Subcommand
+      name: prefix,
+      description: `Look up ${config.name} by rarity rank`,
+      options: [{
+        type: 4, // INTEGER
+        name: 'rank',
+        description: 'Rarity rank number',
+        required: true
+      }]
+    }))
+  }
+];
 
 async function registerCommands() {
   try {
