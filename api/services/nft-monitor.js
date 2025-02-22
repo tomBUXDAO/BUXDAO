@@ -32,16 +32,13 @@ class NFTMonitorService {
     try {
       console.log('Starting NFT monitor service...');
       
-      // Get all Fcked Catz NFTs from our database
+      // Get all Fcked Catz NFTs from our database using symbol
       const client = await pool.connect();
       try {
         const result = await client.query(`
           SELECT mint_address, owner_wallet, owner_discord_id 
           FROM nft_metadata 
-          WHERE mint_address = ANY(
-            SELECT mint_address FROM nft_metadata 
-            WHERE collection_address = 'EPeeeDr21EPJ4GJgjuRJ8SHD4A2d59erMaTtWaTT2hqm'
-          )
+          WHERE symbol = 'FCKEDCATZ'
         `);
         
         console.log(`Found ${result.rows.length} Fcked Catz NFTs to monitor`);
