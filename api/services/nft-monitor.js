@@ -148,10 +148,22 @@ class NFTMonitorService {
   }
 
   parseTokenAccountData(data) {
-    // Parse token account data to extract owner address
-    // This is a simplified version - you'll need to implement proper parsing
-    const owner = ''; // Extract owner from data
-    return owner;
+    // Token Account data layout:
+    // https://github.com/solana-labs/solana-program-library/blob/master/token/js/src/state/account.ts
+    const dataLayout = {
+      mint: 32,      // PublicKey
+      owner: 32,     // PublicKey
+      amount: 8,     // u64
+      delegate: 32,  // PublicKey
+      state: 1,      // AccountState
+      isNative: 1,   // IsNative
+      delegatedAmount: 8, // u64
+      closeAuthority: 32  // PublicKey
+    };
+    
+    // Owner address starts at byte 32 (after mint) and is 32 bytes long
+    const ownerAddress = data.slice(32, 64);
+    return new PublicKey(ownerAddress).toBase58();
   }
 
   async sendDiscordNotification(data) {
@@ -215,21 +227,26 @@ class NFTMonitorService {
 
   formatDiscordMessage(data) {
     if (data.type === 'transfer') {
-      const description = data.wasListed
-        ? `Listed for ${data.listPrice} SOL`
-        : 'Direct transfer';
+      const oldOwnerShort = `${data.oldOwner.slice(0, 4)}...${data.oldOwner.slice(-4)}`;
+      const newOwnerShort = `${data.newOwner.slice(0, 4)}...${data.newOwner.slice(-4)}`;
+      const mintShort = `${data.mintAddress.slice(0, 4)}...${data.mintAddress.slice(-4)}`;
 
       return {
         embeds: [{
-          title: 'Fcked Catz NFT Transferred',
-          description,
+          title: '🐱 Fcked Cat Transfer Detected',
+          description: data.wasListed 
+            ? `NFT was purchased for ${data.listPrice} SOL`
+            : 'NFT was transferred (not a marketplace sale)',
           fields: [
-            { name: 'NFT', value: data.mintAddress, inline: true },
-            { name: 'From', value: data.oldOwner, inline: true },
-            { name: 'To', value: data.newOwner, inline: true }
+            { name: '🔑 Mint', value: `[\`${mintShort}\`](https://solscan.io/token/${data.mintAddress})`, inline: true },
+            { name: '📤 From', value: `[\`${oldOwnerShort}\`](https://solscan.io/account/${data.oldOwner})`, inline: true },
+            { name: '📥 To', value: `[\`${newOwnerShort}\`](https://solscan.io/account/${data.newOwner})`, inline: true }
           ],
-          color: 0x00ff00,
-          timestamp: new Date().toISOString()
+          color: 0xFF4D4D, // Red to match Fcked Cat theme
+          timestamp: new Date().toISOString(),
+          footer: {
+            text: 'BUXDAO NFT Monitor'
+          }
         }]
       };
     }
