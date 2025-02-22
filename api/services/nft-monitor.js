@@ -122,10 +122,6 @@ class NFTMonitorService {
           WHERE mint_address = $2
         `, [newOwner, mintAddress]);
 
-        // Update collection counts
-        await client.query('SELECT update_collection_counts($1)', [currentNFT.owner_wallet]);
-        await client.query('SELECT update_collection_counts($1)', [newOwner]);
-
         // Send Discord notification
         await this.sendDiscordNotification({
           type: 'transfer',
