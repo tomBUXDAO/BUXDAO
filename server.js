@@ -1,3 +1,17 @@
+// Add web streams polyfill
+import { ReadableStream, WritableStream, TransformStream } from 'node:stream/web';
+import { Blob } from 'node:buffer';
+import { FormData } from '@web-std/form-data';
+
+// Add required globals
+Object.assign(globalThis, {
+  ReadableStream,
+  WritableStream,
+  TransformStream,
+  Blob,
+  FormData
+});
+
 // Load environment variables first, before any other imports
 if (process.env.NODE_ENV !== 'production') {
   const { fileURLToPath } = await import('url');
@@ -83,12 +97,14 @@ import processRewardsRouter from './api/rewards/process-daily.js';
 import rewardsEventsRouter from './api/rewards/events.js';
 import nftLookupRouter from './api/nft-lookup.js';
 import rankLookupRouter from './api/nft-lookup/rank.js';
-import webhookRouter from './api/discord/webhook.js';
 
 // Import monitor router with debug logging
 console.log('Importing monitor router...');
 import monitorRouter from './api/routes/monitor.js';
 console.log('Monitor router imported successfully');
+
+// Import monitor service
+import NFTMonitorService from './api/services/nft-monitor.js';
 
 const app = express();
 
@@ -388,7 +404,6 @@ app.use('/api/rewards/process-daily', processRewardsRouter);
 app.use('/api/rewards/events', rewardsEventsRouter);
 app.use('/api/nft-lookup', nftLookupRouter);
 app.use('/api/nft-lookup/rank', rankLookupRouter);
-app.use('/api/discord/webhook', webhookRouter);
 
 // Mount monitor routes with more detailed logging
 console.log('Mounting monitor routes...');
@@ -584,6 +599,9 @@ app.use((err, req, res, next) => {
   });
 });
 
+// Add global monitor service instance
+let monitorService = null;
+
 // Improve database connection handling
 const initDatabase = async () => {
   let retries = 5;
@@ -637,13 +655,24 @@ const initDatabase = async () => {
 };
 
 // Initialize database with better error handling
-initDatabase().then(success => {
+initDatabase().then(async success => {
   if (!success) {
     console.error('Failed to connect to database. Please check your database connection settings:');
     console.error('- Ensure POSTGRES_URL is correctly set in .env');
     console.error('- Check if the database is accessible');
     console.error('- Verify network connectivity to the database host');
     process.exit(1);
+  }
+
+  try {
+    // Initialize and start monitor service
+    console.log('Initializing NFT monitor service...');
+    monitorService = new NFTMonitorService(process.env.QUICKNODE_RPC_URL);
+    await monitorService.start();
+    console.log('NFT monitor service started successfully');
+  } catch (error) {
+    console.error('Failed to start NFT monitor service:', error);
+    // Continue server startup even if monitor fails
   }
 
   // Start the server only after successful database connection
@@ -654,6 +683,29 @@ initDatabase().then(success => {
 }).catch(err => {
   console.error('Critical database initialization error:', err);
   process.exit(1);
+});
+
+// Add graceful shutdown handler
+process.on('SIGTERM', async () => {
+  console.log('Received SIGTERM signal. Starting graceful shutdown...');
+  
+  if (monitorService) {
+    console.log('Stopping NFT monitor service...');
+    await monitorService.stop();
+  }
+  
+  process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+  console.log('Received SIGINT signal. Starting graceful shutdown...');
+  
+  if (monitorService) {
+    console.log('Stopping NFT monitor service...');
+    await monitorService.stop();
+  }
+  
+  process.exit(0);
 });
 
 export default app;

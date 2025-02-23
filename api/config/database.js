@@ -28,25 +28,51 @@ console.log('Initializing database connection pool...', {
   ssl: process.env.NODE_ENV === 'production'
 });
 
-// Create the pool for compatibility with existing code
+// Create the pool with improved configuration
 const pool = new Pool({
   connectionString,
   ssl: {
     rejectUnauthorized: false
   },
   max: 20, // Maximum number of clients in the pool
-  idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
-  connectionTimeoutMillis: 2000 // Return an error after 2 seconds if connection could not be established
+  min: 4,  // Minimum number of idle clients to maintain
+  idleTimeoutMillis: 60000, // Close idle clients after 1 minute
+  connectionTimeoutMillis: 10000, // Return an error after 10 seconds if connection could not be established
+  maxUses: 7500, // Number of times a client can be used before being destroyed
+  keepAlive: true, // Keep connections alive
+  keepAliveInitialDelayMillis: 10000, // Delay before starting keep-alive probes
+  statement_timeout: 30000, // 30 seconds
+  idle_in_transaction_session_timeout: 30000, // 30 seconds
+  query_timeout: 30000 // 30 seconds
 });
 
-// Add pool error handler
+// Add pool error handler with reconnection logic
 pool.on('error', (err, client) => {
   console.error('Unexpected error on idle client', err);
+  if (err.code === '25P03') { // idle-in-transaction timeout
+    try {
+      client.query('ROLLBACK');
+    } catch (rollbackError) {
+      console.error('Error rolling back timed out transaction:', rollbackError);
+    }
+  }
 });
 
-// Add pool connect handler
+// Add pool connect handler with logging
 pool.on('connect', client => {
   console.log('New client connected to pool');
+  
+  // Set session configuration
+  client.query(`
+    SET statement_timeout = 30000;
+    SET idle_in_transaction_session_timeout = 30000;
+    SET lock_timeout = 10000;
+    SET tcp_keepalives_idle = 60;
+    SET tcp_keepalives_interval = 10;
+    SET tcp_keepalives_count = 3;
+  `).catch(err => {
+    console.error('Error configuring client session:', err);
+  });
 });
 
 // Add pool acquire handler
@@ -54,9 +80,27 @@ pool.on('acquire', client => {
   console.log('Client acquired from pool');
 });
 
-// Add pool remove handler
+// Add pool remove handler with reconnection attempt
 pool.on('remove', client => {
-  console.log('Client removed from pool');
+  console.log('Client removed from pool, checking pool health...');
+  
+  // Check pool health and log status
+  pool.query('SELECT 1')
+    .then(() => {
+      console.log('Pool health check successful');
+    })
+    .catch(async err => {
+      console.error('Pool health check failed:', err);
+      
+      // Try to add a new client to the pool
+      try {
+        const client = await pool.connect();
+        console.log('Successfully added new client to pool');
+        client.release();
+      } catch (error) {
+        console.error('Failed to add new client to pool:', error);
+      }
+    });
 });
 
 // Configure a single client for serverless environment
@@ -78,34 +122,58 @@ async function getClient() {
 
   console.log('Initiating new database connection...');
 
-  // Create new connection
+  // Create new connection with retries
   connecting = new Promise(async (resolve, reject) => {
-    try {
-      client = await pool.connect();
-      console.log('Successfully connected to database');
-      
-      // Handle connection errors
-      client.on('error', err => {
-        console.error('Client error:', err);
-        client = null;
-      });
+    let attempts = 3;
+    let delay = 1000;
 
-      // Test the connection
-      const result = await client.query('SELECT NOW()');
-      console.log('Database connection test successful:', result.rows[0]);
+    while (attempts > 0) {
+      try {
+        client = await pool.connect();
+        console.log('Successfully connected to database');
+        
+        // Configure client session
+        await client.query(`
+          SET statement_timeout = 10000;
+          SET idle_in_transaction_session_timeout = 10000;
+          SET tcp_keepalives_idle = 60;
+          SET tcp_keepalives_interval = 10;
+          SET tcp_keepalives_count = 3;
+        `);
+        
+        // Handle connection errors
+        client.on('error', err => {
+          console.error('Client error:', err);
+          client = null;
+        });
 
-      resolve(client);
-    } catch (error) {
-      console.error('Database connection error:', {
-        message: error.message,
-        code: error.code,
-        stack: error.stack
-      });
-      client = null;
-      reject(error);
-    } finally {
-      connecting = null;
+        // Test the connection
+        const result = await client.query('SELECT NOW()');
+        console.log('Database connection test successful:', result.rows[0]);
+
+        resolve(client);
+        break;
+      } catch (error) {
+        attempts--;
+        console.error('Database connection attempt failed:', {
+          message: error.message,
+          code: error.code,
+          attemptsLeft: attempts,
+          delay
+        });
+        
+        if (attempts === 0) {
+          client = null;
+          reject(error);
+          break;
+        }
+        
+        await new Promise(resolve => setTimeout(resolve, delay));
+        delay *= 2;
+      }
     }
+  }).finally(() => {
+    connecting = null;
   });
 
   return connecting;

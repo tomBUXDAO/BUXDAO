@@ -76,9 +76,9 @@ router.get('/status', (req, res) => {
 router.post('/test-webhook', async (req, res, next) => {
   console.log('Received test-webhook request');
   try {
-    if (!process.env.DISCORD_WEBHOOK_URL) {
-      console.error('Discord webhook URL not configured');
-      return res.status(500).json({ error: 'Discord webhook URL not configured' });
+    if (!process.env.DISCORD_ACTIVITY_CHANNEL_ID) {
+      console.error('Discord activity channel ID not configured');
+      return res.status(500).json({ error: 'Discord activity channel ID not configured' });
     }
 
     if (!process.env.QUICKNODE_RPC_URL) {
@@ -97,14 +97,14 @@ router.post('/test-webhook', async (req, res, next) => {
       monitorService = new NFTMonitorService(process.env.QUICKNODE_RPC_URL);
     }
 
-    console.log('Testing webhook...');
+    console.log('Testing activity notifications...');
     const success = await monitorService.testWebhook();
     if (success) {
-      console.log('Webhook test successful');
-      res.json({ message: 'Webhook test message sent successfully' });
+      console.log('Activity notification test successful');
+      res.json({ message: 'Activity notification test message sent successfully' });
     } else {
-      console.error('Webhook test failed');
-      res.status(500).json({ error: 'Failed to send webhook test message' });
+      console.error('Activity notification test failed');
+      res.status(500).json({ error: 'Failed to send activity notification test message' });
     }
   } catch (error) {
     next(error);
