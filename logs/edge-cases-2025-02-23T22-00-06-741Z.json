@@ -1,0 +1,38 @@
+[
+  {
+    "mint_address": "942Vh5m2cLrRwzvF7kzqBFxD2NzPi8WTXWMAfS1t2ugt",
+    "name": "Doodle Bot #116",
+    "symbol": "DDBOT",
+    "owner_wallet": "Aa5xb9Ri7UwmYLvtRsqbVTSiwVvj5AoyQ4Ru31wGPLFW",
+    "original_lister": null,
+    "is_listed": false,
+    "marketplace": null,
+    "list_price": null,
+    "reason": "No token accounts found",
+    "details": {
+      "context": {
+        "apiVersion": "2.1.11",
+        "slot": 322645094
+      },
+      "value": []
+    }
+  },
+  {
+    "mint_address": "FMgMn7NiwuYWshArxobRjKQrJKk293RkjXmJSWGYaVf9",
+    "name": "Doodle Bot #52",
+    "symbol": "DDBOT",
+    "owner_wallet": "Aa5xb9Ri7UwmYLvtRsqbVTSiwVvj5AoyQ4Ru31wGPLFW",
+    "original_lister": null,
+    "is_listed": false,
+    "marketplace": null,
+    "list_price": null,
+    "reason": "No token accounts found",
+    "details": {
+      "context": {
+        "apiVersion": "2.1.11",
+        "slot": 322645146
+      },
+      "value": []
+    }
+  }
+]

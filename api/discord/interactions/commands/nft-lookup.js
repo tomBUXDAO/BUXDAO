@@ -61,7 +61,12 @@ async function getNFTDetails(collection, tokenId) {
     console.log('Looking up NFT:', { collection, tokenId });
 
     const result = await client.query(
-      'SELECT * FROM nft_metadata WHERE symbol = $1 AND name LIKE $2',
+      `SELECT n.*, 
+              ur.discord_id as lister_discord_id,
+              ur.discord_name as lister_discord_name
+       FROM nft_metadata n
+       LEFT JOIN user_roles ur ON ur.wallet_address = n.original_lister
+       WHERE n.symbol = $1 AND n.name LIKE $2`,
       [collectionConfig.symbol, `%#${tokenId}`]
     );
 
@@ -92,14 +97,18 @@ async function getNFTDetails(collection, tokenId) {
     // Build fields array based on available data
     const fields = [];
 
-    // Owner field - prefer Discord name if available
+    // Owner field - show original_lister (with Discord if available) if listed, otherwise show owner
     fields.push({
       name: '👤 Owner',
       value: nft.owner_name 
         ? `<@${nft.owner_discord_id}>`
-        : nft.owner_wallet
-          ? `\`${nft.owner_wallet.slice(0, 4)}...${nft.owner_wallet.slice(-4)}\``
-          : 'Unknown',
+        : nft.is_listed && nft.original_lister
+          ? nft.lister_discord_id
+            ? `<@${nft.lister_discord_id}>`
+            : `\`${nft.original_lister.slice(0, 4)}...${nft.original_lister.slice(-4)}\``
+          : nft.owner_wallet
+            ? `\`${nft.owner_wallet.slice(0, 4)}...${nft.owner_wallet.slice(-4)}\``
+            : 'Unknown',
       inline: true
     });
 

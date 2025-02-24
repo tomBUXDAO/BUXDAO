@@ -129,11 +129,11 @@ export default async function handler(request) {
       signature,
       timestamp,
       process.env.DISCORD_PUBLIC_KEY
-    );
+      );
 
-    if (!isValidRequest) {
+      if (!isValidRequest) {
       console.error('Discord signature verification failed');
-      return new Response('Invalid request signature', { status: 401 });
+        return new Response('Invalid request signature', { status: 401 });
     }
 
     // Parse the interaction data

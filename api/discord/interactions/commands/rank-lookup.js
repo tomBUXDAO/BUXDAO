@@ -64,9 +64,12 @@ async function getNFTByRank(collection, rank) {
     console.log('Database connection successful');
 
     const query = `
-      SELECT *
-      FROM nft_metadata
-      WHERE symbol = $1 AND rarity_rank = $2
+      SELECT n.*,
+             ur.discord_id as lister_discord_id,
+             ur.discord_name as lister_discord_name
+      FROM nft_metadata n
+      LEFT JOIN user_roles ur ON ur.wallet_address = n.original_lister
+      WHERE n.symbol = $1 AND n.rarity_rank = $2
       LIMIT 1
     `;
     const values = [collectionConfig.symbol, rank];
@@ -107,14 +110,18 @@ async function getNFTByRank(collection, rank) {
     // Build fields array based on available data
     const fields = [];
 
-    // Owner field - prefer Discord name if available
+    // Owner field - show original_lister (with Discord if available) if listed, otherwise show owner
     const ownerField = {
       name: '👤 Owner',
       value: nft.owner_name 
         ? `<@${nft.owner_discord_id}>`
-        : nft.owner_wallet
-          ? `\`${nft.owner_wallet.slice(0, 4)}...${nft.owner_wallet.slice(-4)}\``
-          : 'Unknown',
+        : nft.is_listed && nft.original_lister
+          ? nft.lister_discord_id
+            ? `<@${nft.lister_discord_id}>`
+            : `\`${nft.original_lister.slice(0, 4)}...${nft.original_lister.slice(-4)}\``
+          : nft.owner_wallet
+            ? `\`${nft.owner_wallet.slice(0, 4)}...${nft.owner_wallet.slice(-4)}\``
+            : 'Unknown',
       inline: true
     };
     console.log('Owner field:', ownerField);
