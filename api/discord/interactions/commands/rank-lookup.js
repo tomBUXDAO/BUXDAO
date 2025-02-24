@@ -66,9 +66,12 @@ async function getNFTByRank(collection, rank) {
     const query = `
       SELECT n.*,
              ur.discord_id as lister_discord_id,
-             ur.discord_name as lister_discord_name
+             ur.discord_name as lister_discord_name,
+             ur2.discord_id as owner_discord_id,
+             ur2.discord_name as owner_name
       FROM nft_metadata n
       LEFT JOIN user_roles ur ON ur.wallet_address = n.original_lister
+      LEFT JOIN user_roles ur2 ON ur2.wallet_address = n.owner_wallet
       WHERE n.symbol = $1 AND n.rarity_rank = $2
       LIMIT 1
     `;
@@ -81,7 +84,9 @@ async function getNFTByRank(collection, rank) {
       firstRow: result?.rows?.[0] ? {
         name: result.rows[0].name,
         symbol: result.rows[0].symbol,
-        rank: result.rows[0].rarity_rank
+        rank: result.rows[0].rarity_rank,
+        is_listed: result.rows[0].is_listed,
+        original_lister: result.rows[0].original_lister
       } : null
     });
 
@@ -100,11 +105,13 @@ async function getNFTByRank(collection, rank) {
     }
 
     const nft = result.rows[0];
-    console.log('Found NFT data:', {
+    console.log('Processing NFT:', {
       name: nft.name,
-      owner: nft.owner_discord_id || nft.owner_wallet,
-      listed: nft.is_listed,
-      price: nft.list_price
+      is_listed: nft.is_listed,
+      original_lister: nft.original_lister,
+      lister_discord_id: nft.lister_discord_id,
+      owner_wallet: nft.owner_wallet,
+      owner_discord_id: nft.owner_discord_id
     });
 
     // Build fields array based on available data
@@ -112,14 +119,14 @@ async function getNFTByRank(collection, rank) {
 
     // Owner field - show original_lister (with Discord if available) if listed, otherwise show owner
     let ownerValue;
-    if (nft.is_listed) {
+    if (nft.is_listed && nft.original_lister) {
       // For listed NFTs, show original_lister
       ownerValue = nft.lister_discord_id 
         ? `<@${nft.lister_discord_id}>`
         : `\`${nft.original_lister.slice(0, 4)}...${nft.original_lister.slice(-4)}\``;
     } else {
       // For unlisted NFTs, show current owner
-      ownerValue = nft.owner_name 
+      ownerValue = nft.owner_discord_id 
         ? `<@${nft.owner_discord_id}>`
         : `\`${nft.owner_wallet.slice(0, 4)}...${nft.owner_wallet.slice(-4)}\``;
     }
