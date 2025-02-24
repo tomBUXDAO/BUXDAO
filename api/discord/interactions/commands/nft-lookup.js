@@ -110,23 +110,15 @@ async function getNFTDetails(collection, tokenId) {
     // Build fields array based on available data
     const fields = [];
 
-    // Owner field - show original_lister (with Discord if available) if listed, otherwise show owner
-    let ownerValue;
-    if (nft.is_listed && nft.original_lister) {
-      // For listed NFTs, show original_lister
-      ownerValue = nft.lister_discord_id 
-        ? `<@${nft.lister_discord_id}>`
-        : `\`${nft.original_lister.slice(0, 4)}...${nft.original_lister.slice(-4)}\``;
-    } else {
-      // For unlisted NFTs, show current owner
-      ownerValue = nft.owner_discord_id 
-        ? `<@${nft.owner_discord_id}>`
-        : `\`${nft.owner_wallet.slice(0, 4)}...${nft.owner_wallet.slice(-4)}\``;
-    }
+    // Owner field - use original_lister if it exists, otherwise owner_wallet
+    const displayWallet = nft.original_lister || nft.owner_wallet;
+    const displayDiscordId = nft.original_lister ? nft.lister_discord_id : nft.owner_discord_id;
 
     fields.push({
       name: '👤 Owner',
-      value: ownerValue || 'Unknown',
+      value: displayDiscordId
+        ? `<@${displayDiscordId}>`
+        : `\`${displayWallet.slice(0, 4)}...${displayWallet.slice(-4)}\``,
       inline: true
     });
 
