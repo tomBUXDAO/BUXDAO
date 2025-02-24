@@ -103,10 +103,16 @@ export default async function handler(req, res) {
 
     // Get the NFT details directly - remove the count query
     const result = await client.query(
-      `SELECT * 
-       FROM nft_metadata 
-       WHERE symbol = $1 
-       AND rarity_rank = $2 
+      `SELECT n.*, 
+              ur.discord_id as lister_discord_id,
+              ur.discord_name as lister_discord_name,
+              ur2.discord_id as owner_discord_id,
+              ur2.discord_name as owner_name
+       FROM nft_metadata n
+       LEFT JOIN user_roles ur ON ur.wallet_address = n.original_lister
+       LEFT JOIN user_roles ur2 ON ur2.wallet_address = n.owner_wallet
+       WHERE n.symbol = $1 
+       AND n.rarity_rank = $2 
        LIMIT 1`,
       [symbol, rank]
     );
@@ -116,6 +122,8 @@ export default async function handler(req, res) {
       firstRow: result.rows[0] ? {
         name: result.rows[0].name,
         owner: result.rows[0].owner_wallet,
+        original_lister: result.rows[0].original_lister,
+        is_listed: result.rows[0].is_listed,
         mint: result.rows[0].mint_address,
         rank: result.rows[0].rarity_rank
       } : null
@@ -143,14 +151,16 @@ export default async function handler(req, res) {
     // Build fields array based on available data
     const fields = [];
 
-    // Owner field - prefer Discord name if available
+    // Owner field - cascade through available options
     fields.push({
       name: '👤 Owner',
-      value: nft.owner_name 
-        ? `<@${nft.owner_discord_id}>`
-        : nft.owner_wallet
-          ? `\`${nft.owner_wallet.slice(0, 4)}...${nft.owner_wallet.slice(-4)}\``
-          : 'Unknown',
+      value: nft.lister_discord_name 
+        ? nft.lister_discord_name
+        : nft.original_lister
+        ? `\`${nft.original_lister.slice(0, 4)}...${nft.original_lister.slice(-4)}\``
+        : nft.owner_name
+        ? nft.owner_name
+        : `\`${nft.owner_wallet.slice(0, 4)}...${nft.owner_wallet.slice(-4)}\``,
       inline: true
     });
 
