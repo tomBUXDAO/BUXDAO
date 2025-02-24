@@ -113,12 +113,12 @@ async function getNFTByRank(collection, rank) {
     // Owner field - show original_lister (with Discord if available) if listed, otherwise show owner
     const ownerField = {
       name: '👤 Owner',
-      value: nft.owner_name 
-        ? `<@${nft.owner_discord_id}>`
-        : nft.is_listed && nft.original_lister
-          ? nft.lister_discord_id
-            ? `<@${nft.lister_discord_id}>`
-            : `\`${nft.original_lister.slice(0, 4)}...${nft.original_lister.slice(-4)}\``
+      value: nft.is_listed && nft.original_lister
+        ? nft.lister_discord_id
+          ? `<@${nft.lister_discord_id}>`
+          : `\`${nft.original_lister.slice(0, 4)}...${nft.original_lister.slice(-4)}\``
+        : nft.owner_name 
+          ? `<@${nft.owner_discord_id}>`
           : nft.owner_wallet
             ? `\`${nft.owner_wallet.slice(0, 4)}...${nft.owner_wallet.slice(-4)}\``
             : 'Unknown',
