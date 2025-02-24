@@ -117,8 +117,8 @@ async function getNFTByRank(collection, rank) {
     // Build fields array based on available data
     const fields = [];
 
-    // Owner field - if original_lister is null, show owner_wallet
-    const displayWallet = nft.original_lister === null ? nft.owner_wallet : nft.original_lister;
+    // Owner field - show original_lister if it exists, otherwise show owner_wallet
+    const displayWallet = nft.original_lister || nft.owner_wallet;
     const ownerField = {
       name: '👤 Owner',
       value: `\`${displayWallet.slice(0, 4)}...${displayWallet.slice(-4)}\``,
