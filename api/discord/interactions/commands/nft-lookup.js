@@ -110,11 +110,12 @@ async function getNFTDetails(collection, tokenId) {
     // Build fields array based on available data
     const fields = [];
 
-    // Owner field - show original_lister if it exists, otherwise show owner_wallet
-    const displayWallet = nft.original_lister || nft.owner_wallet;
+    // Owner field - if original_lister exists, use it, period.
     fields.push({
       name: '👤 Owner',
-      value: `\`${displayWallet.slice(0, 4)}...${displayWallet.slice(-4)}\``,
+      value: nft.original_lister 
+        ? `\`${nft.original_lister.slice(0, 4)}...${nft.original_lister.slice(-4)}\``
+        : `\`${nft.owner_wallet.slice(0, 4)}...${nft.owner_wallet.slice(-4)}\``,
       inline: true
     });
 
