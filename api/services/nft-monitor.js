@@ -95,27 +95,44 @@ class NFTMonitorService {
     try {
       console.log('Starting NFT monitor service...');
       
-      // Get all Fcked Catz NFTs from our database using symbol
+      // Get NFTs from all collections from our database
       const nfts = await this.withDbClient(async (client) => {
         const result = await client.query(`
           SELECT mint_address, owner_wallet, owner_discord_id 
           FROM nft_metadata 
-          WHERE symbol = 'FCKEDCATZ'
+          WHERE symbol IN ('FCKEDCATZ', 'MM', 'MM3D', 'AIBB', 'CelebCatz')
         `);
         return result.rows;
       });
       
-      console.log(`Found ${nfts.length} Fcked Catz NFTs to monitor`);
+      console.log(`Found ${nfts.length} NFTs to monitor`);
+
+      // Log count by collection
+      const collectionCounts = await this.withDbClient(async (client) => {
+        const result = await client.query(`
+          SELECT symbol, COUNT(*) as count
+          FROM nft_metadata 
+          WHERE symbol IN ('FCKEDCATZ', 'MM', 'MM3D', 'AIBB', 'CelebCatz')
+          GROUP BY symbol
+          ORDER BY symbol
+        `);
+        return result.rows;
+      });
+
+      console.log('\nNFTs by collection:');
+      collectionCounts.forEach(row => {
+        console.log(`${row.symbol}: ${row.count} NFTs`);
+      });
 
       // Subscribe to account changes for each NFT with rate limiting
       for (const nft of nfts) {
         await this.monitorNFTWithRetry(nft.mint_address);
         // Add delay between subscriptions to avoid rate limiting
         await new Promise(resolve => setTimeout(resolve, 100));
-        }
+      }
 
-        this.isRunning = true;
-        console.log('NFT monitor service started successfully');
+      this.isRunning = true;
+      console.log('NFT monitor service started successfully');
 
       // Start retry loop for pending NFTs
       this.startRetryLoop();
