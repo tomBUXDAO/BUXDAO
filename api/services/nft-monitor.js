@@ -184,11 +184,15 @@ class NFTMonitorService {
       const tokenAccounts = await this.connection.getTokenLargestAccounts(mint);
       const tokenAccount = tokenAccounts.value[0];
       
+      console.log(`Setting up monitor for NFT: ${mintAddress} (Token Account: ${tokenAccount.address})`);
+      
       // Monitor the token account that holds the NFT
       const subscriptionId = this.connection.onAccountChange(
         tokenAccount.address,
         async (accountInfo) => {
           try {
+            console.log(`Account change detected for NFT: ${mintAddress}`);
+            
             // Parse token account data
             const tokenData = this.parseTokenAccountData(accountInfo.data);
             if (!tokenData?.isValidNFTAmount) {
@@ -205,6 +209,14 @@ class NFTMonitorService {
 
             // Get current owner from database
             const currentOwner = await this.getCurrentOwner(mintAddress);
+            console.log('Ownership check:', {
+              mintAddress,
+              currentOwner,
+              newOwner,
+              isEscrowNew: this.isEscrowWallet(newOwner),
+              isEscrowCurrent: this.isEscrowWallet(currentOwner)
+            });
+
             if (currentOwner === newOwner) {
               console.log('Skipping update - owner unchanged:', {
                 mintAddress,
@@ -222,6 +234,7 @@ class NFTMonitorService {
             );
 
             // Process each transaction until we find the ownership change
+            let transactionFound = false;
             for (const sig of signatures) {
               const tx = await this.connection.getTransaction(sig.signature, {
                 maxSupportedTransactionVersion: 0
@@ -275,20 +288,37 @@ class NFTMonitorService {
                     console.error('Error parsing price from log:', error);
                   }
                 }
+                transactionFound = true;
+              } else {
+                // If not a Magic Eden transaction, treat as a transfer
+                console.log('Processing as transfer transaction');
+                transactionFound = true;
               }
 
-              // Process the ownership change with any prices found
+              if (transactionFound) {
+                // Process the ownership change with any prices found
+                await this.handleNFTUpdate(
+                  mintAddress,
+                  newOwner,
+                  salePrice > 0,
+                  salePrice,
+                  listPrice,
+                  currentOwner
+                );
+                break;
+              }
+            }
+
+            if (!transactionFound) {
+              console.log('No relevant transaction found, processing as transfer');
               await this.handleNFTUpdate(
                 mintAddress,
                 newOwner,
-                salePrice > 0,
-                salePrice,
-                listPrice,
+                false,
+                0,
+                0,
                 currentOwner
               );
-
-              // Break after finding and processing the relevant transaction
-              break;
             }
 
           } catch (error) {
@@ -622,31 +652,29 @@ class NFTMonitorService {
   }
 
   async handleTransfer(client, nft, newOwner) {
+    console.log('Handling transfer:', {
+      nft: nft.mint_address,
+      from: nft.owner_wallet,
+      to: newOwner
+    });
+
+    // Store original owner info before updating
+    const originalOwner = nft.owner_wallet;
+    const originalOwnerDiscordId = nft.owner_discord_id;
+    const originalOwnerName = nft.owner_name;
+
     // First transaction: Update owner and clear marketplace
     await client.query('BEGIN');
     try {
       await client.query(
         `UPDATE nft_metadata 
          SET owner_wallet = $1,
-             marketplace = NULL
+             marketplace = NULL,
+             is_listed = false,
+             list_price = NULL,
+             original_lister = NULL
          WHERE mint_address = $2`,
         [newOwner, nft.mint_address]
-      );
-      await client.query('COMMIT');
-    } catch (error) {
-      await client.query('ROLLBACK');
-      throw error;
-    }
-
-    // Second transaction: Clear listing status
-    await client.query('BEGIN');
-    try {
-      await client.query(
-        `UPDATE nft_metadata 
-         SET is_listed = false,
-             list_price = NULL
-         WHERE mint_address = $1`,
-        [nft.mint_address]
       );
       await client.query('COMMIT');
     } catch (error) {
@@ -660,13 +688,25 @@ class NFTMonitorService {
       [nft.mint_address]
     );
 
+    if (rows.length === 0) {
+      console.error('NFT not found after transfer update:', nft.mint_address);
+      return;
+    }
+
     // Send transfer notification with Discord info
     await this.sendDiscordNotification({
       type: 'transfer',
       nft: rows[0],
-      oldOwner: nft.owner_wallet,
-      oldOwnerDiscordId: nft.owner_discord_id,
+      oldOwner: originalOwner,
+      oldOwnerDiscordId: originalOwnerDiscordId,
+      oldOwnerName: originalOwnerName,
       newOwner: newOwner
+    });
+
+    console.log('Transfer handled successfully:', {
+      nft: nft.mint_address,
+      from: originalOwner,
+      to: newOwner
     });
   }
 
