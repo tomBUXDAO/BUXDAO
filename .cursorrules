@@ -24,14 +24,6 @@ BUXDAO is a community-owned NFT project on the Solana blockchain, focused on pro
   - `/utils/` - Shared utility functions
   - `/integrations/` - Additional third-party services
 
-### Solana Programs
-- `/bux-exchange-anchor/` - BUX token exchange program
-  - Program ID: 5FmuPcTCJSxB4gJhYpKMZDMgbZAhNezHVWML6htJNXrX
-  - Handles token claims and transfers
-  - Built with Anchor framework
-  - Current Status: Development paused for macOS upgrade
-  - Next Steps: Complete build after Monterey upgrade
-
 ### Collections
 1. Fcked Catz
 2. Money Monsters
@@ -197,5 +189,4 @@ Table: collection_counts
 - concurrently
 - express-session
 - node-cache
-- Anchor Framework 0.28.0
 - Solana CLI 1.16.21 

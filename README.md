@@ -40,34 +40,19 @@ Additional Bonuses:
 - Real-time ownership tracking via WebSocket
 - Automated holder verification
 - Sales and listing notifications
-- Periodic sync backup system
+- Periodic sync backup
 - Discord integration for notifications
 
-## BUX Exchange Program
-The platform includes an on-chain BUX token exchange program that:
-- Handles token claims for NFT holders
-- Manages treasury transfers
-- Uses Program Derived Addresses (PDAs)
-- Implements secure token transfers
-- Program ID: 5FmuPcTCJSxB4gJhYpKMZDMgbZAhNezHVWML6htJNXrX
-
 ## Current Development Status
-- Implementing BUX token exchange program using Anchor.
-- Program ID generated and saved.
-- Basic claim functionality implemented.
-- Build environment pending macOS Monterey upgrade.
-- Next steps: Complete program build and testing.
+- Implementing real-time NFT ownership monitoring
+- Claim system using database-driven rewards
+- Daily rewards processed at 00:00 UTC
+- Discord notifications for sales/listings
 
 ## Troubleshooting Setup Issues
 ### Solana BPF SDK Issues
 - Initially encountered issues with the Solana BPF SDK due to Rust toolchain version incompatibilities.
 - Recommended upgrading to Solana version 1.16 for better toolchain support.
-
-### Anchor Installation
-- Attempted to install Anchor directly from the source but faced dependency issues with the `cargo_toml` package version.
-- Identified that Xcode Command Line Tools were not installed, which is necessary for building Rust programs on macOS.
-- After installing the Command Line Tools, successfully installed Anchor using the Anchor Version Manager (avm).
-- Confirmed installation of Anchor CLI version 0.26.0 and advised adding the installation path to the system's PATH variable for future use.
 
 ## Holder Verification System
 The platform includes an automated holder verification system that:
@@ -145,7 +130,6 @@ Table: collection_counts
 - Database: PostgreSQL (Neon)
 - Authentication: Discord OAuth2
 - Blockchain: Solana Web3.js
-- Smart Contracts: Anchor Framework
 - E-commerce: Printful API
 - Caching: Node-Cache
 - Session Management: Express Session
@@ -167,16 +151,13 @@ SESSION_SECRET=
 2. Install dependencies: `npm install`
 3. Set up environment variables
 4. Install Solana CLI v1.16.21
-5. Install Anchor Framework v0.28.0
-6. Run development server: `npm run start`
+5. Run development server: `npm run start`
 
 ## Available Commands
 - `npm start` - Start all services
 - `npm run dev:vite` - Frontend only
 - `npm run dev:server` - Backend only
 - `npm run build` - Production build
-- `anchor build` - Build Solana program
-- `anchor deploy` - Deploy Solana program
 
 ## API Endpoints
 
