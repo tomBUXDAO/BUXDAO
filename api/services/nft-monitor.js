@@ -547,6 +547,13 @@ class NFTMonitorService {
   }
 
   async handleSale(client, nft, newOwner, salePrice) {
+    // Store original owner info before updating
+    const originalOwner = nft.owner_wallet;
+    const originalOwnerDiscordId = nft.owner_discord_id;
+    const originalOwnerName = nft.owner_name;
+    const originalLister = nft.original_lister;
+    const listerDiscordName = nft.lister_discord_name;
+
     // First transaction: Update owner and sale price
     await client.query('BEGIN');
     try {
@@ -554,7 +561,11 @@ class NFTMonitorService {
         `UPDATE nft_metadata 
          SET owner_wallet = $1,
              last_sale_price = $2,
-             marketplace = NULL
+             marketplace = NULL,
+             is_listed = false,
+             list_price = NULL,
+             original_lister = NULL,
+             lister_discord_name = NULL
          WHERE mint_address = $3`,
         [newOwner, salePrice, nft.mint_address]
       );
@@ -564,25 +575,9 @@ class NFTMonitorService {
       throw error;
     }
 
-    // Second transaction: Clear listing status
-    await client.query('BEGIN');
-    try {
-      await client.query(
-        `UPDATE nft_metadata 
-         SET is_listed = false,
-             list_price = NULL
-         WHERE mint_address = $1`,
-        [nft.mint_address]
-      );
-      await client.query('COMMIT');
-    } catch (error) {
-      await client.query('ROLLBACK');
-      throw error;
-    }
-
     // Get updated NFT data for notification
     const { rows } = await client.query(
-      'SELECT * FROM nft_metadata WHERE mint_address = $1',
+      'SELECT n.*, ur.discord_name as new_owner_name FROM nft_metadata n LEFT JOIN user_roles ur ON ur.wallet_address = n.owner_wallet WHERE n.mint_address = $1',
       [nft.mint_address]
     );
 
@@ -591,9 +586,11 @@ class NFTMonitorService {
       type: 'sale',
       nft: rows[0],
       price: salePrice,
-      oldOwner: nft.owner_wallet,
-      oldOwnerDiscordId: nft.owner_discord_id,
+      oldOwner: originalLister || originalOwner,
+      oldOwnerDiscordId: originalOwnerDiscordId,
+      oldOwnerName: listerDiscordName || originalOwnerName,
       newOwner: newOwner,
+      newOwnerName: rows[0]?.new_owner_name,
       marketplace: nft.marketplace
     });
   }
@@ -663,7 +660,13 @@ class NFTMonitorService {
     const originalOwnerDiscordId = nft.owner_discord_id;
     const originalOwnerName = nft.owner_name;
 
-    // First transaction: Update owner and clear marketplace
+    // First get the new owner's Discord info if available
+    const { rows: newOwnerInfo } = await client.query(
+      'SELECT discord_name, discord_id FROM user_roles WHERE wallet_address = $1',
+      [newOwner]
+    );
+
+    // Update NFT ownership
     await client.query('BEGIN');
     try {
       await client.query(
@@ -700,13 +703,17 @@ class NFTMonitorService {
       oldOwner: originalOwner,
       oldOwnerDiscordId: originalOwnerDiscordId,
       oldOwnerName: originalOwnerName,
-      newOwner: newOwner
+      newOwner: newOwner,
+      newOwnerDiscordId: newOwnerInfo[0]?.discord_id,
+      newOwnerName: newOwnerInfo[0]?.discord_name
     });
 
     console.log('Transfer handled successfully:', {
       nft: nft.mint_address,
       from: originalOwner,
-      to: newOwner
+      fromName: originalOwnerName,
+      to: newOwner,
+      toName: newOwnerInfo[0]?.discord_name
     });
   }
 
@@ -863,7 +870,10 @@ class NFTMonitorService {
       baseEmbed.image = { url: imageUrl };
     }
 
-    const getWalletLink = (wallet, discordId) => {
+    const getWalletLink = (wallet, discordId, discordName) => {
+      if (discordName) {
+        return discordName;
+      }
       if (discordId) {
         return `<@${discordId}>`;
       }
@@ -885,7 +895,7 @@ class NFTMonitorService {
             fields: [
               {
                 name: '👤 Listed By',
-                value: nft.lister_discord_name || getWalletLink(data.originalOwner, nft.owner_discord_id),
+                value: nft.lister_discord_name || getWalletLink(data.originalOwner, nft.owner_discord_id, nft.owner_name),
                 inline: true
               },
               {
@@ -916,12 +926,12 @@ class NFTMonitorService {
             fields: [
               {
                 name: '👤 Seller',
-                value: nft.owner_name || getWalletLink(data.oldOwner, data.oldOwnerDiscordId),
+                value: data.oldOwnerName || getWalletLink(data.oldOwner, data.oldOwnerDiscordId, data.oldOwnerName),
                 inline: true
               },
               {
                 name: '👥 Buyer',
-                value: getWalletLink(data.newOwner),
+                value: data.newOwnerName || getWalletLink(data.newOwner, data.newOwnerDiscordId, data.newOwnerName),
                 inline: true
               },
               {
@@ -952,7 +962,7 @@ class NFTMonitorService {
             fields: [
               {
                 name: '👤 Owner',
-                value: data.listerDiscordName || getWalletLink(data.oldOwner, data.oldOwnerDiscordId),
+                value: data.listerDiscordName || getWalletLink(data.oldOwner, data.oldOwnerDiscordId, data.oldOwnerName),
                 inline: true
               },
               {
@@ -978,12 +988,12 @@ class NFTMonitorService {
             fields: [
               {
                 name: '👤 From',
-                value: nft.owner_name || getWalletLink(data.oldOwner, data.oldOwnerDiscordId),
+                value: data.oldOwnerName || getWalletLink(data.oldOwner, data.oldOwnerDiscordId, data.oldOwnerName),
                 inline: true
               },
               {
                 name: '👥 To',
-                value: getWalletLink(data.newOwner),
+                value: data.newOwnerName || getWalletLink(data.newOwner, data.newOwnerDiscordId, data.newOwnerName),
                 inline: true
               },
               {
@@ -1004,7 +1014,7 @@ class NFTMonitorService {
             fields: [
               {
                 name: '👤 Last Owner',
-                value: getWalletLink(nft.owner_wallet, nft.owner_discord_id),
+                value: getWalletLink(nft.owner_wallet, nft.owner_discord_id, nft.owner_name),
                 inline: true
               },
               {
