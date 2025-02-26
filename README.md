@@ -43,6 +43,35 @@ Additional Bonuses:
 - Periodic sync backup
 - Discord integration for notifications
 
+### NFT Monitoring System
+- WebSocket-based real-time monitoring at collection level
+- Backup periodic sync every 15 minutes
+- Discord notifications for ownership changes
+- QuickNode WebSocket integration
+
+#### Tensor Transaction Parsing
+- List Instruction Format:
+  - Discriminator: `0x36` (54 decimal)
+  - Price: 8-byte little-endian integer at offset 8
+  - Total data length: 18 bytes
+  - Example structure:
+    ```
+    [0x36]           // 1 byte: Discriminator
+    [...]            // 7 bytes: Unknown/padding
+    [price]          // 8 bytes: Little-endian price in lamports
+    [...]            // 2 bytes: Additional data
+    ```
+- Price Extraction Process:
+  1. Identify Tensor program (`TSWAPaqyCSx2KABk68Shruf4rp7CxcNi8hAsbdwmHbN`)
+  2. Look for discriminator `0x36`
+  3. Read 8 bytes at offset 8 as little-endian
+  4. Convert from lamports to SOL (divide by 1e9)
+- Transaction Data:
+  - NFT Mint address
+  - Token Account
+  - Seller wallet
+  - List price in SOL
+
 ## Current Development Status
 - Implementing real-time NFT ownership monitoring
 - Claim system using database-driven rewards
@@ -184,4 +213,20 @@ SESSION_SECRET=
 - Database on Neon
 - Static assets on CDN
 - Automated CI/CD pipeline
-- Solana program on Mainnet 
+- Solana program on Mainnet
+
+### Additional Deployment
+The NFT monitoring service is deployed separately:
+
+#### AWS Instance
+- Main project directory: `~/.ssh/BUXDAO3.0/` (hidden directory)
+- Services: `~/.ssh/BUXDAO3.0/api/services/`
+- Configuration: `~/.ssh/BUXDAO3.0/api/config/`
+
+#### AWS Access
+- SSH Key location: `~/.ssh/`
+- Connection: `ssh -i [key-name].pem ec2-user@[instance-ip]`
+
+#### Service Locations
+- NFT Monitor: `~/.ssh/BUXDAO3.0/api/services/nft-monitor.js`
+- Database Config: `~/.ssh/BUXDAO3.0/api/config/database.js` 

@@ -98,14 +98,6 @@ import rewardsEventsRouter from './api/rewards/events.js';
 import nftLookupRouter from './api/nft-lookup.js';
 import rankLookupRouter from './api/nft-lookup/rank.js';
 
-// Import monitor router with debug logging
-console.log('Importing monitor router...');
-import monitorRouter from './api/routes/monitor.js';
-console.log('Monitor router imported successfully');
-
-// Import monitor service
-import NFTMonitorService from './api/services/nft-monitor.js';
-
 const app = express();
 
 // Trust proxy in production
@@ -405,28 +397,6 @@ app.use('/api/rewards/events', rewardsEventsRouter);
 app.use('/api/nft-lookup', nftLookupRouter);
 app.use('/api/nft-lookup/rank', rankLookupRouter);
 
-// Mount monitor routes with more detailed logging
-console.log('Mounting monitor routes...');
-app.use('/api/monitor', (req, res, next) => {
-  console.log('Monitor route accessed:', {
-    method: req.method,
-    path: req.path,
-    url: req.url,
-    body: req.body,
-    headers: req.headers,
-    route: req.route,
-    baseUrl: req.baseUrl
-  });
-  next();
-}, (req, res, next) => {
-  if (!monitorRouter) {
-    console.error('Monitor router is not properly imported');
-    return res.status(500).json({ error: 'Monitor service not available' });
-  }
-  next();
-}, monitorRouter);
-console.log('Monitor routes mounted successfully');
-
 // Mount rewards routes
 const rewardsRouter = express.Router();
 rewardsRouter.use('/process-daily', processRewardsRouter);
@@ -599,9 +569,6 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Add global monitor service instance
-let monitorService = null;
-
 // Improve database connection handling
 const initDatabase = async () => {
   let retries = 5;
@@ -664,17 +631,6 @@ initDatabase().then(async success => {
     process.exit(1);
   }
 
-  try {
-    // Initialize and start monitor service
-    console.log('Initializing NFT monitor service...');
-    monitorService = new NFTMonitorService(process.env.QUICKNODE_RPC_URL);
-    await monitorService.start();
-    console.log('NFT monitor service started successfully');
-  } catch (error) {
-    console.error('Failed to start NFT monitor service:', error);
-    // Continue server startup even if monitor fails
-  }
-
   // Start the server only after successful database connection
   const PORT = process.env.PORT || 3001;
   app.listen(PORT, () => {
@@ -688,23 +644,11 @@ initDatabase().then(async success => {
 // Add graceful shutdown handler
 process.on('SIGTERM', async () => {
   console.log('Received SIGTERM signal. Starting graceful shutdown...');
-  
-  if (monitorService) {
-    console.log('Stopping NFT monitor service...');
-    await monitorService.stop();
-  }
-  
   process.exit(0);
 });
 
 process.on('SIGINT', async () => {
   console.log('Received SIGINT signal. Starting graceful shutdown...');
-  
-  if (monitorService) {
-    console.log('Stopping NFT monitor service...');
-    await monitorService.stop();
-  }
-  
   process.exit(0);
 });
 

@@ -190,3 +190,19 @@ Table: collection_counts
 - express-session
 - node-cache
 - Solana CLI 1.16.21 
+
+### Deployment Configuration
+- Hidden directory: `~/.ssh/BUXDAO3.0/` - Main project directory
+- AWS Instance setup for monitoring service
+  - Instance type: [Need instance type details]
+  - Region: [Need region details]
+  - Monitoring service deployment location: `~/.ssh/BUXDAO3.0/api/services/`
+
+### Important Paths
+- NFT Monitor Service: `~/.ssh/BUXDAO3.0/api/services/nft-monitor.js`
+- Configuration: `~/.ssh/BUXDAO3.0/api/config/`
+- Database connection: `~/.ssh/BUXDAO3.0/api/config/database.js`
+
+### AWS Access
+- SSH Key location: `~/.ssh/`
+- Connection command: `ssh -i [key-name].pem ec2-user@[instance-ip]` 
