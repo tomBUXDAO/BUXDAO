@@ -8,6 +8,10 @@
     {
       "path": "/api/rewards/process-daily",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/sync-holders",
+      "schedule": "*/15 * * * *"
     }
   ],
   "builds": [
