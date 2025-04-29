@@ -1,19 +1,11 @@
-import { Connection, PublicKey } from '@solana/web3.js';
-import { TOKEN_PROGRAM_ID } from '@solana/spl-token';
-import { Pool } from 'pg';
+const { Connection, PublicKey } = require('@solana/web3.js');
+const { TOKEN_PROGRAM_ID } = require('@solana/spl-token');
+const { Pool } = require('pg');
 
 // Configuration
 const RPC_ENDPOINT = process.env.QUICKNODE_RPC_URL;
 const DB_CONNECTION_STRING = process.env.POSTGRES_URL;
 const CRON_SECRET = process.env.CRON_SECRET_TOKEN;
-
-// Initialize database pool
-const pool = new Pool({
-  connectionString: DB_CONNECTION_STRING,
-  ssl: {
-    rejectUnauthorized: false
-  }
-});
 
 async function getTokenHolders(connection, mintAddress) {
   console.log(`Fetching token holders for mint: ${mintAddress}`);
@@ -58,7 +50,7 @@ async function getTokenHolders(connection, mintAddress) {
   return holders;
 }
 
-export default async function handler(req, res) {
+module.exports = async (req, res) => {
   // Only allow GET from cron job or POST from authorized sources
   if (req.method !== 'GET' && req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -88,6 +80,7 @@ export default async function handler(req, res) {
     console.log(`Found ${currentHolders.length} holders`);
 
     // Get database connection
+    const pool = new Pool({ connectionString: DB_CONNECTION_STRING });
     client = await pool.connect();
 
     // Start transaction
@@ -141,5 +134,6 @@ export default async function handler(req, res) {
     if (client) {
       client.release();
     }
+    await pool.end();
   }
-} 
+}; 
