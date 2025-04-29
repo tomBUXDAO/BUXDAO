@@ -11,7 +11,7 @@
     },
     {
       "path": "/api/sync-holders",
-      "schedule": "*/15 * * * *"
+      "schedule": "0 0 * * *"
     }
   ],
   "builds": [

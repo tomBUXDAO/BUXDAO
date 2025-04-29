@@ -5,6 +5,7 @@ import { Pool } from 'pg';
 // Configuration
 const RPC_ENDPOINT = process.env.QUICKNODE_RPC_URL;
 const DB_CONNECTION_STRING = process.env.POSTGRES_URL;
+const CRON_SECRET = process.env.CRON_SECRET_TOKEN;
 
 // Initialize database pool
 const pool = new Pool({
@@ -71,9 +72,11 @@ export default async function handler(req) {
     );
   }
 
-  // Verify if request is from Vercel Cron
+  // Check for cron job authentication
+  const authHeader = req.headers.get('authorization');
   const isVercelCron = req.headers.get('x-vercel-cron') === '1';
-  if (!isVercelCron && req.method === 'GET') {
+  
+  if (!isVercelCron && (!authHeader || authHeader !== `Bearer ${CRON_SECRET}`)) {
     return new Response(
       JSON.stringify({ error: 'Unauthorized' }),
       { status: 401, headers: { 'Content-Type': 'application/json' } }
