@@ -3,8 +3,8 @@ import { TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { Pool } from 'pg';
 
 // Configuration
-const RPC_ENDPOINT = 'https://thrilling-purple-replica.solana-mainnet.quiknode.pro/628d12e42a5508dc3c9cec8fd7b3f120a03449f7/';
-const DB_CONNECTION_STRING = 'postgresql://neondb_owner:ENy3VObxHTd4@ep-dry-dawn-a5hld2w4-pooler.us-east-2.aws.neon.tech/neondb?sslmode=require';
+const RPC_ENDPOINT = process.env.QUICKNODE_RPC_URL;
+const DB_CONNECTION_STRING = process.env.POSTGRES_URL;
 
 // Initialize database pool
 const pool = new Pool({
@@ -57,14 +57,32 @@ async function getTokenHolders(connection, mintAddress) {
   return holders;
 }
 
-export default async function handler(req, res) {
+export const config = {
+  runtime: 'edge',
+  regions: ['iad1'], // US East (N. Virginia)
+};
+
+export default async function handler(req) {
+  // Only allow GET from cron job or POST from authorized sources
   if (req.method !== 'GET' && req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return new Response(
+      JSON.stringify({ error: 'Method not allowed' }),
+      { status: 405, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+
+  // Verify if request is from Vercel Cron
+  const isVercelCron = req.headers.get('x-vercel-cron') === '1';
+  if (!isVercelCron && req.method === 'GET') {
+    return new Response(
+      JSON.stringify({ error: 'Unauthorized' }),
+      { status: 401, headers: { 'Content-Type': 'application/json' } }
+    );
   }
 
   let client;
   try {
-    // Load the token mint address from environment or config
+    // Load the token mint address from environment
     const mintAddress = process.env.BUX_TOKEN_MINT_ADDRESS;
     if (!mintAddress) {
       throw new Error('Token mint address not configured');
@@ -98,19 +116,25 @@ export default async function handler(req, res) {
 
     // Remove holders that no longer exist
     const addresses = currentHolders.map(h => h.address);
-    await client.query(
-      `DELETE FROM bux_holders 
-       WHERE wallet_address NOT IN (${addresses.map((_, i) => `$${i + 1}`).join(',')})`,
-      addresses
-    );
+    if (addresses.length > 0) {
+      await client.query(
+        `DELETE FROM bux_holders 
+         WHERE wallet_address NOT IN (${addresses.map((_, i) => `$${i + 1}`).join(',')})`,
+        addresses
+      );
+    }
 
     await client.query('COMMIT');
     
     console.log('Database sync completed successfully');
-    return res.status(200).json({ 
-      success: true, 
-      holdersCount: currentHolders.length 
-    });
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        holdersCount: currentHolders.length,
+        timestamp: new Date().toISOString()
+      }),
+      { status: 200, headers: { 'Content-Type': 'application/json' } }
+    );
 
   } catch (error) {
     console.error('Error in sync process:', error);
@@ -119,10 +143,13 @@ export default async function handler(req, res) {
       await client.query('ROLLBACK');
     }
     
-    return res.status(500).json({ 
-      error: 'Failed to sync holders',
-      details: error.message 
-    });
+    return new Response(
+      JSON.stringify({ 
+        error: 'Failed to sync holders',
+        details: error.message 
+      }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
     
   } finally {
     if (client) {
