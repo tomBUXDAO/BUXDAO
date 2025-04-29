@@ -38,14 +38,14 @@
       }
     },
     {
-      "src": "api/sync-holders-api.js",
+      "src": "api/sync-holders-api.cjs",
       "use": "@vercel/node"
     }
   ],
   "routes": [
     {
       "src": "/api/sync-holders",
-      "dest": "api/sync-holders-api.js",
+      "dest": "api/sync-holders-api.cjs",
       "methods": ["GET", "POST"],
       "headers": {
         "Access-Control-Allow-Origin": "*",
