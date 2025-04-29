@@ -41,7 +41,7 @@
   "routes": [
     {
       "src": "/api/sync-holders",
-      "dest": "api/sync-holders.js",
+      "dest": "api/sync-holders-api.js",
       "methods": ["GET", "POST"],
       "headers": {
         "Access-Control-Allow-Origin": "*",
