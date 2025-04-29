@@ -36,6 +36,10 @@
       "config": {
         "runtime": "edge"
       }
+    },
+    {
+      "src": "api/sync-holders-api.js",
+      "use": "@vercel/node"
     }
   ],
   "routes": [
