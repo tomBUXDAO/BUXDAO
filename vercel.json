@@ -27,10 +27,6 @@
       "use": "@vercel/node"
     },
     {
-      "src": "api/sync-holders.js",
-      "use": "@vercel/edge"
-    },
-    {
       "src": "api/nft-lookup/rank.js",
       "use": "@vercel/node"
     },
@@ -45,7 +41,13 @@
   "routes": [
     {
       "src": "/api/sync-holders",
-      "dest": "/api/sync-holders.js"
+      "dest": "api/sync-holders.js",
+      "methods": ["GET", "POST"],
+      "headers": {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST",
+        "Access-Control-Allow-Headers": "Authorization, Content-Type"
+      }
     },
     {
       "src": "/api/nft-lookup/rank",

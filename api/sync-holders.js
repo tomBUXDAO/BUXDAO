@@ -58,29 +58,18 @@ async function getTokenHolders(connection, mintAddress) {
   return holders;
 }
 
-export const config = {
-  runtime: 'edge',
-  regions: ['iad1'], // US East (N. Virginia)
-};
-
-export default async function handler(req) {
+export default async function handler(req, res) {
   // Only allow GET from cron job or POST from authorized sources
   if (req.method !== 'GET' && req.method !== 'POST') {
-    return new Response(
-      JSON.stringify({ error: 'Method not allowed' }),
-      { status: 405, headers: { 'Content-Type': 'application/json' } }
-    );
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
   // Check for cron job authentication
-  const authHeader = req.headers.get('authorization');
-  const isVercelCron = req.headers.get('x-vercel-cron') === '1';
+  const authHeader = req.headers.authorization;
+  const isVercelCron = req.headers['x-vercel-cron'] === '1';
   
   if (!isVercelCron && (!authHeader || authHeader !== `Bearer ${CRON_SECRET}`)) {
-    return new Response(
-      JSON.stringify({ error: 'Unauthorized' }),
-      { status: 401, headers: { 'Content-Type': 'application/json' } }
-    );
+    return res.status(401).json({ error: 'Unauthorized' });
   }
 
   let client;
@@ -130,14 +119,11 @@ export default async function handler(req) {
     await client.query('COMMIT');
     
     console.log('Database sync completed successfully');
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        holdersCount: currentHolders.length,
-        timestamp: new Date().toISOString()
-      }),
-      { status: 200, headers: { 'Content-Type': 'application/json' } }
-    );
+    return res.status(200).json({ 
+      success: true, 
+      holdersCount: currentHolders.length,
+      timestamp: new Date().toISOString()
+    });
 
   } catch (error) {
     console.error('Error in sync process:', error);
@@ -146,13 +132,10 @@ export default async function handler(req) {
       await client.query('ROLLBACK');
     }
     
-    return new Response(
-      JSON.stringify({ 
-        error: 'Failed to sync holders',
-        details: error.message 
-      }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    );
+    return res.status(500).json({ 
+      error: 'Failed to sync holders',
+      details: error.message 
+    });
     
   } finally {
     if (client) {
