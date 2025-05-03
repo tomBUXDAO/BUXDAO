@@ -39,9 +39,13 @@ function getMarketplaceName(address) {
   return Object.values(MARKETPLACE_ESCROWS).find(m => m.id === address)?.name || 'Unknown';
 }
 
-// Rate limiting helper
+// Batch size for RPC requests
+const BATCH_SIZE = 25;
+const RATE_LIMIT_DELAY = 1000; // 1 second between batches
+
+// Rate limiting helper with increased delay
 async function rateLimit() {
-  await new Promise(resolve => setTimeout(resolve, 100)); // 10 requests per second max
+  await new Promise(resolve => setTimeout(resolve, RATE_LIMIT_DELAY));
 }
 
 async function logToFile(category, data) {
@@ -517,66 +521,39 @@ async function withRetry(fn, retries = MAX_RETRIES) {
   }
 }
 
-async function syncNFTOwnership() {
-  // Initialize connection with commitment level and other options
-  const connection = new Connection(process.env.QUICKNODE_RPC_URL, {
-    commitment: 'confirmed',
-    confirmTransactionInitialTimeout: 60000,
-    disableRetryOnRateLimit: false,
-  });
-  const pool = new Pool({
-    connectionString: process.env.POSTGRES_URL,
-    max: 20, // Increase max connections
-    idleTimeoutMillis: 30000, // 30 seconds
-    connectionTimeoutMillis: 10000, // 10 seconds
-  });
-  
-  const client = await pool.connect();
-  
-  try {
-    console.log('\nFetching NFTs from database...');
-    // Get all NFTs from database
-    const { rows: nfts } = await withRetry(async () => {
-      return await client.query(`
-        SELECT 
-          mint_address, 
-          name,
-          symbol,
-          owner_wallet,
-          original_lister,
-          is_listed,
-          marketplace,
-          list_price,
-          rarity_rank,
-          image_url,
-          owner_discord_id,
-          owner_name,
-          lister_discord_name
-        FROM nft_metadata
-        ORDER BY symbol, name
-      `);
-    });
+// Process NFTs in batches
+async function processBatch(connection, client, nfts, startIndex) {
+  const batchNFTs = nfts.slice(startIndex, startIndex + BATCH_SIZE);
+  const batchPromises = [];
 
-    console.log(`\nFound ${nfts.length} NFTs to check`);
+  console.log(`\nProcessing batch ${Math.floor(startIndex/BATCH_SIZE) + 1}/${Math.ceil(nfts.length/BATCH_SIZE)}`);
+  console.log(`NFTs ${startIndex + 1} to ${Math.min(startIndex + BATCH_SIZE, nfts.length)} of ${nfts.length}`);
+
+  // Prepare all token account queries
+  const tokenAccountPromises = batchNFTs.map(nft => {
+    const mint = new PublicKey(nft.mint_address);
+    return connection.getTokenLargestAccounts(mint);
+  });
+
+  // Wait for rate limit before making batch request
+  await rateLimit();
+
+  // Execute batch request
+  try {
+    const tokenAccounts = await Promise.all(tokenAccountPromises);
     
-    for (let i = 0; i < nfts.length; i++) {
-      const nft = nfts[i];
-      console.log(`\nProcessing NFT ${i + 1}/${nfts.length} (${((i + 1) / nfts.length * 100).toFixed(1)}%)`);
-      console.log(`Name: ${nft.name}`);
+    // Process each NFT in the batch
+    for (let i = 0; i < batchNFTs.length; i++) {
+      const nft = batchNFTs[i];
+      const accounts = tokenAccounts[i];
+
+      console.log(`\nProcessing NFT: ${nft.name}`);
       console.log(`Mint: ${nft.mint_address}`);
-      
+
       try {
-        await rateLimit();
-        
-        // Get current token account
-        const mint = new PublicKey(nft.mint_address);
-        const tokenAccounts = await connection.getTokenLargestAccounts(mint);
-        
-        // Check if NFT is burned
-        if (!tokenAccounts?.value?.length) {
+        if (!accounts?.value?.length) {
           console.log('🔥 NFT appears to be burned');
           
-          // Send notification and update database
           const notificationSuccess = await sendDiscordNotification({
             type: 'burned',
             nft
@@ -592,8 +569,8 @@ async function syncNFTOwnership() {
           console.log('✓ Successfully processed burn');
           continue;
         }
-        
-        const tokenAccount = tokenAccounts.value[0];
+
+        const tokenAccount = accounts.value[0];
         console.log(`Token account: ${tokenAccount.address.toString()}`);
 
         // Get current owner
@@ -611,7 +588,6 @@ async function syncNFTOwnership() {
         console.log(`Current on-chain owner: ${currentOwner}`);
         console.log(`Database owner: ${nft.owner_wallet}`);
 
-        // If ownership changed, determine the type and handle accordingly
         if (currentOwner !== nft.owner_wallet) {
           const change = await determineOwnershipChange(
             connection,
@@ -762,11 +738,71 @@ async function syncNFTOwnership() {
         } else {
           console.log('✓ No change in ownership');
         }
-
       } catch (error) {
         console.error(`❌ Error processing NFT ${nft.mint_address}:`, error);
-        throw error; // Stop the script on any error
+        // Continue with next NFT instead of stopping the entire script
+        continue;
       }
+    }
+  } catch (error) {
+    console.error('Batch processing error:', error);
+    // Retry the batch with smaller size if it fails
+    if (BATCH_SIZE > 5) {
+      console.log('Retrying with smaller batch size...');
+      const smallerBatchSize = Math.floor(BATCH_SIZE / 2);
+      for (let i = 0; i < BATCH_SIZE; i += smallerBatchSize) {
+        await processBatch(connection, client, batchNFTs, i);
+      }
+    } else {
+      throw error;
+    }
+  }
+}
+
+async function syncNFTOwnership() {
+  const connection = new Connection(process.env.QUICKNODE_RPC_URL, {
+    commitment: 'confirmed',
+    confirmTransactionInitialTimeout: 60000,
+    disableRetryOnRateLimit: false,
+  });
+
+  const pool = new Pool({
+    connectionString: process.env.POSTGRES_URL,
+    max: 20,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 10000,
+  });
+  
+  const client = await pool.connect();
+  
+  try {
+    console.log('\nFetching NFTs from database...');
+    const { rows: nfts } = await withRetry(async () => {
+      return await client.query(`
+        SELECT 
+          mint_address, 
+          name,
+          symbol,
+          owner_wallet,
+          original_lister,
+          is_listed,
+          marketplace,
+          list_price,
+          rarity_rank,
+          image_url,
+          owner_discord_id,
+          owner_name,
+          lister_discord_name
+        FROM nft_metadata
+        ORDER BY symbol, name
+      `);
+    });
+
+    console.log(`\nFound ${nfts.length} NFTs to check`);
+    
+    // Process NFTs in batches
+    for (let i = 0; i < nfts.length; i += BATCH_SIZE) {
+      await processBatch(connection, client, nfts, i);
     }
 
     console.log('\n=== Script completed successfully ===');
