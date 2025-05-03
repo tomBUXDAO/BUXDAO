@@ -39,21 +39,13 @@ function getMarketplaceName(address) {
   return Object.values(MARKETPLACE_ESCROWS).find(m => m.id === address)?.name || 'Unknown';
 }
 
-// Batch size and rate limiting configuration
-const BATCH_SIZE = 10; // Reduced from 25
-const MIN_RATE_LIMIT_DELAY = 2000; // 2 seconds minimum between batches
-const MAX_RATE_LIMIT_DELAY = 30000; // 30 seconds maximum delay
-let currentDelay = MIN_RATE_LIMIT_DELAY;
+// Batch size for RPC requests
+const BATCH_SIZE = 25;
+const RATE_LIMIT_DELAY = 1000; // 1 second between batches
 
-// Rate limiting helper with exponential backoff
-async function rateLimit(wasRateLimited = false) {
-  if (wasRateLimited) {
-    currentDelay = Math.min(currentDelay * 2, MAX_RATE_LIMIT_DELAY);
-    console.log(`Increased rate limit delay to ${currentDelay}ms`);
-  } else {
-    currentDelay = Math.max(currentDelay / 2, MIN_RATE_LIMIT_DELAY);
-  }
-  await new Promise(resolve => setTimeout(resolve, currentDelay));
+// Rate limiting helper with increased delay
+async function rateLimit() {
+  await new Promise(resolve => setTimeout(resolve, RATE_LIMIT_DELAY));
 }
 
 async function logToFile(category, data) {
@@ -529,239 +521,45 @@ async function withRetry(fn, retries = MAX_RETRIES) {
   }
 }
 
-// Process NFTs in batches with improved rate limiting
-async function processBatch(connection, client, nfts, startIndex) {
-  const batchNFTs = nfts.slice(startIndex, startIndex + BATCH_SIZE);
-  
-  console.log(`\nProcessing batch ${Math.floor(startIndex/BATCH_SIZE) + 1}/${Math.ceil(nfts.length/BATCH_SIZE)}`);
-  console.log(`NFTs ${startIndex + 1} to ${Math.min(startIndex + BATCH_SIZE, nfts.length)} of ${nfts.length}`);
+// Collection addresses
+const COLLECTIONS = {
+  FCKEDCATZ: 'EPeeeDr21EPJ4GJgjuRJ8SHD4A2d59erMaTtWaTT2hqm',
+  CELEBCATZ: 'H6c8gJqMk2ktfKriGGLB14RKPAz2otz1iPv2AAegetXD', 
+  MONEYMONSTERS: '3EyhWtevHSkXg4cGsCurLLJ1NEc3rR3fWrYBx5CVLn7R',
+  MONEYMONSTERS3D: 'HLD74kSbBLf4aYnGkZ4dYSoh9cZvS4exAB9t7pPDDPvE', 
+  AIBITBOTS: '41swUeWc8Hm87T7ahtndUWfDTLRWndWYFpuE4UKp79Vq'
+};
 
-  // Process each NFT in the batch with individual rate limiting
-  for (let i = 0; i < batchNFTs.length; i++) {
-    const nft = batchNFTs[i];
-    console.log(`\nProcessing NFT: ${nft.name}`);
-    console.log(`Mint: ${nft.mint_address}`);
-
-    let retryCount = 0;
-    const MAX_RETRIES = 5;
-
-    while (retryCount < MAX_RETRIES) {
-      try {
-        await rateLimit(retryCount > 0); // Increase delay if this is a retry
-
-        // Get token accounts
-        const mint = new PublicKey(nft.mint_address);
-        const tokenAccounts = await connection.getTokenLargestAccounts(mint);
-
-        if (!tokenAccounts?.value?.length) {
-          console.log('🔥 NFT appears to be burned');
-          
-          const notificationSuccess = await sendDiscordNotification({
-            type: 'burned',
-            nft
-          });
-
-          if (!notificationSuccess) {
-            throw new Error('Failed to send burn notification');
-          }
-
-          await withRetry(async () => {
-            await client.query('DELETE FROM nft_metadata WHERE mint_address = $1', [nft.mint_address]);
-          });
-          console.log('✓ Successfully processed burn');
-          break;
-        }
-
-        const tokenAccount = tokenAccounts.value[0];
-        console.log(`Token account: ${tokenAccount.address.toString()}`);
-
-        // Get current owner with rate limiting
-        await rateLimit();
-        const accountInfo = await connection.getAccountInfo(tokenAccount.address);
-        if (!accountInfo?.data?.length) {
-          throw new Error('Invalid token account data');
-        }
-
-        const tokenData = parseTokenAccountData(accountInfo.data);
-        const currentOwner = tokenData?.owner;
-        if (!currentOwner) {
-          throw new Error('Could not parse owner from token data');
-        }
-
-        console.log(`Current on-chain owner: ${currentOwner}`);
-        console.log(`Database owner: ${nft.owner_wallet}`);
-
-        if (currentOwner !== nft.owner_wallet) {
-          await rateLimit(); // Additional rate limit before ownership change check
-          const change = await determineOwnershipChange(
-            connection,
-            tokenAccount.address,
-            currentOwner,
-            nft.owner_wallet,
-            nft.original_lister
-          );
-
-          console.log(`Detected ownership change type: ${change.type}`);
-
-          // Handle based on change type
-          switch (change.type) {
-            case 'transfer':
-              // Send notification and update database
-              const transferSuccess = await sendDiscordNotification({
-                type: 'transfer',
-                nft: {
-                  ...nft,
-                  owner_wallet: currentOwner
-                },
-                newOwner: currentOwner
-              });
-
-              if (!transferSuccess) {
-                throw new Error('Failed to send transfer notification');
-              }
-
-              await withRetry(async () => {
-                await client.query(`
-                  UPDATE nft_metadata 
-                  SET owner_wallet = $1
-                  WHERE mint_address = $2`,
-                  [currentOwner, nft.mint_address]
-                );
-              });
-              console.log('✓ Successfully processed transfer');
-              break;
-
-            case 'delist':
-              // Send notification and update database
-              const delistSuccess = await sendDiscordNotification({
-                type: 'delist',
-                nft: {
-                  ...nft,
-                  owner_wallet: currentOwner
-                },
-                newOwner: currentOwner
-              });
-
-              if (!delistSuccess) {
-                throw new Error('Failed to send delist notification');
-              }
-
-              await withRetry(async () => {
-                await client.query(`
-                  UPDATE nft_metadata 
-                  SET owner_wallet = $1,
-                      is_listed = false,
-                      marketplace = NULL,
-                      list_price = NULL,
-                      original_lister = NULL
-                  WHERE mint_address = $2`,
-                  [currentOwner, nft.mint_address]
-                );
-              });
-              console.log('✓ Successfully processed delist');
-              break;
-
-            case 'sale':
-              // Send notification and update database
-              const saleSuccess = await sendDiscordNotification({
-                type: 'sale',
-                nft: {
-                  ...nft,
-                  owner_wallet: currentOwner
-                },
-                salePrice: change.details.salePrice,
-                marketplace: change.details.marketplace,
-                newOwner: currentOwner
-              });
-
-              if (!saleSuccess) {
-                throw new Error('Failed to send sale notification');
-              }
-
-              await withRetry(async () => {
-                await client.query(`
-                  UPDATE nft_metadata 
-                  SET owner_wallet = $1,
-                      is_listed = false,
-                      marketplace = NULL,
-                      list_price = NULL,
-                      last_sale_price = $2,
-                      original_lister = NULL
-                  WHERE mint_address = $3`,
-                  [currentOwner, change.details.salePrice, nft.mint_address]
-                );
-              });
-              console.log('✓ Successfully processed sale');
-              break;
-
-            case 'listing':
-              // Send notification and update database
-              const listingSuccess = await sendDiscordNotification({
-                type: 'listing',
-                nft,
-                marketplace: change.details.marketplace,
-                listPrice: change.details.listPrice,
-                originalOwner: change.details.originalOwner
-              });
-
-              if (!listingSuccess) {
-                throw new Error('Failed to send listing notification');
-              }
-
-              await withRetry(async () => {
-                await client.query(
-                  `UPDATE nft_metadata 
-                  SET owner_wallet = $1,
-                      is_listed = true,
-                      marketplace = $2,
-                      list_price = $3,
-                      original_lister = $4
-                  WHERE mint_address = $5`,
-                  [currentOwner, change.details.marketplace, change.details.listPrice, nft.owner_wallet, nft.mint_address]
-                );
-              });
-              console.log('✓ Successfully processed listing');
-              break;
-
-            case 'manual_review':
-              // Treat manual review as a transfer
-              await withRetry(async () => {
-                await client.query(
-                  `UPDATE nft_metadata 
-                  SET owner_wallet = $1
-                  WHERE mint_address = $2`,
-                  [currentOwner, nft.mint_address]
-                );
-              });
-              console.log('✓ Successfully processed manual review as transfer');
-              break;
-
-            default:
-              throw new Error(`Unexpected change type: ${change.type}`);
-          }
-        } else {
-          console.log('✓ No change in ownership');
-        }
-        
-        break; // Success, exit retry loop
-      } catch (error) {
-        retryCount++;
-        if (error.message?.includes('429') || error.message?.includes('Too Many Requests')) {
-          console.log(`Rate limit hit (attempt ${retryCount}/${MAX_RETRIES}), backing off...`);
-          await rateLimit(true); // Increase delay due to rate limit
-          continue;
-        }
-        
-        console.error(`❌ Error processing NFT ${nft.mint_address}:`, error);
-        if (retryCount === MAX_RETRIES) {
-          console.log(`Failed after ${MAX_RETRIES} attempts, skipping NFT`);
-          break;
+// Function to fetch all NFTs in a collection
+async function fetchCollectionNFTs(connection, collectionAddress) {
+  try {
+    const response = await axios.post(
+      'https://rpc.helius.xyz/?api-key=' + process.env.HELIUS_API_KEY,
+      {
+        jsonrpc: '2.0',
+        id: 'my-id',
+        method: 'getAssetsByGroup',
+        params: {
+          groupKey: 'collection',
+          groupValue: collectionAddress,
+          page: 1,
+          limit: 1000
         }
       }
+    );
+
+    if (response.data.error) {
+      throw new Error(`Helius API error: ${response.data.error.message}`);
     }
+
+    return response.data.result.items;
+  } catch (error) {
+    console.error(`Error fetching collection NFTs for ${collectionAddress}:`, error);
+    return [];
   }
 }
 
+// Modified main sync function
 async function syncNFTOwnership() {
   const connection = new Connection(process.env.QUICKNODE_RPC_URL, {
     commitment: 'confirmed',
@@ -779,10 +577,19 @@ async function syncNFTOwnership() {
   const client = await pool.connect();
   
   try {
-    console.log('\nFetching NFTs from database...');
-    const { rows: nfts } = await withRetry(async () => {
-      return await client.query(`
-        SELECT 
+    console.log('\nStarting NFT ownership sync...');
+    
+    // Process each collection
+    for (const [collectionName, collectionAddress] of Object.entries(COLLECTIONS)) {
+      console.log(`\nProcessing ${collectionName} collection...`);
+      
+      // Fetch all NFTs in the collection
+      const collectionNFTs = await fetchCollectionNFTs(connection, collectionAddress);
+      console.log(`Found ${collectionNFTs.length} NFTs in ${collectionName}`);
+      
+      // Get current database state for this collection
+      const { rows: dbNFTs } = await client.query(
+        `SELECT 
           mint_address, 
           name,
           symbol,
@@ -791,24 +598,91 @@ async function syncNFTOwnership() {
           is_listed,
           marketplace,
           list_price,
+          last_sale_price,
           rarity_rank,
           image_url,
           owner_discord_id,
           owner_name,
           lister_discord_name
-        FROM nft_metadata
-        ORDER BY symbol, name
-      `);
-    });
-
-    console.log(`\nFound ${nfts.length} NFTs to check`);
-    
-    // Process NFTs in batches
-    for (let i = 0; i < nfts.length; i += BATCH_SIZE) {
-      await processBatch(connection, client, nfts, i);
+        FROM nft_metadata 
+        WHERE collection_address = $1`,
+        [collectionAddress]
+      );
+      
+      // Create maps for quick lookup
+      const dbNFTMap = new Map(dbNFTs.map(nft => [nft.mint_address, nft]));
+      const collectionNFTMap = new Map(collectionNFTs.map(nft => [nft.id, nft]));
+      
+      // Process each NFT in the collection
+      for (const nft of collectionNFTs) {
+        const dbNFT = dbNFTMap.get(nft.id);
+        
+        if (!dbNFT) {
+          // New NFT - insert into database
+          await client.query(
+            `INSERT INTO nft_metadata (
+              mint_address, 
+              name, 
+              symbol, 
+              owner_wallet, 
+              collection_address,
+              image_url, 
+              attributes, 
+              rarity_rank,
+              is_listed,
+              marketplace,
+              list_price,
+              last_sale_price,
+              owner_discord_id,
+              owner_name,
+              lister_discord_name
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
+            [
+              nft.id,
+              nft.content.metadata.name,
+              collectionName,
+              nft.ownership.owner,
+              collectionAddress,
+              nft.content.links.image,
+              JSON.stringify(nft.content.metadata.attributes),
+              null, // rarity_rank will be updated separately
+              false, // is_listed
+              null, // marketplace
+              null, // list_price
+              null, // last_sale_price
+              null, // owner_discord_id
+              null, // owner_name
+              null  // lister_discord_name
+            ]
+          );
+          continue;
+        }
+        
+        // Check for ownership changes
+        if (dbNFT.owner_wallet !== nft.ownership.owner) {
+          const change = await determineOwnershipChange(
+            connection,
+            nft.id,
+            nft.ownership.owner,
+            dbNFT.owner_wallet,
+            dbNFT.original_lister
+          );
+          
+          // Handle the ownership change
+          await handleOwnershipChange(client, nft, dbNFT, change);
+        }
+      }
+      
+      // Check for burned NFTs (in DB but not in collection)
+      for (const dbNFT of dbNFTs) {
+        if (!collectionNFTMap.has(dbNFT.mint_address)) {
+          // NFT is burned
+          await handleOwnershipChange(client, dbNFT, null, { type: 'burned' });
+        }
+      }
     }
 
-    console.log('\n=== Script completed successfully ===');
+    console.log('\n=== NFT ownership sync completed successfully ===');
 
   } catch (error) {
     console.error('Fatal error in syncNFTOwnership:', error);
@@ -816,6 +690,91 @@ async function syncNFTOwnership() {
   } finally {
     client.release();
     await pool.end();
+  }
+}
+
+// Helper function to handle ownership changes
+async function handleOwnershipChange(client, nft, dbNFT, change) {
+  try {
+    switch (change.type) {
+      case 'transfer':
+        await client.query(
+          `UPDATE nft_metadata 
+           SET owner_wallet = $1,
+               owner_discord_id = NULL,
+               owner_name = NULL
+           WHERE mint_address = $2`,
+          [change.details.newOwner, nft.id]
+        );
+        break;
+        
+      case 'sale':
+        await client.query(
+          `UPDATE nft_metadata 
+           SET owner_wallet = $1, 
+               is_listed = false,
+               marketplace = NULL,
+               list_price = NULL,
+               last_sale_price = $2,
+               original_lister = NULL,
+               owner_discord_id = NULL,
+               owner_name = NULL,
+               lister_discord_name = NULL
+           WHERE mint_address = $3`,
+          [change.details.newOwner, change.details.salePrice, nft.id]
+        );
+        break;
+        
+      case 'listing':
+        await client.query(
+          `UPDATE nft_metadata 
+           SET owner_wallet = $1,
+               is_listed = true,
+               marketplace = $2,
+               list_price = $3,
+               original_lister = $4
+           WHERE mint_address = $5`,
+          [nft.ownership.owner, change.details.marketplace, change.details.listPrice, dbNFT.owner_wallet, nft.id]
+        );
+        break;
+        
+      case 'delist':
+        await client.query(
+          `UPDATE nft_metadata 
+           SET owner_wallet = $1,
+               is_listed = false,
+               marketplace = NULL,
+               list_price = NULL,
+               original_lister = NULL
+           WHERE mint_address = $2`,
+          [nft.ownership.owner, nft.id]
+        );
+        break;
+        
+      case 'burned':
+        await client.query(
+          `DELETE FROM nft_metadata WHERE mint_address = $1`,
+          [dbNFT.mint_address]
+        );
+        break;
+    }
+    
+    // Send Discord notification
+    await sendDiscordNotification({
+      type: change.type,
+      nft: {
+        ...nft,
+        owner_wallet: nft.ownership.owner,
+        original_lister: dbNFT?.original_lister,
+        rarity_rank: dbNFT?.rarity_rank,
+        symbol: dbNFT?.symbol || nft.content.metadata.symbol,
+        name: nft.content.metadata.name
+      },
+      ...change.details
+    });
+    
+  } catch (error) {
+    console.error('Error handling ownership change:', error);
   }
 }
 
