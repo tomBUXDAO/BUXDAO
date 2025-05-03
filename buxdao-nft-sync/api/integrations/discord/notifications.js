@@ -1,4 +1,4 @@
-import { Client, Intents } from 'discord.js';
+import { Client, GatewayIntentBits } from 'discord.js';
 import axios from 'axios';
 
 let discordClient = null;
@@ -14,12 +14,12 @@ async function getDiscordClient() {
 
   discordClient = new Client({
     intents: [
-      Intents.FLAGS.GUILDS,
-      Intents.FLAGS.GUILD_MESSAGES,
-      Intents.FLAGS.GUILD_MEMBERS,
-      Intents.FLAGS.GUILD_PRESENCES,
-      Intents.FLAGS.DIRECT_MESSAGES,
-      Intents.FLAGS.GUILD_MESSAGE_REACTIONS
+      GatewayIntentBits.Guilds,
+      GatewayIntentBits.GuildMessages,
+      GatewayIntentBits.GuildMembers,
+      GatewayIntentBits.GuildPresences,
+      GatewayIntentBits.DirectMessages,
+      GatewayIntentBits.MessageContent
     ],
     rest: {
       retries: 3,
