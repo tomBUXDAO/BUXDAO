@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 import { Connection, PublicKey } from '@solana/web3.js';
-import { pool } from '../api/config/database.js';
+import { pool } from './api/config/database.js';
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
