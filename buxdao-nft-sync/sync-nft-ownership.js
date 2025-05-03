@@ -39,13 +39,21 @@ function getMarketplaceName(address) {
   return Object.values(MARKETPLACE_ESCROWS).find(m => m.id === address)?.name || 'Unknown';
 }
 
-// Batch size for RPC requests
-const BATCH_SIZE = 25;
-const RATE_LIMIT_DELAY = 1000; // 1 second between batches
+// Batch size and rate limiting configuration
+const BATCH_SIZE = 10; // Reduced from 25
+const MIN_RATE_LIMIT_DELAY = 2000; // 2 seconds minimum between batches
+const MAX_RATE_LIMIT_DELAY = 30000; // 30 seconds maximum delay
+let currentDelay = MIN_RATE_LIMIT_DELAY;
 
-// Rate limiting helper with increased delay
-async function rateLimit() {
-  await new Promise(resolve => setTimeout(resolve, RATE_LIMIT_DELAY));
+// Rate limiting helper with exponential backoff
+async function rateLimit(wasRateLimited = false) {
+  if (wasRateLimited) {
+    currentDelay = Math.min(currentDelay * 2, MAX_RATE_LIMIT_DELAY);
+    console.log(`Increased rate limit delay to ${currentDelay}ms`);
+  } else {
+    currentDelay = Math.max(currentDelay / 2, MIN_RATE_LIMIT_DELAY);
+  }
+  await new Promise(resolve => setTimeout(resolve, currentDelay));
 }
 
 async function logToFile(category, data) {
@@ -521,37 +529,31 @@ async function withRetry(fn, retries = MAX_RETRIES) {
   }
 }
 
-// Process NFTs in batches
+// Process NFTs in batches with improved rate limiting
 async function processBatch(connection, client, nfts, startIndex) {
   const batchNFTs = nfts.slice(startIndex, startIndex + BATCH_SIZE);
-  const batchPromises = [];
-
+  
   console.log(`\nProcessing batch ${Math.floor(startIndex/BATCH_SIZE) + 1}/${Math.ceil(nfts.length/BATCH_SIZE)}`);
   console.log(`NFTs ${startIndex + 1} to ${Math.min(startIndex + BATCH_SIZE, nfts.length)} of ${nfts.length}`);
 
-  // Prepare all token account queries
-  const tokenAccountPromises = batchNFTs.map(nft => {
-    const mint = new PublicKey(nft.mint_address);
-    return connection.getTokenLargestAccounts(mint);
-  });
+  // Process each NFT in the batch with individual rate limiting
+  for (let i = 0; i < batchNFTs.length; i++) {
+    const nft = batchNFTs[i];
+    console.log(`\nProcessing NFT: ${nft.name}`);
+    console.log(`Mint: ${nft.mint_address}`);
 
-  // Wait for rate limit before making batch request
-  await rateLimit();
+    let retryCount = 0;
+    const MAX_RETRIES = 5;
 
-  // Execute batch request
-  try {
-    const tokenAccounts = await Promise.all(tokenAccountPromises);
-    
-    // Process each NFT in the batch
-    for (let i = 0; i < batchNFTs.length; i++) {
-      const nft = batchNFTs[i];
-      const accounts = tokenAccounts[i];
-
-      console.log(`\nProcessing NFT: ${nft.name}`);
-      console.log(`Mint: ${nft.mint_address}`);
-
+    while (retryCount < MAX_RETRIES) {
       try {
-        if (!accounts?.value?.length) {
+        await rateLimit(retryCount > 0); // Increase delay if this is a retry
+
+        // Get token accounts
+        const mint = new PublicKey(nft.mint_address);
+        const tokenAccounts = await connection.getTokenLargestAccounts(mint);
+
+        if (!tokenAccounts?.value?.length) {
           console.log('🔥 NFT appears to be burned');
           
           const notificationSuccess = await sendDiscordNotification({
@@ -567,13 +569,14 @@ async function processBatch(connection, client, nfts, startIndex) {
             await client.query('DELETE FROM nft_metadata WHERE mint_address = $1', [nft.mint_address]);
           });
           console.log('✓ Successfully processed burn');
-          continue;
+          break;
         }
 
-        const tokenAccount = accounts.value[0];
+        const tokenAccount = tokenAccounts.value[0];
         console.log(`Token account: ${tokenAccount.address.toString()}`);
 
-        // Get current owner
+        // Get current owner with rate limiting
+        await rateLimit();
         const accountInfo = await connection.getAccountInfo(tokenAccount.address);
         if (!accountInfo?.data?.length) {
           throw new Error('Invalid token account data');
@@ -589,6 +592,7 @@ async function processBatch(connection, client, nfts, startIndex) {
         console.log(`Database owner: ${nft.owner_wallet}`);
 
         if (currentOwner !== nft.owner_wallet) {
+          await rateLimit(); // Additional rate limit before ownership change check
           const change = await determineOwnershipChange(
             connection,
             tokenAccount.address,
@@ -738,23 +742,22 @@ async function processBatch(connection, client, nfts, startIndex) {
         } else {
           console.log('✓ No change in ownership');
         }
+        
+        break; // Success, exit retry loop
       } catch (error) {
+        retryCount++;
+        if (error.message?.includes('429') || error.message?.includes('Too Many Requests')) {
+          console.log(`Rate limit hit (attempt ${retryCount}/${MAX_RETRIES}), backing off...`);
+          await rateLimit(true); // Increase delay due to rate limit
+          continue;
+        }
+        
         console.error(`❌ Error processing NFT ${nft.mint_address}:`, error);
-        // Continue with next NFT instead of stopping the entire script
-        continue;
+        if (retryCount === MAX_RETRIES) {
+          console.log(`Failed after ${MAX_RETRIES} attempts, skipping NFT`);
+          break;
+        }
       }
-    }
-  } catch (error) {
-    console.error('Batch processing error:', error);
-    // Retry the batch with smaller size if it fails
-    if (BATCH_SIZE > 5) {
-      console.log('Retrying with smaller batch size...');
-      const smallerBatchSize = Math.floor(BATCH_SIZE / 2);
-      for (let i = 0; i < BATCH_SIZE; i += smallerBatchSize) {
-        await processBatch(connection, client, batchNFTs, i);
-      }
-    } else {
-      throw error;
     }
   }
 }
