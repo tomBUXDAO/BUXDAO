@@ -1,12 +1,18 @@
 // Load environment variables first
 import dotenv from 'dotenv';
-dotenv.config();
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Load environment variables from .env file
+dotenv.config({ path: `${__dirname}/.env` });
 
 import { Connection, PublicKey } from '@solana/web3.js';
 import { pool } from './api/config/database.js';
 import fs from 'fs/promises';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import axios from 'axios';
 import { sendActivityNotification } from './api/integrations/discord/notifications.js';
 import pkg from 'pg';
@@ -533,8 +539,12 @@ const COLLECTIONS = {
 // Function to fetch all NFTs in a collection
 async function fetchCollectionNFTs(connection, collectionAddress) {
   try {
+    if (!process.env.HELIUS_API_KEY) {
+      throw new Error('HELIUS_API_KEY environment variable is not set');
+    }
+
     const response = await axios.post(
-      'https://rpc.helius.xyz/?api-key=' + process.env.HELIUS_API_KEY,
+      `https://rpc.helius.xyz/?api-key=${process.env.HELIUS_API_KEY}`,
       {
         jsonrpc: '2.0',
         id: 'my-id',
@@ -544,6 +554,11 @@ async function fetchCollectionNFTs(connection, collectionAddress) {
           groupValue: collectionAddress,
           page: 1,
           limit: 1000
+        }
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json'
         }
       }
     );
@@ -605,8 +620,8 @@ async function syncNFTOwnership() {
           owner_name,
           lister_discord_name
         FROM nft_metadata 
-        WHERE collection_address = $1`,
-        [collectionAddress]
+        WHERE symbol = $1`,
+        [collectionName]
       );
       
       // Create maps for quick lookup
@@ -625,7 +640,6 @@ async function syncNFTOwnership() {
               name, 
               symbol, 
               owner_wallet, 
-              collection_address,
               image_url, 
               attributes, 
               rarity_rank,
@@ -636,13 +650,12 @@ async function syncNFTOwnership() {
               owner_discord_id,
               owner_name,
               lister_discord_name
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
             [
               nft.id,
               nft.content.metadata.name,
               collectionName,
               nft.ownership.owner,
-              collectionAddress,
               nft.content.links.image,
               JSON.stringify(nft.content.metadata.attributes),
               null, // rarity_rank will be updated separately
