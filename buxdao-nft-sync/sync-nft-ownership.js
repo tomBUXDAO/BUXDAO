@@ -8,7 +8,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import axios from 'axios';
-import { sendActivityNotification } from '../api/integrations/discord/notifications.js';
+import { sendActivityNotification } from './api/integrations/discord/notifications.js';
 import pkg from 'pg';
 const { Pool } = pkg;
 
