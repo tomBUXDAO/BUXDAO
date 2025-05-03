@@ -499,8 +499,17 @@ async function withRetry(fn, retries = MAX_RETRIES) {
   try {
     return await fn();
   } catch (error) {
-    if (error.code === 'ETIMEDOUT' && retries > 0) {
-      console.log(`Connection timeout, retrying in ${RETRY_DELAY/1000} seconds... (${retries} attempts remaining)`);
+    console.error('Error in withRetry:', {
+      message: error.message,
+      code: error.code,
+      retriesLeft: retries
+    });
+
+    // Handle specific RPC errors
+    if ((error.message?.includes('Bad Request') || 
+         error.message?.includes('429') ||
+         error.code === 'ETIMEDOUT') && retries > 0) {
+      console.log(`RPC error, retrying in ${RETRY_DELAY/1000} seconds... (${retries} attempts remaining)`);
       await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
       return withRetry(fn, retries - 1);
     }
@@ -509,7 +518,12 @@ async function withRetry(fn, retries = MAX_RETRIES) {
 }
 
 async function syncNFTOwnership() {
-  const connection = new Connection(process.env.QUICKNODE_RPC_URL, 'confirmed');
+  // Initialize connection with commitment level and other options
+  const connection = new Connection(process.env.QUICKNODE_RPC_URL, {
+    commitment: 'confirmed',
+    confirmTransactionInitialTimeout: 60000,
+    disableRetryOnRateLimit: false,
+  });
   const pool = new Pool({
     connectionString: process.env.POSTGRES_URL,
     max: 20, // Increase max connections
