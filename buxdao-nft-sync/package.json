@@ -2,8 +2,9 @@
   "name": "buxdao-nft-sync",
   "version": "1.0.0",
   "type": "module",
-  "main": "sync-nft-ownership.js",
+  "main": "sync-celebcatz.js",
   "scripts": {
+    "start": "node sync-celebcatz.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
