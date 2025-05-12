@@ -1,0 +1,23 @@
+[
+  {
+    "type": "burned",
+    "nft": {
+      "mint_address": "8Bm1qBXG6dJ32UWbUmoLZpaq8dnvetzdwW3HTq1VVznh",
+      "name": "Money Monsters #662",
+      "symbol": "MM",
+      "owner_wallet": "F8HvFgmsV8pgu9Z87ezLSyBhPqx29jiAKg5Mwg568G7d",
+      "original_lister": null,
+      "is_listed": false,
+      "marketplace": null,
+      "list_price": null,
+      "rarity_rank": 22,
+      "image_url": "https://arweave.net/fs1Jx93SqUZAAfO0_h9pFE4cPk46reuN7rHAnevULMk",
+      "owner_discord_id": null,
+      "owner_name": null,
+      "lister_discord_name": null
+    },
+    "notificationSent": false,
+    "error": "Discord webhook URL not configured",
+    "timestamp": "2025-05-03T00:18:30.852Z"
+  }
+]

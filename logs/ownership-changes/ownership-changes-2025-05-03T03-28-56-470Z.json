@@ -1,0 +1,23 @@
+[
+  {
+    "type": "transfer",
+    "nft": {
+      "mint_address": "8aasfyyq8mw3QWC2dkdgXPE8DnkoeFJ5jpudjPDUCXCj",
+      "name": "Celebrity Catz #31",
+      "symbol": "CelebCatz",
+      "owner_wallet": "HH1F12eCYL5mgn9zx7SEY5pj4owMfrLE8JmnvCRdafSJ",
+      "original_lister": null,
+      "is_listed": false,
+      "marketplace": null,
+      "list_price": null,
+      "rarity_rank": null,
+      "image_url": "https://gateway.pinata.cloud/ipfs/QmU4cpbxRvC9YbBk5KgM4Dtg14cY3LFMhqTa7Ua17aFKK6",
+      "owner_discord_id": null,
+      "owner_name": null,
+      "lister_discord_name": null
+    },
+    "notificationSent": false,
+    "notificationTimestamp": "2025-05-03T03:28:56.470Z",
+    "timestamp": "2025-05-03T03:28:56.470Z"
+  }
+]

@@ -152,6 +152,44 @@ export default async function handler(request) {
       const baseUrl = process.env.API_BASE_URL || 'https://buxdao.com';
 
       try {
+        // Handle notify command
+        if (command.name === 'notify') {
+          const subcommand = command.options?.[0];
+          if (!subcommand) {
+            return new Response(JSON.stringify({
+              type: 4,
+              data: {
+                content: 'Error: Missing notification type'
+              }
+            }), { headers: { 'Content-Type': 'application/json' } });
+          }
+
+          const messageOption = subcommand.options?.find(opt => opt.name === 'message');
+          if (!messageOption) {
+            return new Response(JSON.stringify({
+              type: 4,
+              data: {
+                content: 'Error: Missing message data'
+              }
+            }), { headers: { 'Content-Type': 'application/json' } });
+          }
+
+          try {
+            const messageData = JSON.parse(messageOption.value);
+            return new Response(JSON.stringify({
+              type: 4,
+              data: messageData
+            }), { headers: { 'Content-Type': 'application/json' } });
+          } catch (error) {
+            return new Response(JSON.stringify({
+              type: 4,
+              data: {
+                content: 'Error: Invalid message data'
+              }
+            }), { headers: { 'Content-Type': 'application/json' } });
+          }
+        }
+
         // Handle NFT command
         if (command.name === 'nft') {
           const subcommand = command.options?.[0];

@@ -1,0 +1,23 @@
+[
+  {
+    "type": "transfer",
+    "nft": {
+      "mint_address": "7ez4B34XAjpYnqyZPjHvzo8PfNQ5g2aMozsB3FdLSbBy",
+      "name": "Money Monsters 3D #77",
+      "symbol": "MM3D",
+      "owner_wallet": "3s6c6JzbqgdDpnXrvdfJXhJLq6i9CeMh5JghFe72nBk4",
+      "original_lister": null,
+      "is_listed": false,
+      "marketplace": null,
+      "list_price": null,
+      "rarity_rank": 533,
+      "image_url": "https://nftstorage.link/ipfs/bafybeicaln7tcthnqhxupmlcp5ltc36dnwqkuuf67we4htxpuavm5tbbtm/77.png",
+      "owner_discord_id": "993984242260398081",
+      "owner_name": "zerotwo02_0202",
+      "lister_discord_name": null
+    },
+    "notificationSent": false,
+    "notificationTimestamp": "2025-05-03T03:39:00.545Z",
+    "timestamp": "2025-05-03T03:39:00.545Z"
+  }
+]

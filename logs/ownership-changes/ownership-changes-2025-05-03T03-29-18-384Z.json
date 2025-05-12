@@ -1,0 +1,23 @@
+[
+  {
+    "type": "transfer",
+    "nft": {
+      "mint_address": "6EPHgZBwmo3mSHGJ5pUFZzjF7tJXmQmR7onT3pm3Zc1a",
+      "name": "Doodle Bot #111",
+      "symbol": "DDBOT",
+      "owner_wallet": "QJjg8ueMpi256QPwp3ZhvccdXgZL4vRvQ9WtPJPjbUK",
+      "original_lister": null,
+      "is_listed": false,
+      "marketplace": null,
+      "list_price": null,
+      "rarity_rank": 111,
+      "image_url": "https://arweave.net/nabZAKIjG_IG9feYxsNfdAQLD3qqdLLUvODv1EbiKGI?ext=png",
+      "owner_discord_id": null,
+      "owner_name": null,
+      "lister_discord_name": null
+    },
+    "notificationSent": false,
+    "notificationTimestamp": "2025-05-03T03:29:18.384Z",
+    "timestamp": "2025-05-03T03:29:18.385Z"
+  }
+]

@@ -1,0 +1,23 @@
+[
+  {
+    "type": "listing",
+    "nft": {
+      "mint_address": "9X9Bn14dYio9pdCrq3NJzA15BjuXUT4kkDMd1gcsi13k",
+      "name": "Money Monsters #328",
+      "symbol": "MM",
+      "owner_wallet": "Aa5xb9Ri7UwmYLvtRsqbVTSiwVvj5AoyQ4Ru31wGPLFW",
+      "original_lister": null,
+      "is_listed": false,
+      "marketplace": null,
+      "list_price": null,
+      "rarity_rank": 648,
+      "image_url": "https://arweave.net/X1mbo01FK-zyzTr0Dzvcm0TO2camtIvrgCcRem4jcVM",
+      "owner_discord_id": "993984242260398081",
+      "owner_name": "zerotwo02_0202",
+      "lister_discord_name": null
+    },
+    "notificationSent": false,
+    "notificationTimestamp": "2025-05-03T03:35:22.320Z",
+    "timestamp": "2025-05-03T03:35:22.321Z"
+  }
+]

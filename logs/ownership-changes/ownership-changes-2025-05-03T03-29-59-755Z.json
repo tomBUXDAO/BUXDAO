@@ -1,0 +1,23 @@
+[
+  {
+    "type": "sale",
+    "nft": {
+      "mint_address": "Ek25kYgFutp1JAfMhqqEdTMT7eCy4P4N4bhHeCDsQgPY",
+      "name": "Fcked Cat #1094",
+      "symbol": "FCKEDCATZ",
+      "owner_wallet": "3s6c6JzbqgdDpnXrvdfJXhJLq6i9CeMh5JghFe72nBk4",
+      "original_lister": "7aLXJFAe4Mvkp8KGeeeXq87L5xqR6EMD1b517xpF59zr",
+      "is_listed": true,
+      "marketplace": "Magic Eden",
+      "list_price": "0.130000000",
+      "rarity_rank": 1055,
+      "image_url": "https://arweave.net/GYoK_Bs0C7pZbKIMFliiTOOjGpDDdkimfk6ykQX6EXE",
+      "owner_discord_id": null,
+      "owner_name": null,
+      "lister_discord_name": null
+    },
+    "notificationSent": false,
+    "notificationTimestamp": "2025-05-03T03:29:59.755Z",
+    "timestamp": "2025-05-03T03:29:59.774Z"
+  }
+]

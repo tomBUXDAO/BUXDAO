@@ -1,0 +1,23 @@
+[
+  {
+    "type": "transfer",
+    "nft": {
+      "mint_address": "7nXmMTD6kpuzC6hY8RUDkLjYBRs7eVR54MDg6o5TbEF7",
+      "name": "Fcked Cat #1708",
+      "symbol": "FCKEDCATZ",
+      "owner_wallet": "7sakeU6TwHDey3B12tpPpEwQxtnEswrV7afHHC6LMvJg",
+      "original_lister": null,
+      "is_listed": false,
+      "marketplace": null,
+      "list_price": null,
+      "rarity_rank": 277,
+      "image_url": "https://arweave.net/-jGTs9ejjFrbje1xlJyFZRliTA_-PO_ZYkgzGzw77Mo",
+      "owner_discord_id": "842715514911850517",
+      "owner_name": "olizekibuxdao",
+      "lister_discord_name": null
+    },
+    "notificationSent": false,
+    "notificationTimestamp": "2025-05-03T03:31:34.899Z",
+    "timestamp": "2025-05-03T03:31:34.900Z"
+  }
+]

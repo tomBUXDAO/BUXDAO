@@ -1,0 +1,23 @@
+[
+  {
+    "type": "transfer",
+    "nft": {
+      "mint_address": "5eptH5gAZoXp46SPVkWQp7jqeJ4neDQq4C27qRAZYggY",
+      "name": "Candy Bot #220",
+      "symbol": "CLB",
+      "owner_wallet": "FJF4JBbnij74TWZz7QsmBJcqa8qEZjReQD9y9mYpKodD",
+      "original_lister": null,
+      "is_listed": false,
+      "marketplace": null,
+      "list_price": null,
+      "rarity_rank": null,
+      "image_url": "https://nftstorage.link/ipfs/bafybeiam3wl67uyxz4avg6es7dlwgpwjqkkxeysasjnrtf7jrxebvydp6y/220.png",
+      "owner_discord_id": null,
+      "owner_name": null,
+      "lister_discord_name": null
+    },
+    "notificationSent": false,
+    "notificationTimestamp": "2025-05-03T03:28:22.376Z",
+    "timestamp": "2025-05-03T03:28:22.408Z"
+  }
+]

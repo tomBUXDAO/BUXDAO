@@ -1,0 +1,17 @@
+[
+  {
+    "type": "burned",
+    "nft": {
+      "mint_address": "2z2yspc8mnPryaCU6bCxcqWdngPp81eUrw1Xz6JB9FuQ",
+      "name": "Fcked Cat #1316",
+      "symbol": "FCKEDCATZ",
+      "owner_wallet": "1BWutmTvYPwDtmw9abTkS4Ssr8no61spGAvW1X6NDix",
+      "original_lister": "8jUhXV2ZNbsjAJNQH22JhZMR1dBMYUtoHW4ASroUiXaz",
+      "rarity_rank": 160,
+      "image_url": "https://arweave.net/R0xy9A1eS7pAnkf8A3RPtFuRvlc-HDUy6zGwTG4E0Bo"
+    },
+    "notificationSent": false,
+    "notificationTimestamp": "2025-05-06T15:29:43.489Z",
+    "timestamp": "2025-05-06T15:29:43.490Z"
+  }
+]

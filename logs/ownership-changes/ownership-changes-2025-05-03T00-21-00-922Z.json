@@ -1,0 +1,23 @@
+[
+  {
+    "type": "burned",
+    "nft": {
+      "mint_address": "G7hxm7uGVWAZgWB2JZahV5zwgqZNzxFqsez61R55JGgV",
+      "name": "A.I. Warriors #184",
+      "symbol": "SHxBB",
+      "owner_wallet": "7jrRcbs4SwKi4MNnRsMHSxzsLt1zvUQqJLwaXojNZYYe",
+      "original_lister": null,
+      "is_listed": false,
+      "marketplace": null,
+      "list_price": null,
+      "rarity_rank": null,
+      "image_url": "https://arweave.net/fjoWD3O2zXqHSjjMobGniZhlsnC7DJkfp-ZmYP0-Fx8",
+      "owner_discord_id": null,
+      "owner_name": null,
+      "lister_discord_name": null
+    },
+    "notificationSent": false,
+    "error": "Discord webhook URL not configured",
+    "timestamp": "2025-05-03T00:21:00.923Z"
+  }
+]

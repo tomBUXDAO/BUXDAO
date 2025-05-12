@@ -1,0 +1,23 @@
+[
+  {
+    "type": "delist",
+    "nft": {
+      "mint_address": "Buct7nh3BasQW4sSvH8f7NNNiGYd4w3bb2v7aSiuMpFn",
+      "name": "Money Monsters 3D #417",
+      "symbol": "MM3D",
+      "owner_wallet": "41Lotjdqg3Q1EvPSi24WdfBkPswCgVT2WYcVVwaKnjrG",
+      "original_lister": "41Lotjdqg3Q1EvPSi24WdfBkPswCgVT2WYcVVwaKnjrG",
+      "is_listed": true,
+      "marketplace": "Tensor",
+      "list_price": "0.142000000",
+      "rarity_rank": 459,
+      "image_url": "https://nftstorage.link/ipfs/bafybeihkzucnws2fawvtnzr7ujvyqdd562l5xbvgyvdti4vvla6dpsnc2q/417.png",
+      "owner_discord_id": null,
+      "owner_name": null,
+      "lister_discord_name": null
+    },
+    "notificationSent": false,
+    "notificationTimestamp": "2025-05-03T03:37:58.889Z",
+    "timestamp": "2025-05-03T03:37:58.890Z"
+  }
+]

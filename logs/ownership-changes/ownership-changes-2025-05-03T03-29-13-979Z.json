@@ -1,0 +1,23 @@
+[
+  {
+    "type": "listing",
+    "nft": {
+      "mint_address": "HJakTLFk9M1SGAEDCuSFdA7H5wveB7aEFfcgm5xuvP2o",
+      "name": "Celebrity Catz #95",
+      "symbol": "CelebCatz",
+      "owner_wallet": "Aa5xb9Ri7UwmYLvtRsqbVTSiwVvj5AoyQ4Ru31wGPLFW",
+      "original_lister": null,
+      "is_listed": false,
+      "marketplace": null,
+      "list_price": null,
+      "rarity_rank": null,
+      "image_url": "https://nftstorage.link/ipfs/bafybeigo7gili5wuojsywuwoift34g6mvvq56lrbk3ikp7r365a23es7je/5.png",
+      "owner_discord_id": "993984242260398081",
+      "owner_name": "zerotwo02_0202",
+      "lister_discord_name": null
+    },
+    "notificationSent": false,
+    "notificationTimestamp": "2025-05-03T03:29:13.978Z",
+    "timestamp": "2025-05-03T03:29:14.128Z"
+  }
+]

@@ -1,0 +1,306 @@
+[
+  {
+    "mint": "5Y9LAp3fy8up3NaNPFpwP1pQM6MeACajz3ygTvVpPfTz",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "2garVHjmMk2DctiTvJoet1ydjbM9HhScL3RNLHKAvd5T",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "ESJhg2ULySSxsuUAFtp78dkC87ycUyk3mPSnZgSgGSEx",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "9Lnz5N9HPUCR1EzRaEjvFJW2n9Z35Myv9wUaTmvcTMXm",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "DLUX6ERt9fqjNM3xRGJ7ZZ2pWa1kxMcGrQSEPC98CYHZ",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "2AMwhQ1VJE5XrChgLAAN2ho67Z3Kd6G6ZH9K3tUDaeAj",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "HkdHGBWT4zBWS4uPrvpz2tY78ttFzGroZYXYLXHvoiPk",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "8Pv1iHoz8oy6cUUN3pRPSqATAtjjGKVL1DybbtGQign2",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "HNgsNQ93QJP67jKFWXYJfRErRD3wbrLuY1AZ3qN58fuf",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "DrYasp7jjjAUNNHBR6kFB6TF8geuVSdxXp5QiiNLyGK4",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "3WaVdCE9DabhWQUkPnaBDBwgyuuh4JecffD1QoGKhnxL",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "2EXttTghu9D3E7Bybgf49RYAgLXXfsyvWVxknvhP8tDR",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "7L6Un52aeMBNECbHKkcyHvWafph78ggThEEpSEZrvs7R",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "HtrvYPUpSKtzegP3pjgQYHsMubC5P37otgWBR7MXyCYJ",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "57o2rArPH7PxSAMHtACnoxSYQiiiiNNpcVvxz9KR3DsT",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "898uRkdLUx1Cqu6EwcovhLXF89sFdgcuXUyNjebC3J9x",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "DhfCH5qoxyewmpsdpLQJADzrH5x3SXyb43TtAFVDqFyz",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "4EYq6ZZM1kXLPsvSod5KBcCKs1AMxmpqbzY34P2phcLT",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "ZWJ5VMswBYSs1c58eZxYnyxKRCdrbdJBy3jVMS6Anij",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "4KRCeKiVMKW8YwfqZHp6Z7Ao5ygZsRwATUa7NKAMxnE8",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "8m6f1brUKw8mn2VgvJ2GiRaiJsPMVapse6qYEsA9qA8W",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "Cmp6qMgPRyFrH63jiDea4XucE4GKqiUkJ1ocfBzwpbme",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "5edmDiSMxDyBvuvTfDhy2UuaK8xUg95KeKXFYBPcJ1rp",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "HAnRkLYGMBh53w7kDgJ51oVgMLoJXpKDvdNHQPh72hVo",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "DbpkE8Y8TgrRnHUrvNJjXi3zCfVH9J3uR9rifRZPF7wk",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "7mMkzoiYFSSGGfnhrAov7kerEpumNvESgDwUn3PiZ3bb",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "7UrzMCGdRQrsVR9wJQXkpXyf8NvsqpWYhCr4tHsTKve4",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "ANUrdBYCQyJYSfZFntVFREv6CgQN9n4o5smZFZ2hWAcp",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "7BULa8aWK2RDMCgPHkav9wWQuVyf1qc527f9KArqLWF2",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "AyCNitS2ZRwpiWWJfR2CREoqhCb1WhQbQD8mWqDzKcSm",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "5eptH5gAZoXp46SPVkWQp7jqeJ4neDQq4C27qRAZYggY",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "38eaWY1FjZD536wWkrtXXWBaqBBGuyVZuhvczYTbGb1v",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "GQxc5Ef8FD7LQbBLQHWUDJDeTnjpJGdJZC31XgRuHYcS",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "2RBMWp659q9p7eXEhzazefYn5qtbr6LPuPwqZvkBuRna",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "6Dm5wzgx3wFwe22qfJuPwogGNRax9mzfKRc5WFGcgQzy",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "BwzvCrKm7rFWEcNzjUyhELrCGM3L6bVxVYZUVWH6ifXp",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "8aasfyyq8mw3QWC2dkdgXPE8DnkoeFJ5jpudjPDUCXCj",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "7y2UeLekizGn913H8LKK3xecjjufv8tw2FZF15Y8MoGo",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "HJakTLFk9M1SGAEDCuSFdA7H5wveB7aEFfcgm5xuvP2o",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "6EPHgZBwmo3mSHGJ5pUFZzjF7tJXmQmR7onT3pm3Zc1a",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "2H3XmzgGJ59brdfhg7XDts1aBxn8E8VTkNczXi6577Zh",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "Ek25kYgFutp1JAfMhqqEdTMT7eCy4P4N4bhHeCDsQgPY",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "Aoko1CwcnvENdHWyr6d5mJpipQ43n5yN55n2SY3Td9i6",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "4j2KNFigfXyjG7KBhkuHsE2K729fRtjhtKiuj3RoLGqy",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "2Jrsn7YW76tiNXub9Fz9h2BVacN7KQLPEruSvqtdGrsm",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "2z2yspc8mnPryaCU6bCxcqWdngPp81eUrw1Xz6JB9FuQ",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "G3gxKvN5d2VgaLvWiZdTXGtZe7fS8o7rHMpb4fKDEAP2",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "BVJks7YLojXkijF8msQzvqPvyDacGYvjhTDTZ7gbfgxW",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "Ek74AkXjUy7BHbouhSYskUwXer5KT7YLMXLsUaaHma33",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "9P3WEup9yh8eExFzQgZM5jBodfc5L5fAS6Y8cyzvYwvj",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "9Mx26SpcVHhfePqxWKCZ5Dz3krD613HJ75UqaTDtkssj",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "7nXmMTD6kpuzC6hY8RUDkLjYBRs7eVR54MDg6o5TbEF7",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "E2YqLfB42XTtirtsAajSXcdR5mkT8rsSJH4EShA9RsjA",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "FRajSdQen6MbU7gKMiCvEb72nwPuHz5wdMyrPWsBx4zx",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "C6BMyjvbv3V7msxsoRFpQQbf1Tm2oPjN8NFDkLc9orHe",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "CpktDBDSBXBGJQ69oymT3QDcQbEfV8rmLt6M1ocND2C9",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "26GY1J4qvVbCGSHto4PaBifbkdHgWBFoCQfwH1JZDpL8",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "7GjSeHGQWnWVshng4quVqgTsZfaSzt666a4eW1PVbyS",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "HsW4e9e6zhAKSKJuP8PYWGngHhL3H2agQwvRQzzGsHdv",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "83popew9JyW79EaRp2xdpUibAAoqkT6wouYPDUg9N4GE",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "8X1P5zZzfzmDV57yw33ZnDPuc7y3gBCpprY2MpBN2hJn",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "DtpCAMmVXcXFuzKKQzgM4xX1CXVVJVEdxPi7g6s6Cct3",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "FT9Wq2Bpd7Hi12aKs7Q8CWpLiEN6kA9xPCrn5Tketg2j",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "DxbxzF9Txfqs79f1pm5i3wv6hwSAphfjgn6vswkxQE9F",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "9X9Bn14dYio9pdCrq3NJzA15BjuXUT4kkDMd1gcsi13k",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "ExLuYM1PDcrD9iZKBbgBRWc87gr1jbNzmbsyodg179be",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "B2SfZD41NMsyA7kzL78CG7DFRJZxquafTEnRRj6HGCfD",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "BHVFSkMv6J1uujZj2TzDEC3P8hgeTUeGVPtnVvcVdbzG",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "Buct7nh3BasQW4sSvH8f7NNNiGYd4w3bb2v7aSiuMpFn",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "CkcF8D7dHqa3tZFMHfN47eTQikw7KzcerHYQQ2jjwUK4",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "83kp1JvSomEtL5egbqfdeWzXmx7PutFL1E9cAvHAcTqT",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "8vcLBo7KDX9AL5wnNwofXqt7tQBXG2xK9TVof5XweBKU",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "66j4F5V74qceatEXA6gDqztXfLy93JKdHZ4Azj43ZcRF",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "34bXcUwpb8MAR2gFEW9FUfBUCtTBpN4Q4WGKDcMXCRWN",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "7ez4B34XAjpYnqyZPjHvzo8PfNQ5g2aMozsB3FdLSbBy",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  },
+  {
+    "mint": "CavZR2fHvbnTbxRdoNYjFrkvAi5kNZkHQkGPYUzuuHEi",
+    "error": "null value in column \"event_type\" of relation \"nft_events\" violates not-null constraint"
+  }
+]

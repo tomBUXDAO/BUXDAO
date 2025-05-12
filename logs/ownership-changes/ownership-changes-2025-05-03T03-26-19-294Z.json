@@ -1,0 +1,23 @@
+[
+  {
+    "type": "sale",
+    "nft": {
+      "mint_address": "898uRkdLUx1Cqu6EwcovhLXF89sFdgcuXUyNjebC3J9x",
+      "name": "Rejected Bots #240",
+      "symbol": "AIRB",
+      "owner_wallet": "5UcXwhJ4N2oNcinLZpFf2tLLh8hbf7W5FHtpiokX5SnW",
+      "original_lister": "9ZYza35H7azjGQQkPwdgNtVWoai4o7fAoYYSrA1TMUCH",
+      "is_listed": true,
+      "marketplace": "Magic Eden",
+      "list_price": "0.057400000",
+      "rarity_rank": null,
+      "image_url": "https://nftstorage.link/ipfs/bafybeicf6ntfuyywlgqzntendbtof3ft56cdk3xbaq5tngnlpmu52xyho4/240.png",
+      "owner_discord_id": null,
+      "owner_name": null,
+      "lister_discord_name": null
+    },
+    "notificationSent": false,
+    "notificationTimestamp": "2025-05-03T03:26:19.294Z",
+    "timestamp": "2025-05-03T03:26:19.295Z"
+  }
+]

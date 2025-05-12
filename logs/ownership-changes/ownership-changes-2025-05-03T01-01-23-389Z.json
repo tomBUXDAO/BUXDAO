@@ -1,0 +1,16 @@
+[
+  {
+    "type": "listing",
+    "nft": {
+      "name": "Test NFT #1",
+      "symbol": "FCKEDCATZ",
+      "mint_address": "TestMintAddress123",
+      "owner_wallet": "TestWallet456",
+      "rarity_rank": 42,
+      "image_url": "https://buxdao.com/logos/cat.PNG"
+    },
+    "notificationSent": false,
+    "error": "Discord activity channel ID not configured",
+    "timestamp": "2025-05-03T01:01:23.464Z"
+  }
+]

@@ -1,0 +1,23 @@
+[
+  {
+    "type": "transfer",
+    "nft": {
+      "mint_address": "9Lnz5N9HPUCR1EzRaEjvFJW2n9Z35Myv9wUaTmvcTMXm",
+      "name": "AI Bitbot #179",
+      "symbol": "AIBB",
+      "owner_wallet": "AEJk32fDMjp3JwBg4QKU8mU6bp2vh5hv8k4QBMUGbPNh",
+      "original_lister": null,
+      "is_listed": false,
+      "marketplace": null,
+      "list_price": null,
+      "rarity_rank": null,
+      "image_url": "/bots/179.png",
+      "owner_discord_id": "931160720261939230",
+      "owner_name": "tom_buxdao",
+      "lister_discord_name": null
+    },
+    "notificationSent": false,
+    "notificationTimestamp": "2025-05-03T03:25:05.267Z",
+    "timestamp": "2025-05-03T03:25:05.330Z"
+  }
+]

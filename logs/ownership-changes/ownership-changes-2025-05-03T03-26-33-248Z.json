@@ -1,0 +1,23 @@
+[
+  {
+    "type": "transfer",
+    "nft": {
+      "mint_address": "ZWJ5VMswBYSs1c58eZxYnyxKRCdrbdJBy3jVMS6Anij",
+      "name": "Rejected Bots #282",
+      "symbol": "AIRB",
+      "owner_wallet": "5UcXwhJ4N2oNcinLZpFf2tLLh8hbf7W5FHtpiokX5SnW",
+      "original_lister": null,
+      "is_listed": false,
+      "marketplace": null,
+      "list_price": null,
+      "rarity_rank": null,
+      "image_url": "https://nftstorage.link/ipfs/bafybeigo2argdud77koqsik6bucisxhsqix3emkkmxw6x54q6y5zjhhwva/282.png",
+      "owner_discord_id": null,
+      "owner_name": null,
+      "lister_discord_name": null
+    },
+    "notificationSent": false,
+    "notificationTimestamp": "2025-05-03T03:26:33.248Z",
+    "timestamp": "2025-05-03T03:26:33.248Z"
+  }
+]

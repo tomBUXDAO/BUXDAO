@@ -1,0 +1,23 @@
+[
+  {
+    "type": "transfer",
+    "nft": {
+      "mint_address": "DLUX6ERt9fqjNM3xRGJ7ZZ2pWa1kxMcGrQSEPC98CYHZ",
+      "name": "AI Bitbot #182",
+      "symbol": "AIBB",
+      "owner_wallet": "3s6c6JzbqgdDpnXrvdfJXhJLq6i9CeMh5JghFe72nBk4",
+      "original_lister": null,
+      "is_listed": false,
+      "marketplace": null,
+      "list_price": null,
+      "rarity_rank": null,
+      "image_url": "/bots/182.png",
+      "owner_discord_id": "993984242260398081",
+      "owner_name": "zerotwo02_0202",
+      "lister_discord_name": null
+    },
+    "notificationSent": false,
+    "notificationTimestamp": "2025-05-03T03:25:06.723Z",
+    "timestamp": "2025-05-03T03:25:06.724Z"
+  }
+]

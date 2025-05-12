@@ -1,0 +1,17 @@
+[
+  {
+    "type": "manual_review",
+    "nft": {
+      "mint_address": "FT9Wq2Bpd7Hi12aKs7Q8CWpLiEN6kA9xPCrn5Tketg2j",
+      "name": "Fcked Cat #944",
+      "symbol": "FCKEDCATZ",
+      "owner_wallet": "1BWutmTvYPwDtmw9abTkS4Ssr8no61spGAvW1X6NDix",
+      "original_lister": "Aa5xb9Ri7UwmYLvtRsqbVTSiwVvj5AoyQ4Ru31wGPLFW",
+      "rarity_rank": 357,
+      "image_url": "https://arweave.net/jG2WgZAQZT1SoH2vcSU428Lbrz-NOl8EFOj7ygajTrY"
+    },
+    "notificationSent": false,
+    "notificationTimestamp": "2025-05-06T15:26:25.081Z",
+    "timestamp": "2025-05-06T15:26:25.457Z"
+  }
+]

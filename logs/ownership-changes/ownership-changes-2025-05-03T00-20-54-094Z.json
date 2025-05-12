@@ -1,0 +1,23 @@
+[
+  {
+    "type": "burned",
+    "nft": {
+      "mint_address": "BMU68X8ZH9rT8jDdgGpsQY3tVGhMvRM9xoLujH5rzZwK",
+      "name": "A.I. Warriors #108",
+      "symbol": "SHxBB",
+      "owner_wallet": "1BWutmTvYPwDtmw9abTkS4Ssr8no61spGAvW1X6NDix",
+      "original_lister": "A797zAsA9dYYwxaGPzigZgkKo92MpahQMLVzpxf7FMAK",
+      "is_listed": true,
+      "marketplace": "Magic Eden",
+      "list_price": "0.090000000",
+      "rarity_rank": null,
+      "image_url": "https://arweave.net/5pzqFFYRZ9gLXqHmwMyptbKTvvBzoxfuOf9nD9ly8A8",
+      "owner_discord_id": null,
+      "owner_name": null,
+      "lister_discord_name": null
+    },
+    "notificationSent": false,
+    "error": "Discord webhook URL not configured",
+    "timestamp": "2025-05-03T00:20:54.119Z"
+  }
+]
