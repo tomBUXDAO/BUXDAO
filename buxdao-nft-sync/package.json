@@ -4,7 +4,8 @@
   "type": "module",
   "main": "sync-celebcatz.js",
   "scripts": {
-    "start": "node sync-celebcatz.js",
+    "start": "node cron.js",
+    "sync": "node sync-celebcatz.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -17,6 +18,7 @@
     "axios": "^1.9.0",
     "discord.js": "^14.19.3",
     "dotenv": "^16.5.0",
+    "node-cron": "^3.0.3",
     "node-fetch": "^3.3.2",
     "pg": "^8.15.6"
   }
