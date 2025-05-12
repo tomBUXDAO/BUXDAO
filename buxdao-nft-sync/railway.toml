@@ -4,5 +4,5 @@ buildCommand = "npm install"
 
 [deploy]
 startCommand = "npm start"
-restartPolicyType = "on-failure"
-restartPolicyMaxRetries = 10 
+restartPolicy = "on-failure"
+maxRetries = 10 
