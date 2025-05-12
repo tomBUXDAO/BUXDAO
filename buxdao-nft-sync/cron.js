@@ -12,33 +12,60 @@ dotenv.config({ path: `${__dirname}/.env` });
 
 console.log('Starting NFT sync scheduler...');
 
-// Function to run the sync script
-function runSync() {
-  console.log(`\n[${new Date().toISOString()}] Running NFT sync...`);
-  
-  const syncProcess = spawn('node', ['sync-celebcatz.js'], {
-    stdio: 'inherit',
-    env: process.env
-  });
+// List of all sync scripts to run sequentially
+const syncScripts = [
+  'sync-celebcatz.js',
+  'sync-fckedcatz.js',
+  'sync-monsters.js',
+  'sync-mm3d.js',
+  'sync-aibitbots.js',
+  'sync-aelxaibb.js',
+  'sync-airb.js',
+  'sync-ausqrl.js',
+  'sync-ddbot.js',
+  'sync-clb.js'
+];
 
-  syncProcess.on('error', (error) => {
-    console.error(`Error running sync: ${error.message}`);
+// Function to run a single script and return a Promise
+function runScript(script) {
+  return new Promise((resolve, reject) => {
+    console.log(`\n[${new Date().toISOString()}] Running ${script}...`);
+    const syncProcess = spawn('node', [script], {
+      stdio: 'inherit',
+      env: process.env
+    });
+    syncProcess.on('error', (error) => {
+      console.error(`Error running ${script}: ${error.message}`);
+      reject(error);
+    });
+    syncProcess.on('close', (code) => {
+      console.log(`${script} exited with code ${code}`);
+      resolve();
+    });
   });
+}
 
-  syncProcess.on('close', (code) => {
-    console.log(`Sync process exited with code ${code}`);
-  });
+// Function to run all scripts sequentially
+async function runAllSyncs() {
+  for (const script of syncScripts) {
+    try {
+      await runScript(script);
+    } catch (err) {
+      console.error(`Error in ${script}:`, err);
+    }
+  }
+  console.log(`\n[${new Date().toISOString()}] All sync scripts completed.`);
 }
 
 // Run immediately on startup
 console.log('Running initial sync...');
-runSync();
+runAllSyncs();
 
 // Schedule to run every 15 minutes
 console.log('Setting up cron schedule...');
 cron.schedule('*/15 * * * *', () => {
-  console.log(`\n[${new Date().toISOString()}] Cron triggered - running sync...`);
-  runSync();
+  console.log(`\n[${new Date().toISOString()}] Cron triggered - running all sync scripts...`);
+  runAllSyncs();
 });
 
 // Keep the process alive
