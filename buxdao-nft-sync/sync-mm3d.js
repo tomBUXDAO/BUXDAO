@@ -49,8 +49,8 @@ function getMarketplaceName(address) {
 
 // Collection address
 const COLLECTION = {
-  name: 'CelebCatz',
-  address: 'H6c8gJqMk2ktfKriGGLB14RKPAz2otz1iPv2AAegetXD'
+  name: 'MM3D',
+  address: 'HLD74kSbBLf4aYnGkZ4dYSoh9cZvS4exAB9t7pPDDPvE'
 };
 
 // Function to fetch all NFTs in the collection
@@ -709,7 +709,7 @@ function formatDiscordMessage(data) {
 }
 
 // Main sync function
-async function syncCelebCatz() {
+async function syncMM3D() {
   if (TEST_MODE) {
     console.log('\n=== RUNNING IN TEST MODE - NO DATABASE CHANGES WILL BE MADE ===\n');
   }
@@ -744,7 +744,7 @@ async function syncCelebCatz() {
   };
   
   try {
-    console.log('\nStarting CELEBCATZ NFT ownership sync...');
+    console.log('\nStarting MONEY MONSTERS 3D NFT ownership sync...');
     
     // Fetch all NFTs in the collection
     console.log(`Fetching NFTs for ${COLLECTION.name}...`);
@@ -1029,7 +1029,7 @@ async function syncCelebCatz() {
 
 // Run the sync if called directly
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  syncCelebCatz()
+  syncMM3D()
     .then(() => process.exit(0))
     .catch(error => {
       console.error('Fatal error:', error);
@@ -1037,4 +1037,4 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     });
 }
 
-export default syncCelebCatz;
+export default syncMM3D; 

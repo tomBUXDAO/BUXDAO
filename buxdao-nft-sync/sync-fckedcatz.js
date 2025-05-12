@@ -44,13 +44,13 @@ const ESCROW_WALLETS = new Set(Object.values(MARKETPLACE_ESCROWS).map(m => m.id)
 function getMarketplaceName(address) {
   const marketplace = Object.values(MARKETPLACE_ESCROWS).find(m => m.id === address);
   if (!marketplace) return 'Unknown';
-  return marketplace.name; // This will return "Magic Eden" or "Tensor"
+  return marketplace.name;
 }
 
 // Collection address
 const COLLECTION = {
-  name: 'CelebCatz',
-  address: 'H6c8gJqMk2ktfKriGGLB14RKPAz2otz1iPv2AAegetXD'
+  name: 'FCKEDCATZ',
+  address: 'EPeeeDr21EPJ4GJgjuRJ8SHD4A2d59erMaTtWaTT2hqm'
 };
 
 // Function to fetch all NFTs in the collection
@@ -709,7 +709,7 @@ function formatDiscordMessage(data) {
 }
 
 // Main sync function
-async function syncCelebCatz() {
+async function syncFckedCatz() {
   if (TEST_MODE) {
     console.log('\n=== RUNNING IN TEST MODE - NO DATABASE CHANGES WILL BE MADE ===\n');
   }
@@ -744,7 +744,7 @@ async function syncCelebCatz() {
   };
   
   try {
-    console.log('\nStarting CELEBCATZ NFT ownership sync...');
+    console.log('\nStarting AI BITBOTS NFT ownership sync...');
     
     // Fetch all NFTs in the collection
     console.log(`Fetching NFTs for ${COLLECTION.name}...`);
@@ -1029,7 +1029,7 @@ async function syncCelebCatz() {
 
 // Run the sync if called directly
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  syncCelebCatz()
+  syncFckedCatz()
     .then(() => process.exit(0))
     .catch(error => {
       console.error('Fatal error:', error);
@@ -1037,4 +1037,4 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     });
 }
 
-export default syncCelebCatz;
+export default syncFckedCatz;

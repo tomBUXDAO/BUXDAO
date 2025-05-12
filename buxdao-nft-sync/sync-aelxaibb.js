@@ -44,13 +44,13 @@ const ESCROW_WALLETS = new Set(Object.values(MARKETPLACE_ESCROWS).map(m => m.id)
 function getMarketplaceName(address) {
   const marketplace = Object.values(MARKETPLACE_ESCROWS).find(m => m.id === address);
   if (!marketplace) return 'Unknown';
-  return marketplace.name; // This will return "Magic Eden" or "Tensor"
+  return marketplace.name;
 }
 
 // Collection address
 const COLLECTION = {
-  name: 'CelebCatz',
-  address: 'H6c8gJqMk2ktfKriGGLB14RKPAz2otz1iPv2AAegetXD'
+  name: 'AELxAIBB',
+  address: 'EiWQMsSysgAKofe8EVtVSjeCxv1DXJJ4BCiH3gbYF4K7'
 };
 
 // Function to fetch all NFTs in the collection
@@ -587,11 +587,11 @@ function formatDiscordMessage(data) {
 
   const getCollectionLogo = (symbol) => {
     const logos = {
-      'FCKEDCATZ': '/logos/cat.PNG',
-      'CelebCatz': '/logos/celeb.PNG',
-      'MM': '/logos/monster.PNG',
-      'MM3D': '/logos/monster.PNG',
-      'AIBB': '/logos/bot.PNG'
+      'AELxAIBB': '/collab-images/ai-apes.jpg',
+      'AIRB': '/collab-images/rejected-bots.jpg',
+      'AUSQRL': '/collab-images/ai-squirrels.jpg',
+      'DDBOT': '/collab-images/doodlebots.jpg',
+      'CLB': '/collab-images/candybots.jpg'
     };
     return `https://buxdao.com${logos[symbol] || '/logos/default.PNG'}`;
   };
@@ -709,7 +709,7 @@ function formatDiscordMessage(data) {
 }
 
 // Main sync function
-async function syncCelebCatz() {
+async function syncAIBitBots() {
   if (TEST_MODE) {
     console.log('\n=== RUNNING IN TEST MODE - NO DATABASE CHANGES WILL BE MADE ===\n');
   }
@@ -744,7 +744,7 @@ async function syncCelebCatz() {
   };
   
   try {
-    console.log('\nStarting CELEBCATZ NFT ownership sync...');
+    console.log('\nStarting AI BITBOTS NFT ownership sync...');
     
     // Fetch all NFTs in the collection
     console.log(`Fetching NFTs for ${COLLECTION.name}...`);
@@ -1029,7 +1029,7 @@ async function syncCelebCatz() {
 
 // Run the sync if called directly
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  syncCelebCatz()
+  syncAIBitBots()
     .then(() => process.exit(0))
     .catch(error => {
       console.error('Fatal error:', error);
@@ -1037,4 +1037,4 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     });
 }
 
-export default syncCelebCatz;
+export default syncAIBitBots;
