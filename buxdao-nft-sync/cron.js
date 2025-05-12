@@ -31,11 +31,26 @@ function runSync() {
 }
 
 // Run immediately on startup
+console.log('Running initial sync...');
 runSync();
 
 // Schedule to run every 15 minutes
+console.log('Setting up cron schedule...');
 cron.schedule('*/15 * * * *', () => {
+  console.log(`\n[${new Date().toISOString()}] Cron triggered - running sync...`);
   runSync();
 });
 
-console.log('NFT sync scheduled to run every 15 minutes'); 
+// Keep the process alive
+process.on('SIGTERM', () => {
+  console.log('Received SIGTERM. Cleaning up...');
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  console.log('Received SIGINT. Cleaning up...');
+  process.exit(0);
+});
+
+console.log('NFT sync scheduled to run every 15 minutes');
+console.log('Next sync will run at:', new Date(Date.now() + 15 * 60 * 1000).toISOString()); 
