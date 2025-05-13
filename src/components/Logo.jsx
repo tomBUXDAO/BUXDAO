@@ -10,14 +10,15 @@ const Logo = () => {
       </div>
       <div className="relative">
         <span 
-          className="whitespace-nowrap font-poppins text-3xl font-bold tracking-normal z-10"
+          className="whitespace-nowrap text-3xl font-extrabold tracking-normal z-10"
           style={{
+            fontFamily: "'Poppins', sans-serif",
             color: 'transparent',
-            WebkitTextStroke: '1.5px #FFD700',
-            textStroke: '1.5px #FFD700'
+            WebkitTextStroke: '1.5px #FFD600',
+            textStroke: '1.5px #FFD600'
           }}
         >
-          BUX&nbsp;&nbsp;&nbsp;&nbsp;DAO
+          BUX&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;DAO
         </span>
       </div>
     </div>

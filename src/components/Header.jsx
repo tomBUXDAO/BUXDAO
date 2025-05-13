@@ -4,6 +4,7 @@ import { Bars3Icon, XMarkIcon, ChevronDownIcon, LockClosedIcon, ArrowRightOnRect
 import Logo from './Logo';
 import { useUser } from '../contexts/UserContext';
 import { useWalletModal } from '@solana/wallet-adapter-react-ui';
+import { DiscordIcon } from './Icons';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -211,6 +212,26 @@ const Header = () => {
                   {link.name}
                 </Link>
               ))}
+
+              {/* Social links */}
+              <a
+                href="https://discord.gg/2dXNjyr593"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gray-300 hover:text-[#5865F2] transition-colors flex items-center"
+                title="Join us on Discord"
+              >
+                <DiscordIcon className="h-6 w-6" />
+              </a>
+              <a
+                href="https://x.com/buxdao"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gray-300 hover:opacity-80 transition-colors flex items-center"
+                title="Follow us on X"
+              >
+                <img src="/x-logo.png" alt="X logo" className="h-8 w-8 object-contain" />
+              </a>
 
               {/* User section */}
               {discordUser ? (

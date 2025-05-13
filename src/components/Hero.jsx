@@ -82,10 +82,12 @@ const Hero = () => {
                         <span>Holder verify</span>
                       </button>
                     </Link>
-                    <button className="flex items-center justify-center space-x-3 bg-transparent px-8 py-3 rounded-full text-white text-base sm:text-lg hover:bg-white/10 transition-all border-2 border-white whitespace-nowrap w-full">
-                      <span>Learn more</span>
-                      <ChevronRightIcon className="h-5 w-5 sm:h-6 sm:w-6" />
-                    </button>
+                    <Link to="/bux" className="w-full">
+                      <button className="flex items-center justify-center space-x-3 bg-transparent px-8 py-3 rounded-full text-white text-base sm:text-lg hover:bg-white/10 transition-all border-2 border-white whitespace-nowrap w-full">
+                        <span>Learn more</span>
+                        <ChevronRightIcon className="h-5 w-5 sm:h-6 sm:w-6" />
+                      </button>
+                    </Link>
                   </div>
                 )}
               </div>
@@ -93,8 +95,8 @@ const Hero = () => {
 
             {/* Icons grid */}
             <div className="landscape:col-span-3 sm:col-span-3 grid grid-cols-2 landscape:grid-cols-1 sm:grid-cols-1 gap-4 sm:gap-6 landscape:h-full landscape:justify-center">
-              <div className="flex items-center space-x-3">
-                <div className="bg-white/10 p-2 rounded-xl">
+              <div className="flex items-center space-x-3 group transition-all duration-200 hover:bg-white/10 hover:shadow-lg hover:scale-[1.03] rounded-2xl cursor-default px-5 py-4 border border-white/10 backdrop-blur-sm">
+                <div className="bg-white/10 p-2 rounded-xl transition-all duration-200 group-hover:bg-white/20">
                   <LockClosedIcon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                 </div>
                 <div>
@@ -103,8 +105,8 @@ const Hero = () => {
                 </div>
               </div>
 
-              <div className="flex items-center space-x-3">
-                <div className="bg-white/10 p-2 rounded-xl">
+              <div className="flex items-center space-x-3 group transition-all duration-200 hover:bg-white/10 hover:shadow-lg hover:scale-[1.03] rounded-2xl cursor-default px-5 py-4 border border-white/10 backdrop-blur-sm">
+                <div className="bg-white/10 p-2 rounded-xl transition-all duration-200 group-hover:bg-white/20">
                   <CircleStackIcon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                 </div>
                 <div>
@@ -113,8 +115,8 @@ const Hero = () => {
                 </div>
               </div>
 
-              <div className="flex items-center space-x-3">
-                <div className="bg-white/10 p-2 rounded-xl">
+              <div className="flex items-center space-x-3 group transition-all duration-200 hover:bg-white/10 hover:shadow-lg hover:scale-[1.03] rounded-2xl cursor-default px-5 py-4 border border-white/10 backdrop-blur-sm">
+                <div className="bg-white/10 p-2 rounded-xl transition-all duration-200 group-hover:bg-white/20">
                   <PhotoIcon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                 </div>
                 <div>
@@ -123,8 +125,8 @@ const Hero = () => {
                 </div>
               </div>
 
-              <div className="flex items-center space-x-3">
-                <div className="bg-white/10 p-2 rounded-xl">
+              <div className="flex items-center space-x-3 group transition-all duration-200 hover:bg-white/10 hover:shadow-lg hover:scale-[1.03] rounded-2xl cursor-default px-5 py-4 border border-white/10 backdrop-blur-sm">
+                <div className="bg-white/10 p-2 rounded-xl transition-all duration-200 group-hover:bg-white/20">
                   <PokerChipIcon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                 </div>
                 <div>
