@@ -4,6 +4,29 @@ import { Link } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext';
 import UserStats from './UserStats';
 
+const featureCards = [
+  {
+    icon: <LockClosedIcon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />, 
+    title: 'Unlock Content',
+    desc: 'Connect your discord profile and wallet',
+  },
+  {
+    icon: <CircleStackIcon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />, 
+    title: 'Daily Rewards',
+    desc: 'Paid out based on unlisted NFT holdings',
+  },
+  {
+    icon: <PhotoIcon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />, 
+    title: 'Unique Art',
+    desc: 'Trade on the Solana blockchain',
+  },
+  {
+    icon: <PokerChipIcon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />, 
+    title: 'Community Poker',
+    desc: 'Play for free to win NFT and $BUX prizes',
+  },
+];
+
 const Hero = () => {
   const { discordUser } = useUser();
 
@@ -95,45 +118,20 @@ const Hero = () => {
 
             {/* Icons grid */}
             <div className="landscape:col-span-3 sm:col-span-3 grid grid-cols-2 landscape:grid-cols-1 sm:grid-cols-1 gap-4 sm:gap-6 landscape:h-full landscape:justify-center">
-              <div className="flex items-center space-x-3 group transition-all duration-200 hover:bg-white/10 hover:shadow-lg hover:scale-[1.03] rounded-2xl cursor-default px-5 py-4 border border-white/10 backdrop-blur-sm">
-                <div className="bg-white/10 p-2 rounded-xl transition-all duration-200 group-hover:bg-white/20">
-                  <LockClosedIcon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+              {featureCards.map((card) => (
+                <div
+                  key={card.title}
+                  className="flex items-center space-x-3 group transition-all duration-200 hover:bg-white/10 hover:shadow-lg hover:scale-[1.03] rounded-2xl cursor-default px-5 py-4 border border-white/10 backdrop-blur-sm"
+                >
+                  <div className="bg-white/10 p-2 rounded-xl transition-all duration-200 group-hover:bg-white/20">
+                    {card.icon}
+                  </div>
+                  <div>
+                    <h3 className="text-yellow-400 font-semibold text-sm">{card.title}</h3>
+                    <p className="text-gray-300 text-xs">{card.desc}</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-yellow-400 font-semibold text-sm">Unlock Content</h3>
-                  <p className="text-gray-300 text-xs">Connect your discord profile and wallet</p>
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-3 group transition-all duration-200 hover:bg-white/10 hover:shadow-lg hover:scale-[1.03] rounded-2xl cursor-default px-5 py-4 border border-white/10 backdrop-blur-sm">
-                <div className="bg-white/10 p-2 rounded-xl transition-all duration-200 group-hover:bg-white/20">
-                  <CircleStackIcon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
-                </div>
-                <div>
-                  <h3 className="text-yellow-400 font-semibold text-sm">Daily Rewards</h3>
-                  <p className="text-gray-300 text-xs">Paid out based on unlisted NFT holdings</p>
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-3 group transition-all duration-200 hover:bg-white/10 hover:shadow-lg hover:scale-[1.03] rounded-2xl cursor-default px-5 py-4 border border-white/10 backdrop-blur-sm">
-                <div className="bg-white/10 p-2 rounded-xl transition-all duration-200 group-hover:bg-white/20">
-                  <PhotoIcon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
-                </div>
-                <div>
-                  <h3 className="text-yellow-400 font-semibold text-sm">Unique Art</h3>
-                  <p className="text-gray-300 text-xs">Trade on the Solana blockchain</p>
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-3 group transition-all duration-200 hover:bg-white/10 hover:shadow-lg hover:scale-[1.03] rounded-2xl cursor-default px-5 py-4 border border-white/10 backdrop-blur-sm">
-                <div className="bg-white/10 p-2 rounded-xl transition-all duration-200 group-hover:bg-white/20">
-                  <PokerChipIcon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
-                </div>
-                <div>
-                  <h3 className="text-yellow-400 font-semibold text-sm">Community Poker</h3>
-                  <p className="text-gray-300 text-xs">Play for free to win NFT and $BUX prizes</p>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
         </div>
