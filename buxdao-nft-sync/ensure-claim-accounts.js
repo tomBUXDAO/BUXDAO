@@ -23,9 +23,24 @@ async function ensureClaimAccounts() {
       path.join(__dirname, 'db', 'create_missing_claim_accounts.sql'),
       'utf8'
     );
-    console.log('Ensuring all users have claim accounts...');
+    
+    console.log('Executing claim account SQL...');
     await client.query(sqlScript);
-    console.log('Claim account check complete.');
+    console.log('SQL execution completed');
+
+    const updateDiscordNamesQuery = `
+      UPDATE user_roles
+      SET discord_name = (
+        SELECT username
+        FROM discord_users
+        WHERE discord_users.discord_id = user_roles.discord_id
+      )
+      WHERE discord_id IS NOT NULL;
+    `;
+    await client.query(updateDiscordNamesQuery);
+    console.log('Discord usernames updated in user_roles');
+
+    console.log('Claim account check completed');
   } catch (error) {
     console.error('Error ensuring claim accounts:', error);
     throw error;

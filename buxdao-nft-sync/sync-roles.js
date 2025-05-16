@@ -9,6 +9,15 @@ import { syncUserRoles } from './discord/roles.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Validate required environment variables
+const requiredEnvVars = ['POSTGRES_URL', 'DISCORD_BOT_TOKEN', 'DISCORD_GUILD_ID'];
+const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
+
+if (missingEnvVars.length > 0) {
+  console.error('Missing required environment variables:', missingEnvVars.join(', '));
+  process.exit(1);
+}
+
 // Initialize database connection
 const pool = new Pool({
   connectionString: process.env.POSTGRES_URL,
