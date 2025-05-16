@@ -4,7 +4,7 @@ const { Pool } = pkg;
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { syncUserRoles } from '../api/integrations/discord/roles.js';
+import { syncUserRoles } from './discord/roles.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
