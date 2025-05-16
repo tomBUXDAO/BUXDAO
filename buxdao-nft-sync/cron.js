@@ -23,7 +23,8 @@ const syncScripts = [
   'sync-airb.js',
   'sync-ausqrl.js',
   'sync-ddbot.js',
-  'sync-clb.js'
+  'sync-clb.js',
+  'sync-roles.js'
 ];
 
 // Function to run a single script and return a Promise
