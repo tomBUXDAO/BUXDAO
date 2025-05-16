@@ -53,7 +53,24 @@ LEFT JOIN daily_rewards dr ON ur.discord_id = dr.discord_id
     AND dr.reward_period_start = date_trunc('day', CURRENT_TIMESTAMP)
 WHERE ur.discord_id IS NOT NULL 
 AND dr.discord_id IS NULL
-ON CONFLICT (discord_id, reward_period_start) DO NOTHING;
+ON CONFLICT (discord_id, reward_period_start) 
+DO UPDATE SET
+    calculation_time = EXCLUDED.calculation_time,
+    celeb_catz_count = EXCLUDED.celeb_catz_count,
+    celeb_catz_reward = EXCLUDED.celeb_catz_reward,
+    money_monsters_3d_count = EXCLUDED.money_monsters_3d_count,
+    money_monsters_3d_reward = EXCLUDED.money_monsters_3d_reward,
+    fcked_catz_count = EXCLUDED.fcked_catz_count,
+    fcked_catz_reward = EXCLUDED.fcked_catz_reward,
+    money_monsters_count = EXCLUDED.money_monsters_count,
+    money_monsters_reward = EXCLUDED.money_monsters_reward,
+    aibitbots_count = EXCLUDED.aibitbots_count,
+    aibitbots_reward = EXCLUDED.aibitbots_reward,
+    ai_collabs_count = EXCLUDED.ai_collabs_count,
+    ai_collabs_reward = EXCLUDED.ai_collabs_reward,
+    total_nft_count = EXCLUDED.total_nft_count,
+    total_daily_reward = EXCLUDED.total_daily_reward,
+    discord_name = EXCLUDED.discord_name;
 
 -- Now insert missing claim accounts
 INSERT INTO claim_accounts (discord_id, wallet_address, unclaimed_amount, total_claimed, last_claim_time)
