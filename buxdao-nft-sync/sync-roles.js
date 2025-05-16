@@ -23,7 +23,7 @@ async function updateAllRoles() {
   try {
     // Read and execute the SQL script
     const sqlScript = fs.readFileSync(
-      path.join(__dirname, '..', 'scripts', 'db', 'update_all_roles.sql'),
+      path.join(__dirname, 'db', 'update_all_roles.sql'),
       'utf8'
     );
     
