@@ -49,9 +49,9 @@ const CollabCollections = () => {
   ];
 
   return (
-    <section id="collabs" className="bg-gradient-to-b from-black to-purple-900 py-16 sm:py-24">
+    <section id="collabs" className="bg-gradient-to-b from-black to-purple-900 pt-8 pb-16 sm:pt-12 sm:pb-24">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col items-center mb-16">
+        <div className="flex flex-col items-center mb-8">
           <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 mb-6 text-center">
             A.I. Collab Collections
           </h2>
