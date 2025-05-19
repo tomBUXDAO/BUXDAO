@@ -2,9 +2,9 @@
   "name": "buxdao-nft-sync",
   "version": "1.0.0",
   "type": "module",
-  "main": "sync-celebcatz.js",
+  "main": "server.js",
   "scripts": {
-    "start": "node cron.js",
+    "start": "node server.js",
     "sync": "node sync-celebcatz.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -18,6 +18,7 @@
     "axios": "^1.9.0",
     "discord.js": "^14.19.3",
     "dotenv": "^16.5.0",
+    "express": "^4.18.2",
     "node-cron": "^3.0.3",
     "node-fetch": "^3.3.2",
     "pg": "^8.15.6"
