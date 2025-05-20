@@ -129,6 +129,7 @@ app.use(cors({
       if (allowed instanceof RegExp) {
         return allowed.test(origin);
       }
+      // If not a RegExp, check for exact match
       return origin === allowed;
     });
 
@@ -168,6 +169,7 @@ app.options('*', cors({
       if (allowed instanceof RegExp) {
         return allowed.test(origin);
       }
+      // If not a RegExp, check for exact match
       return origin === allowed;
     });
 
@@ -652,4 +654,4 @@ process.on('SIGINT', async () => {
   process.exit(0);
 });
 
-export default app;
+export default app; 

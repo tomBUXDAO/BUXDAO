@@ -138,7 +138,7 @@ const CelebUpgrades = () => {
               </div>
 
               <a 
-                href="https://discord.gg/your-invite-link" 
+                href="https://discord.gg/2dXNjyr593" 
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center justify-center space-x-3 bg-[#5865F2] px-8 py-3 rounded-full text-white text-lg hover:opacity-90 transition-opacity border-2 border-white/20 shadow-lg"

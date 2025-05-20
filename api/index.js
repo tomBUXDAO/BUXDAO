@@ -1,8 +1,12 @@
 import pkg from 'pg';
 const { Pool } = pkg;
 import axios from 'axios';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
 import authHandler from './auth/index.js';
-import collectionCountsHandler from './collection-counts/[discord_id].js';
+import collectionCountsHandler from './collection-counts/index.js';
 import nftLookupHandler from './nft-lookup.js';
 
 const pool = new Pool({
