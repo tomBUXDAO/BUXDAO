@@ -57,29 +57,6 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'GET') {
-    // Handle collection stats endpoint
-    if (req.url.startsWith('/api/collections/') && req.url.endsWith('/stats')) {
-      const symbol = req.url.split('/')[3];
-      try {
-        console.log('Fetching stats for:', symbol);
-        const response = await axios.get(`https://api-mainnet.magiceden.dev/v2/collections/${symbol}/stats`);
-        console.log('Stats response:', response.data);
-        return res.status(200).json(response.data);
-      } catch (error) {
-        console.error('Error fetching stats:', {
-          symbol,
-          error: error.message,
-          response: error.response?.data,
-          status: error.response?.status
-        });
-        return res.status(500).json({ 
-          error: 'Failed to fetch stats',
-          details: error.message,
-          status: error.response?.status
-        });
-      }
-    }
-    
     // Handle celebcatz images endpoint
     if (req.url === '/api/celebcatz/images') {
       try {

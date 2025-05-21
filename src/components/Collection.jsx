@@ -3,11 +3,11 @@ import { useState, useEffect, useRef } from 'react';
 import { API_BASE_URL } from '../config';
 
 const COLLECTION_SUPPLIES = {
-  fcked_catz: 1184,
-  celebcatz: 124,
-  money_monsters: 623,
-  moneymonsters3d: 647,
-  ai_bitbots: 205
+  FCKEDCATZ: 1184,
+  CelebCatz: 124,
+  MM: 623,
+  MM3D: 647,
+  AIBB: 205
 };
 
 const collections = [
@@ -17,7 +17,7 @@ const collections = [
     image: '/gifs/catz.gif',
     magicEdenUrl: 'https://magiceden.io/marketplace/fcked_catz',
     tensorUrl: 'https://www.tensor.trade/trade/fcked_catz',
-    symbol: 'fcked_catz'
+    symbol: 'FCKEDCATZ'
   },
   { 
     id: 2, 
@@ -25,7 +25,7 @@ const collections = [
     image: '/gifs/mm.gif',
     magicEdenUrl: 'https://magiceden.io/marketplace/money_monsters',
     tensorUrl: 'https://www.tensor.trade/trade/money_monsters',
-    symbol: 'money_monsters'
+    symbol: 'MM'
   },
   { 
     id: 3, 
@@ -33,7 +33,7 @@ const collections = [
     image: '/gifs/bitbot.gif',
     magicEdenUrl: 'https://magiceden.io/marketplace/ai_bitbots',
     tensorUrl: 'https://www.tensor.trade/trade/ai_bitbots',
-    symbol: 'ai_bitbots'
+    symbol: 'AIBB'
   },
   { 
     id: 4, 
@@ -41,7 +41,7 @@ const collections = [
     image: '/gifs/mm3d.gif',
     magicEdenUrl: 'https://magiceden.io/marketplace/moneymonsters3d',
     tensorUrl: 'https://www.tensor.trade/trade/moneymonsters3d',
-    symbol: 'moneymonsters3d'
+    symbol: 'MM3D'
   },
   { 
     id: 5, 
@@ -49,7 +49,7 @@ const collections = [
     image: '/gifs/celebs.gif',
     magicEdenUrl: 'https://magiceden.io/marketplace/celebcatz',
     tensorUrl: 'https://www.tensor.trade/trade/celebcatz',
-    symbol: 'celebcatz'
+    symbol: 'CelebCatz'
   }
 ];
 
@@ -110,19 +110,27 @@ const Collection = () => {
               }
               const data = await response.json();
               
+              // Validate data structure
+              if (!data || typeof data.totalSupply === 'undefined' || typeof data.listedCount === 'undefined' || typeof data.floorPrice === 'undefined') {
+                console.error(`Invalid data structure details for ${collection.symbol}:`, data);
+                throw new Error(`Invalid data structure received for ${collection.symbol}: ${JSON.stringify(data)}`);
+              }
+
               const floorPriceInSol = Number(data.floorPrice || 0) / 1000000000;
               
               return {
                 ...collection,
                 floorPrice: isNaN(floorPriceInSol) ? '0.00' : floorPriceInSol.toFixed(2),
-                totalSupply: COLLECTION_SUPPLIES[collection.symbol].toLocaleString()
+                totalSupply: data.totalSupply.toLocaleString(),
+                listedCount: data.listedCount.toLocaleString()
               };
             } catch (error) {
               console.warn(`Failed to fetch ${collection.symbol} data:`, error);
               return {
                 ...collection,
                 floorPrice: '0.00',
-                totalSupply: COLLECTION_SUPPLIES[collection.symbol].toLocaleString()
+                totalSupply: COLLECTION_SUPPLIES[collection.symbol].toLocaleString(),
+                listedCount: 0 // Default listed count to 0 on error or invalid data
               };
             }
           })
@@ -135,7 +143,8 @@ const Collection = () => {
           return {
             ...collections[index],
             floorPrice: '0.00',
-            totalSupply: COLLECTION_SUPPLIES[collections[index].symbol].toLocaleString()
+            totalSupply: COLLECTION_SUPPLIES[collections[index].symbol].toLocaleString(),
+            listedCount: 0 // Default listed count to 0 on error or invalid data
           };
         });
 
@@ -151,7 +160,8 @@ const Collection = () => {
         setCollectionData(statsCache.data || collections.map(collection => ({
           ...collection,
           floorPrice: '0.00',
-          totalSupply: COLLECTION_SUPPLIES[collection.symbol].toLocaleString()
+          totalSupply: COLLECTION_SUPPLIES[collection.symbol].toLocaleString(),
+          listedCount: 0 // Default listed count to 0 on error or invalid data
         })));
         setLoading(false);  // Set loading to false even if there's an error
       }
@@ -279,7 +289,7 @@ const Collection = () => {
         <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 mb-12 text-center">
           Featured Collections
         </h2>
-        <div className="relative mx-auto overflow-hidden" style={{ width: wrapperWidth }}>
+        <div className="relative mx-auto" style={{ width: wrapperWidth }}>
           <button
             onClick={prevTile}
             className={`absolute left-4 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full transition-all duration-200 ${
@@ -293,8 +303,8 @@ const Collection = () => {
             <ChevronLeftIcon className={`h-8 w-8 ${currentTile <= 0 ? 'text-gray-500' : 'text-white'}`} />
           </button>
 
-          <div className="overflow-hidden w-full">
-            <div
+          <div className="w-full">
+            <div 
               className="flex gap-x-8 transition-transform duration-500 ease-in-out"
               style={{
                 transform: getTransform(),
@@ -302,59 +312,54 @@ const Collection = () => {
               }}
             >
               {collectionData.map((collection, index) => (
-                <div
-                  key={`${collection.id}-${index}`}
+                <div 
+                  key={`${collection.id}-${index}`} 
                   className={
                     screenWidth < 768
                       ? 'flex-shrink-0 w-[90vw]'
                       : 'flex-shrink-0 w-[320px]'
                   }
                 >
-                  <div className="bg-gray-900 rounded-xl overflow-hidden hover:transform hover:scale-105 transition-transform duration-300 hover:shadow-xl p-4 sm:p-6">
+                  <div className="bg-gray-900 rounded-xl hover:transform hover:scale-105 transition-transform duration-300 hover:shadow-xl p-4 sm:p-6 hover:bg-gray-800">
                     <div className="aspect-square">
-                      <img
-                        src={collection.image}
+                      <img 
+                        src={collection.image} 
                         alt={collection.title}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover" 
                         loading="lazy"
                         onError={(e) => {
                           e.target.style.display = 'none';
                         }}
                       />
                     </div>
-                    <h3 className="text-lg sm:text-xl font-semibold text-white mb-4 whitespace-nowrap overflow-hidden text-ellipsis mt-4">
-                      {collection.title}
-                    </h3>
-                    <div className="flex justify-between mb-6">
-                      <div>
-                        <p className="text-gray-400 text-sm">Floor Price</p>
-                        <p className="text-white font-bold">
+                    <h3 className="text-xl font-semibold text-white mb-4 mt-4">
+                        {collection.title}
+                      </h3>
+                      <div className="flex justify-between text-gray-500 text-xs mb-1">
+                        <span>Floor Price</span>
+                        <span>Listed/Supply</span>
+                      </div>
+                      <div className="flex justify-between text-white text-lg font-bold mb-4">
+                        <span>
                           {collection.floorPrice} SOL
-                          <span className="text-gray-400 text-sm ml-1">
-                            {solPrice > 0 ? (
-                              `($${(Number(collection.floorPrice) * solPrice).toFixed(2)})`
-                            ) : ''}
-                          </span>
-                        </p>
+                          {solPrice > 0 && <span className="text-gray-400 text-sm ml-1">(${ (parseFloat(collection.floorPrice) * solPrice).toFixed(2) })</span>}
+                        </span>
+                        <span className="text-white text-lg font-bold">{collection.listedCount}/{collection.totalSupply}</span>
                       </div>
-                      <div className="text-right">
-                        <p className="text-gray-400 text-sm">Total Supply</p>
-                        <p className="text-white font-bold">{collection.totalSupply}</p>
-                      </div>
-                    </div>
-                    <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
-                      <a
-                        href={collection.magicEdenUrl}
-                        className="min-w-[120px] w-full bg-gradient-to-r from-purple-500 to-pink-500 px-4 py-2 rounded-full text-white hover:opacity-90 transition-opacity text-center text-sm sm:text-base whitespace-nowrap"
-                      >
-                        Magic Eden
-                      </a>
-                      <a
-                        href={collection.tensorUrl}
-                        className="min-w-[120px] w-full border border-white px-4 py-2 rounded-full text-white hover:bg-white hover:text-black transition-all text-center text-sm sm:text-base whitespace-nowrap"
-                      >
-                        Tensor
-                      </a>
+                      <div className="border-b border-gray-700 mb-4"></div>
+                      <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
+                        <a 
+                          href={collection.magicEdenUrl} 
+                          className="min-w-[120px] w-full bg-gradient-to-r from-purple-500 to-pink-500 px-4 py-2 rounded-full text-white hover:opacity-90 transition-opacity text-center text-sm sm:text-base whitespace-nowrap"
+                        >
+                          Magic Eden
+                        </a>
+                        <a 
+                          href={collection.tensorUrl} 
+                          className="min-w-[120px] w-full border border-white px-4 py-2 rounded-full text-white hover:bg-white hover:text-black transition-all text-center text-sm sm:text-base whitespace-nowrap"
+                        >
+                          Tensor
+                        </a>
                     </div>
                   </div>
                 </div>
@@ -386,4 +391,4 @@ const Collection = () => {
   );
 };
 
-export default Collection;
+export default Collection; 
