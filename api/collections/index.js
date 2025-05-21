@@ -6,11 +6,20 @@ const router = express.Router();
 
 // Mapping of your database symbols to Magic Eden API symbols
 const magicEdenSymbolMap = {
+  // Main Collections
   'FCKEDCATZ': 'fcked_catz',
   'MM': 'money_monsters',
   'AIBB': 'ai_bitbots',
   'MM3D': 'moneymonsters3d',
-  'CelebCatz': 'celebcatz'
+  'CelebCatz': 'celebcatz',
+
+  // Collab Collections (Database Symbol: Magic Eden Symbol)
+  'SHxBB': 'ai_warriors',
+  'AUSQRL': 'ai_secret_squirrels',
+  'AELxAIBB': 'ai_energy_apes',
+  'AIRB': 'rejected_bots_ryc',
+  'CLB': 'candybots',
+  'DDBOT': 'doodlebots',
 };
 
 // Define the route to get collection stats
