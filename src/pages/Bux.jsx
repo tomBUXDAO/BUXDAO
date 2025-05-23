@@ -94,10 +94,13 @@ const Bux = () => {
   };
 
   useEffect(() => {
+    // Reset holders data and error when view type or collection changes
+    setTopHolders([]);
+    setError(null);
+
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        setError(null); // Reset error state
 
         const [metricsResponse, holdersResponse] = await Promise.all([
           fetch(`${baseUrl}/api/token-metrics`),

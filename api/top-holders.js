@@ -1,9 +1,13 @@
 import { PublicKey, Connection, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import { pool } from './config/database.js';
 import fetch from 'node-fetch';
+import NodeCache from 'node-cache';
 
 // Define the base URL for internal API calls
 const INTERNAL_API_BASE_URL = process.env.NODE_ENV === 'development' ? 'http://localhost:3001' : 'https://api.buxdao.com'; // Assuming your API is served from api.buxdao.com in production
+
+// Create a cache for SOL price with a TTL (e.g., 5 minutes)
+const solPriceCache = new NodeCache({ stdTTL: 300 });
 
 export default async function handler(req, res) {
   let client;
@@ -17,42 +21,60 @@ export default async function handler(req, res) {
     // Get client from pool
     client = await pool.connect();
 
-    // Get SOL price
-    let solPrice;
-    try {
-      const solPriceResponse = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd');
-      if (!solPriceResponse.ok) {
-        throw new Error('Failed to fetch SOL price');
+    // Get SOL price from cache or fetch if not available or expired
+    let solPrice = solPriceCache.get('solPrice');
+
+    if (!solPrice) {
+      try {
+        const solPriceResponse = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd');
+        if (!solPriceResponse.ok) {
+          throw new Error(`Failed to fetch SOL price: ${solPriceResponse.statusText}`);
+        }
+        const solPriceData = await solPriceResponse.json();
+        const fetchedPrice = Number(solPriceData.solana?.usd);
+        if (isNaN(fetchedPrice)) {
+           throw new Error('Invalid SOL price data received');
+        }
+        solPrice = fetchedPrice;
+        solPriceCache.set('solPrice', solPrice);
+        console.log('Fetched and cached SOL price:', solPrice);
+      } catch (error) {
+        console.error('Error fetching SOL price:', error);
+        // If SOL price fetch fails and no cached price is available, return an error
+         if (!solPriceCache.has('solPrice')) {
+           return res.status(500).json({
+             error: 'Failed to fetch SOL price for value calculation.',
+             message: error.message
+           });
+         }
+         // Use potentially expired cached price if fetch fails
+         solPrice = solPriceCache.get('solPrice');
+         console.warn('Using cached SOL price due to fetch failure:', solPrice);
       }
-      const solPriceData = await solPriceResponse.json();
-      solPrice = Number(solPriceData.solana?.usd);
-      if (isNaN(solPrice)) {
-         throw new Error('Invalid SOL price data received');
-      }
-    } catch (error) {
-      console.error('Error fetching SOL price:', error);
-      // If SOL price fetch fails, we cannot calculate USD values, so return an error
-      return res.status(500).json({
-        error: 'Failed to fetch SOL price for value calculation.',
-        message: error.message
-      });
     }
 
-    // Define main collection symbols to fetch floor prices for
-    const mainCollectionSymbols = ['FCKEDCATZ', 'MM', 'AIBB', 'MM3D', 'CelebCatz'];
+    // If solPrice is still null/undefined after attempting fetch/cache, something is wrong
+    if (!solPrice) {
+         return res.status(500).json({
+            error: 'SOL price not available for value calculation.',
+            message: 'Could not fetch or retrieve SOL price.'
+         });
+    }
+
+    // Define all collection symbols to fetch floor prices for, including collaborations
+    const allCollectionSymbols = ['FCKEDCATZ', 'MM', 'AIBB', 'MM3D', 'CelebCatz', 'SHxBB', 'AUSQRL', 'AELxAIBB', 'AIRB', 'CLB', 'DDBOT'];
 
     // Get collection floor prices by calling the internal stats endpoint
     let floorPrices = {};
     try {
-        const floorPricePromises = mainCollectionSymbols.map(async (symbol) => {
+        const floorPricePromises = allCollectionSymbols.map(async (symbol) => {
             const response = await fetch(`${INTERNAL_API_BASE_URL}/api/collections/${symbol}/stats`);
             if (!response.ok) {
-                // Log the error but don't necessarily fail the whole request yet
                 console.error(`Failed to fetch stats for ${symbol}:`, response.status, await response.text().catch(() => ''));
                 return { symbol, floorPrice: 0 }; // Default to 0 if fetch fails
             }
             const data = await response.json();
-             // Ensure floorPrice is a valid number
+             // Ensure floorPrice is a valid number (assuming it's in lamports and needs conversion)
             const floorPriceInSol = Number(data.floorPrice || 0) / 1000000000; // Assuming floorPrice is in lamports
             if (isNaN(floorPriceInSol)) {
                 console.error(`Invalid floor price data for ${symbol}:`, data);
@@ -68,7 +90,6 @@ export default async function handler(req, res) {
                 floorPrices[result.value.symbol] = result.value.floorPrice;
             } else {
                  console.error(`Promise failed for fetching floor price:`, result.reason);
-                // Optionally, handle rejected promises more strictly here if needed
             }
         });
 
@@ -77,10 +98,9 @@ export default async function handler(req, res) {
     } catch (error) {
         console.error('Error fetching floor prices from internal API:', error);
         // If fetching floor prices fails critically, we cannot calculate NFT values
-         return res.status(500).json({
-            error: 'Failed to fetch NFT floor prices.',
-            message: error.message
-         });
+         // However, we can proceed with SOL price if available, but NFT values will be 0
+         console.warn('Proceeding without dynamic floor prices due to error.');
+         floorPrices = {}; // Ensure floorPrices is an empty object to use default 0
     }
 
     if (type === 'bux,nfts') {
@@ -186,21 +206,28 @@ export default async function handler(req, res) {
     if (type === 'nfts') {
       console.log('Processing NFT holders request:', { collection, type });
       
-      // Validate collection parameter
-      if (collection !== 'all' && !['fckedcatz', 'moneymonsters', 'aibitbots', 'moneymonsters3d', 'celebcatz'].includes(collection)) {
+      // Validate collection parameter - update validation to include collaboration collections
+      const validCollections = allCollectionSymbols.map(symbol => symbol.toLowerCase());
+      if (collection !== 'all' && !validCollections.includes(collection)) {
         return res.status(400).json({
           error: 'Invalid collection parameter',
-          message: 'Collection must be one of: all, fckedcatz, moneymonsters, aibitbots, moneymonsters3d, celebcatz'
+          message: `Collection must be one of: all, ${validCollections.join(', ')}`
         });
       }
       
-      // Map frontend names to DB symbols
+      // Map frontend names to DB symbols - include collaboration collections
       const dbSymbols = {
         'fckedcatz': 'FCKEDCATZ',
         'moneymonsters': 'MM',
         'aibitbots': 'AIBB',
-        'moneymonsters3d': 'MM3D',
-        'celebcatz': 'CelebCatz'
+        'mm3d': 'MM3D',
+        'celebcatz': 'CelebCatz',
+        'shxbb': 'SHxBB',
+        'ausqrl': 'AUSQRL',
+        'aelxaibb': 'AELxAIBB',
+        'airb': 'AIRB',
+        'clb': 'CLB',
+        'ddbot': 'DDBOT',
       };
 
       try {
@@ -286,6 +313,7 @@ export default async function handler(req, res) {
             continue;
           }
 
+          // Use fetched floor price, default to 0 if not found or fetching failed
           const floorPrice = floorPrices[symbol] || 0;
           totals[owner_wallet].nfts += count;
           totals[owner_wallet].value += count * floorPrice;
