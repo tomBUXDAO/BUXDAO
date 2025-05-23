@@ -2,13 +2,24 @@ import { PublicKey, Connection, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import { pool } from './config/database.js';
 import fetch from 'node-fetch';
 import NodeCache from 'node-cache';
-import collectionStatsHandler from './collections/[symbol]/stats.js'; // Import the stats handler
-
-// Define the base URL for internal API calls // This is no longer needed for fetching stats internally
-// const INTERNAL_API_BASE_URL = process.env.NODE_ENV === 'development' ? 'http://localhost:3001' : 'https://api.buxdao.com';
 
 // Create a cache for SOL price with a TTL (e.g., 5 minutes)
 const solPriceCache = new NodeCache({ stdTTL: 300 });
+
+// Map collection symbols to Magic Eden slugs
+const COLLECTION_SLUGS = {
+  'FCKEDCATZ': 'fcked_catz',
+  'MM': 'money_monsters',
+  'AIBB': 'ai_bitbots',
+  'MM3D': 'moneymonsters3d',
+  'CelebCatz': 'celebcatz',
+  'SHxBB': 'ai_warriors',
+  'AUSQRL': 'ai_secret_squirrels',
+  'AELxAIBB': 'ai_energy_apes',
+  'AIRB': 'rejected_bots_ryc',
+  'CLB': 'candybots',
+  'DDBOT': 'doodlebots'
+};
 
 export default async function handler(req, res) {
   let client;
@@ -34,95 +45,86 @@ export default async function handler(req, res) {
         const solPriceData = await solPriceResponse.json();
         const fetchedPrice = Number(solPriceData.solana?.usd);
         if (isNaN(fetchedPrice)) {
-           throw new Error('Invalid SOL price data received');
+          throw new Error('Invalid SOL price data received');
         }
         solPrice = fetchedPrice;
         solPriceCache.set('solPrice', solPrice);
         console.log('Fetched and cached SOL price:', solPrice);
       } catch (error) {
         console.error('Error fetching SOL price:', error);
-        // If SOL price fetch fails and no cached price is available, return an error
-         if (!solPriceCache.has('solPrice')) {
-           return res.status(500).json({
-             error: 'Failed to fetch SOL price for value calculation.',
-             message: error.message
-           });
-         }
-         // Use potentially expired cached price if fetch fails
-         solPrice = solPriceCache.get('solPrice');
-         console.warn('Using cached SOL price due to fetch failure:', solPrice);
+        if (!solPriceCache.has('solPrice')) {
+          return res.status(500).json({
+            error: 'Failed to fetch SOL price for value calculation.',
+            message: error.message
+          });
+        }
+        solPrice = solPriceCache.get('solPrice');
+        console.warn('Using cached SOL price due to fetch failure:', solPrice);
       }
     }
 
     // If solPrice is still null/undefined after attempting fetch/cache, something is wrong
     if (!solPrice) {
-         return res.status(500).json({
-            error: 'SOL price not available for value calculation.',
-            message: 'Could not fetch or retrieve SOL price.'
-         });
+      return res.status(500).json({
+        error: 'SOL price not available for value calculation.',
+        message: 'Could not fetch or retrieve SOL price.'
+      });
     }
 
     // Define all collection symbols to fetch floor prices for, including collaborations
     const allCollectionSymbols = ['FCKEDCATZ', 'MM', 'AIBB', 'MM3D', 'CelebCatz', 'SHxBB', 'AUSQRL', 'AELxAIBB', 'AIRB', 'CLB', 'DDBOT'];
 
-    // Get collection floor prices by calling the internal stats endpoint handler
+    // Get collection floor prices from Magic Eden
     let floorPrices = {};
     try {
         const floorPricePromises = allCollectionSymbols.map(async (symbol) => {
-            // Create a mock request object for the stats handler
-            const mockReq = {
-                query: { symbol: symbol.toLowerCase() }, // Pass the symbol as a query parameter
-                method: 'GET', // Specify the method
-                headers: {} // Add an empty headers object to prevent errors
-            };
-            // Create a mock response object with send/status methods
-            const mockRes = {
-                status: (code) => {
-                    mockRes.statusCode = code;
-                    return mockRes;
-                },
-                json: (data) => {
-                    mockRes.body = data;
-                    return mockRes;
-                },
-                statusCode: 200, // Default status
-                body: null
-            };
-
-            await collectionStatsHandler(mockReq, mockRes);
-
-            if (mockRes.statusCode !== 200) {
-                console.error(`Failed to get stats for ${symbol} from handler: Status ${mockRes.statusCode}`, mockRes.body);
-                 return { symbol, floorPrice: 0 }; // Default to 0 if handler returns non-200
+            const slug = COLLECTION_SLUGS[symbol];
+            if (!slug) {
+                console.warn(`No Magic Eden slug found for ${symbol}`);
+                return { symbol, floorPrice: 0 };
             }
 
-            const data = mockRes.body;
-             // Ensure floorPrice is a valid number (assuming it's in lamports and needs conversion)
-            const floorPriceInSol = Number(data.floorPrice || 0) / 1000000000; // Assuming floorPrice is in lamports
-            if (isNaN(floorPriceInSol)) {
-                console.error(`Invalid floor price data for ${symbol} from handler:`, data);
-                 return { symbol, floorPrice: 0 };
+            try {
+                console.log(`[Collections] Attempting to fetch stats from Magic Eden for symbol: ${slug}`);
+                const response = await fetch(`https://api-mainnet.magiceden.dev/v2/collections/${slug}/stats`);
+                if (!response.ok) {
+                    console.error(`Failed to fetch floor price for ${symbol}: ${response.statusText}`);
+                    return { symbol, floorPrice: 0 };
+                }
+                const data = await response.json();
+                console.log(`[Collections] Received data from Magic Eden for ${slug}:`, data);
+                
+                if (!data.floorPrice) {
+                    console.log(`[Collections] Magic Eden response missing floorPrice for ${slug}:`, data);
+                    return { symbol, floorPrice: 0 };
+                }
+
+                const floorPrice = Number(data.floorPrice || 0) / LAMPORTS_PER_SOL;
+                if (isNaN(floorPrice)) {
+                    console.error(`Invalid floor price data for ${symbol}:`, data);
+                    return { symbol, floorPrice: 0 };
+                }
+                return { symbol, floorPrice };
+            } catch (error) {
+                console.error(`Error fetching floor price for ${symbol}:`, error);
+                return { symbol, floorPrice: 0 };
             }
-            return { symbol, floorPrice: floorPriceInSol };
         });
 
         const results = await Promise.allSettled(floorPricePromises);
-
         results.forEach(result => {
             if (result.status === 'fulfilled') {
                 floorPrices[result.value.symbol] = result.value.floorPrice;
             } else {
-                 console.error(`Promise failed for fetching floor price:`, result.reason);
+                console.error(`Promise failed for fetching floor price:`, result.reason);
             }
         });
 
         console.log('Fetched floor prices:', floorPrices);
 
     } catch (error) {
-        console.error('Error calling internal stats handler:', error);
-        // If calling the internal handler fails critically, we cannot calculate NFT values
-         console.warn('Proceeding without dynamic floor prices due to error calling internal handler.');
-         floorPrices = {}; // Ensure floorPrices is an empty object to use default 0
+        console.error('Error fetching floor prices:', error);
+        floorPrices = {};
     }
 
     if (type === 'bux,nfts') {

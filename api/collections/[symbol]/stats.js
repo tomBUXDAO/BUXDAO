@@ -1,4 +1,20 @@
 import { getClient } from '../../config/database.js';
+import fetch from 'node-fetch';
+
+// Magic Eden collection slugs mapping
+const COLLECTION_SLUGS = {
+  'FCKEDCATZ': 'fcked-catz',
+  'MM': 'money-monsters',
+  'AIBB': 'ai-bitbots',
+  'MM3D': 'moneymonsters3d',
+  'CelebCatz': 'celebcatz',
+  'SHxBB': 'ai_warriors',
+  'AUSQRL': 'ai_secret_squirrels',
+  'AELxAIBB': 'ai_energy_apes',
+  'AIRB': 'rejected_bots_ryc',
+  'CLB': 'candybots',
+  'DDBOT': 'doodlebots'
+};
 
 export default async function handler(req, res) {
   // Set CORS headers
@@ -6,7 +22,7 @@ export default async function handler(req, res) {
     ? ['https://buxdao.com', 'https://www.buxdao.com']
     : ['http://localhost:5173', 'http://localhost:3001'];
   
-  const requestOrigin = req.headers.origin;
+  const requestOrigin = req.headers?.origin;
   if (origin.includes(requestOrigin)) {
     res.setHeader('Access-Control-Allow-Credentials', 'true');
     res.setHeader('Access-Control-Allow-Origin', requestOrigin);
@@ -41,29 +57,43 @@ export default async function handler(req, res) {
     );
     const listedCount = listedCountResult.rows[0].count;
 
-    // Get floor price from database if available
-    const floorPriceResult = await client.query(
-      'SELECT MIN(list_price) FROM nft_metadata WHERE symbol = $1 AND is_listed = TRUE',
-      [symbol]
-    );
-    const floorPrice = floorPriceResult.rows[0].min || 0; // Default to 0 if no listed items
+    // Get floor price from Magic Eden
+    let floorPrice = 0;
+    const collectionSlug = COLLECTION_SLUGS[symbol];
+    if (collectionSlug) {
+      try {
+        const meResponse = await fetch(`https://api-mainnet.magiceden.dev/v2/collections/${collectionSlug}/stats`);
+        if (meResponse.ok) {
+          const meData = await meResponse.json();
+          floorPrice = meData.floorPrice || 0;
+        } else {
+          console.error(`Failed to fetch floor price from Magic Eden for ${symbol}:`, meResponse.statusText);
+        }
+      } catch (error) {
+        console.error(`Error fetching floor price from Magic Eden for ${symbol}:`, error);
+      }
+    }
 
     // Add cache control headers
     res.setHeader('Cache-Control', 'public, s-maxage=60');
     return res.status(200).json({
-      totalSupply: parseInt(totalSupply, 10), // Ensure it's a number
-      listedCount: parseInt(listedCount, 10), // Ensure it's a number
-      floorPrice: floorPrice // floorPrice is already a number or null which we handle
+      totalSupply: parseInt(totalSupply, 10),
+      listedCount: parseInt(listedCount, 10),
+      floorPrice: floorPrice
     });
   } catch (error) {
-    console.error('Error fetching stats from database:', error);
+    console.error('Error fetching stats:', error);
     return res.status(500).json({ 
-      error: 'Failed to fetch stats from database',
+      error: 'Failed to fetch stats',
       details: error.message
     });
   } finally {
     if (client) {
-      client.release();
+      try {
+        client.release();
+      } catch (error) {
+        console.error('Error releasing client:', error);
+      }
     }
   }
 } 
