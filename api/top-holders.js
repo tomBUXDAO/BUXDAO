@@ -72,7 +72,8 @@ export default async function handler(req, res) {
             // Create a mock request object for the stats handler
             const mockReq = {
                 query: { symbol: symbol.toLowerCase() }, // Pass the symbol as a query parameter
-                method: 'GET' // Specify the method
+                method: 'GET', // Specify the method
+                headers: {} // Add an empty headers object to prevent errors
             };
             // Create a mock response object with send/status methods
             const mockRes = {
