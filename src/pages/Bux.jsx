@@ -174,6 +174,11 @@ const Bux = () => {
     }
   ];
 
+  const renderHolderName = (holder) => {
+    if (!holder) return '';
+    return holder.discord_username || holder.address;
+  };
+
   return (
     <div className="bg-black min-h-screen pt-20">
       {/* Hero Section */}
@@ -405,7 +410,7 @@ const Bux = () => {
                               <tr key={index} className={`text-gray-200 border-b border-gray-800 ${index % 2 === 0 ? 'bg-gray-800/50' : 'bg-transparent'}`}>
                                 {viewType === 'bux' ? (
                                   <>
-                                    <td className="py-3 px-6 text-purple-400">{holder.address}</td>
+                                    <td className="py-3 px-6 text-purple-400">{renderHolderName(holder)}</td>
                                     <td className="py-3 px-6 text-right">{holder.amount}</td>
                                     <td className="py-3 px-6 text-right">{holder.percentage}</td>
                                     <td className="py-3 px-6 text-right">{solValue.toFixed(2)} SOL</td>
@@ -413,7 +418,7 @@ const Bux = () => {
                                   </>
                                 ) : viewType === 'nfts' ? (
                                   <>
-                                    <td className="py-3 px-6 text-purple-400">{holder.address}</td>
+                                    <td className="py-3 px-6 text-purple-400">{renderHolderName(holder)}</td>
                                     <td className="py-3 px-6 text-right">{holder.amount?.replace(' NFTs', '')}</td>
                                     <td className="py-3 px-6 text-right">{solValue.toFixed(2)} SOL</td>
                                     <td className="py-3 px-6 text-right">${usdValue}</td>
@@ -428,7 +433,7 @@ const Bux = () => {
                                       {index >= 10 && index < 25 && <span title={`Top 25`} className="text-gray-300">⭐ {index + 1}</span>}
                                       {index >= 25 && <span title={`Rank ${index + 1}`} className="text-amber-600">● {index + 1}</span>}
                                     </td>
-                                    <td className="py-3 px-6 text-purple-400">{holder.address}</td>
+                                    <td className="py-3 px-6 text-purple-400">{renderHolderName(holder)}</td>
                                     <td className="py-3 px-6 text-right">{holder.bux}</td>
                                     <td className="py-3 px-6 text-right">{holder.nfts?.replace(' NFTs', '')}</td>
                                     <td className="py-3 px-6 text-right">{solValue.toFixed(2)} SOL</td>

@@ -182,13 +182,14 @@ export default async function handler(req, res) {
                 owner_wallet, 
                 symbol, 
                 COUNT(*) as count,
-                COUNT(*) FILTER (WHERE owner_wallet IS NOT NULL AND owner_wallet != '') as valid_count
+                COUNT(*) FILTER (WHERE owner_wallet IS NOT NULL AND owner_wallet != '') as valid_count,
+                owner_name as discord_username
               FROM nft_metadata 
               WHERE owner_wallet NOT IN ($1, $2)
               AND owner_wallet IS NOT NULL 
               AND owner_wallet != ''
               AND symbol = $3
-              GROUP BY owner_wallet, symbol
+              GROUP BY owner_wallet, symbol, owner_name
               HAVING COUNT(*) > 0
             `
           : `
@@ -196,12 +197,13 @@ export default async function handler(req, res) {
                 owner_wallet, 
                 symbol, 
                 COUNT(*) as count,
-                COUNT(*) FILTER (WHERE owner_wallet IS NOT NULL AND owner_wallet != '') as valid_count
+                COUNT(*) FILTER (WHERE owner_wallet IS NOT NULL AND owner_wallet != '') as valid_count,
+                owner_name as discord_username
               FROM nft_metadata 
               WHERE owner_wallet NOT IN ($1, $2)
               AND owner_wallet IS NOT NULL 
               AND owner_wallet != ''
-              GROUP BY owner_wallet, symbol
+              GROUP BY owner_wallet, symbol, owner_name
               HAVING COUNT(*) > 0
             `;
 
@@ -224,7 +226,7 @@ export default async function handler(req, res) {
         // Calculate totals
         const totals = {};
         for (const row of nftResult.rows) {
-          const { owner_wallet, symbol, valid_count } = row;
+          const { owner_wallet, symbol, valid_count, discord_username } = row;
           
           if (!owner_wallet || !symbol || valid_count === undefined) {
             console.warn('Skipping invalid row:', row);
@@ -232,7 +234,11 @@ export default async function handler(req, res) {
           }
 
           if (!totals[owner_wallet]) {
-            totals[owner_wallet] = { nfts: 0, value: 0 };
+            totals[owner_wallet] = { nfts: 0, value: 0, discord_username: discord_username || null };
+          } else {
+            if (!totals[owner_wallet].discord_username && discord_username) {
+                totals[owner_wallet].discord_username = discord_username;
+            }
           }
 
           const count = Number(valid_count);
@@ -251,7 +257,8 @@ export default async function handler(req, res) {
             count,
             floorPrice,
             totalNFTs: totals[owner_wallet].nfts,
-            totalValue: totals[owner_wallet].value
+            totalValue: totals[owner_wallet].value,
+            discordUsername: totals[owner_wallet].discord_username
           });
         }
 
@@ -270,6 +277,7 @@ export default async function handler(req, res) {
           .filter(([wallet, data]) => wallet && data.nfts > 0)
           .map(([wallet, data]) => ({
             address: wallet.slice(0, 4) + '...' + wallet.slice(-4),
+            discord_username: data.discord_username || null,
             amount: `${data.nfts} NFTs`,
             value: `${data.value.toFixed(2)} SOL ($${(data.value * solPrice).toFixed(2)})`
           }))
