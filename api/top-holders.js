@@ -2,9 +2,10 @@ import { PublicKey, Connection, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import { pool } from './config/database.js';
 import fetch from 'node-fetch';
 import NodeCache from 'node-cache';
+import collectionStatsHandler from './collections/[symbol]/stats.js'; // Import the stats handler
 
-// Define the base URL for internal API calls
-const INTERNAL_API_BASE_URL = process.env.NODE_ENV === 'development' ? 'http://localhost:3001' : 'https://api.buxdao.com'; // Assuming your API is served from api.buxdao.com in production
+// Define the base URL for internal API calls // This is no longer needed for fetching stats internally
+// const INTERNAL_API_BASE_URL = process.env.NODE_ENV === 'development' ? 'http://localhost:3001' : 'https://api.buxdao.com';
 
 // Create a cache for SOL price with a TTL (e.g., 5 minutes)
 const solPriceCache = new NodeCache({ stdTTL: 300 });
@@ -64,20 +65,41 @@ export default async function handler(req, res) {
     // Define all collection symbols to fetch floor prices for, including collaborations
     const allCollectionSymbols = ['FCKEDCATZ', 'MM', 'AIBB', 'MM3D', 'CelebCatz', 'SHxBB', 'AUSQRL', 'AELxAIBB', 'AIRB', 'CLB', 'DDBOT'];
 
-    // Get collection floor prices by calling the internal stats endpoint
+    // Get collection floor prices by calling the internal stats endpoint handler
     let floorPrices = {};
     try {
         const floorPricePromises = allCollectionSymbols.map(async (symbol) => {
-            const response = await fetch(`${INTERNAL_API_BASE_URL}/api/collections/${symbol}/stats`);
-            if (!response.ok) {
-                console.error(`Failed to fetch stats for ${symbol}:`, response.status, await response.text().catch(() => ''));
-                return { symbol, floorPrice: 0 }; // Default to 0 if fetch fails
+            // Create a mock request object for the stats handler
+            const mockReq = {
+                query: { symbol: symbol.toLowerCase() }, // Pass the symbol as a query parameter
+                method: 'GET' // Specify the method
+            };
+            // Create a mock response object with send/status methods
+            const mockRes = {
+                status: (code) => {
+                    mockRes.statusCode = code;
+                    return mockRes;
+                },
+                json: (data) => {
+                    mockRes.body = data;
+                    return mockRes;
+                },
+                statusCode: 200, // Default status
+                body: null
+            };
+
+            await collectionStatsHandler(mockReq, mockRes);
+
+            if (mockRes.statusCode !== 200) {
+                console.error(`Failed to get stats for ${symbol} from handler: Status ${mockRes.statusCode}`, mockRes.body);
+                 return { symbol, floorPrice: 0 }; // Default to 0 if handler returns non-200
             }
-            const data = await response.json();
+
+            const data = mockRes.body;
              // Ensure floorPrice is a valid number (assuming it's in lamports and needs conversion)
             const floorPriceInSol = Number(data.floorPrice || 0) / 1000000000; // Assuming floorPrice is in lamports
             if (isNaN(floorPriceInSol)) {
-                console.error(`Invalid floor price data for ${symbol}:`, data);
+                console.error(`Invalid floor price data for ${symbol} from handler:`, data);
                  return { symbol, floorPrice: 0 };
             }
             return { symbol, floorPrice: floorPriceInSol };
@@ -96,10 +118,9 @@ export default async function handler(req, res) {
         console.log('Fetched floor prices:', floorPrices);
 
     } catch (error) {
-        console.error('Error fetching floor prices from internal API:', error);
-        // If fetching floor prices fails critically, we cannot calculate NFT values
-         // However, we can proceed with SOL price if available, but NFT values will be 0
-         console.warn('Proceeding without dynamic floor prices due to error.');
+        console.error('Error calling internal stats handler:', error);
+        // If calling the internal handler fails critically, we cannot calculate NFT values
+         console.warn('Proceeding without dynamic floor prices due to error calling internal handler.');
          floorPrices = {}; // Ensure floorPrices is an empty object to use default 0
     }
 
