@@ -2,6 +2,9 @@ import { PublicKey, Connection, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import { pool } from './config/database.js';
 import fetch from 'node-fetch';
 
+// Define the base URL for internal API calls
+const INTERNAL_API_BASE_URL = process.env.NODE_ENV === 'development' ? 'http://localhost:3001' : 'https://api.buxdao.com'; // Assuming your API is served from api.buxdao.com in production
+
 export default async function handler(req, res) {
   let client;
   try {
@@ -15,15 +18,69 @@ export default async function handler(req, res) {
     client = await pool.connect();
 
     // Get SOL price
-    let solPrice = 195; // Default price
+    let solPrice;
     try {
       const solPriceResponse = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd');
-      if (solPriceResponse.ok) {
-        const solPriceData = await solPriceResponse.json();
-        solPrice = Number(solPriceData.solana?.usd || 195);
+      if (!solPriceResponse.ok) {
+        throw new Error('Failed to fetch SOL price');
+      }
+      const solPriceData = await solPriceResponse.json();
+      solPrice = Number(solPriceData.solana?.usd);
+      if (isNaN(solPrice)) {
+         throw new Error('Invalid SOL price data received');
       }
     } catch (error) {
       console.error('Error fetching SOL price:', error);
+      // If SOL price fetch fails, we cannot calculate USD values, so return an error
+      return res.status(500).json({
+        error: 'Failed to fetch SOL price for value calculation.',
+        message: error.message
+      });
+    }
+
+    // Define main collection symbols to fetch floor prices for
+    const mainCollectionSymbols = ['FCKEDCATZ', 'MM', 'AIBB', 'MM3D', 'CelebCatz'];
+
+    // Get collection floor prices by calling the internal stats endpoint
+    let floorPrices = {};
+    try {
+        const floorPricePromises = mainCollectionSymbols.map(async (symbol) => {
+            const response = await fetch(`${INTERNAL_API_BASE_URL}/api/collections/${symbol}/stats`);
+            if (!response.ok) {
+                // Log the error but don't necessarily fail the whole request yet
+                console.error(`Failed to fetch stats for ${symbol}:`, response.status, await response.text().catch(() => ''));
+                return { symbol, floorPrice: 0 }; // Default to 0 if fetch fails
+            }
+            const data = await response.json();
+             // Ensure floorPrice is a valid number
+            const floorPriceInSol = Number(data.floorPrice || 0) / 1000000000; // Assuming floorPrice is in lamports
+            if (isNaN(floorPriceInSol)) {
+                console.error(`Invalid floor price data for ${symbol}:`, data);
+                 return { symbol, floorPrice: 0 };
+            }
+            return { symbol, floorPrice: floorPriceInSol };
+        });
+
+        const results = await Promise.allSettled(floorPricePromises);
+
+        results.forEach(result => {
+            if (result.status === 'fulfilled') {
+                floorPrices[result.value.symbol] = result.value.floorPrice;
+            } else {
+                 console.error(`Promise failed for fetching floor price:`, result.reason);
+                // Optionally, handle rejected promises more strictly here if needed
+            }
+        });
+
+        console.log('Fetched floor prices:', floorPrices);
+
+    } catch (error) {
+        console.error('Error fetching floor prices from internal API:', error);
+        // If fetching floor prices fails critically, we cannot calculate NFT values
+         return res.status(500).json({
+            error: 'Failed to fetch NFT floor prices.',
+            message: error.message
+         });
     }
 
     if (type === 'bux,nfts') {
@@ -71,15 +128,6 @@ export default async function handler(req, res) {
         AND owner_wallet != ''
         GROUP BY owner_wallet, symbol
       `, [PROJECT_WALLET, ME_ESCROW]);
-
-      // Default floor prices
-      const floorPrices = {
-        'FCKEDCATZ': 0.045,
-        'MM': 0.069,
-        'AIBB': 0.35,
-        'MM3D': 0.04,
-        'CelebCatz': 0.489
-      };
 
       // Combine holdings
       const combinedHoldings = {};
@@ -153,15 +201,6 @@ export default async function handler(req, res) {
         'aibitbots': 'AIBB',
         'moneymonsters3d': 'MM3D',
         'celebcatz': 'CelebCatz'
-      };
-
-      // Default floor prices
-      const floorPrices = {
-        'FCKEDCATZ': 0.045,
-        'MM': 0.069,
-        'AIBB': 0.35,
-        'MM3D': 0.04,
-        'CelebCatz': 0.489
       };
 
       try {
