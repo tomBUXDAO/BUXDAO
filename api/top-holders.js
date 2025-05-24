@@ -8,13 +8,13 @@ const COLLECTION_SLUGS = {
   'FCKEDCATZ': 'fcked_catz',
   'MM': 'money_monsters',
   'AIBB': 'ai_bitbots',
-  'MM3D': 'money_monsters_3d',
+  'MM3D': 'moneymonsters3d',
   'CELEBCATZ': 'celebcatz',
-  'AUSQRL': 'aussie_squirrels',
-  'AELxAIBB': 'aelx_ai_bitbots',
-  'AIRB': 'airb',
-  'SHXBB': 'shx_bb',
-  'CLB': 'clb',
+  'SHXBB': 'ai_warriors',
+  'AUSQRL': 'ai_secret_squirrels',
+  'AELxAIBB': 'ai_energy_apes',
+  'AIRB': 'rejected_bots_ryc',
+  'CLB': 'candybots',
   'DDBOT': 'doodlebots'
 };
 
@@ -24,11 +24,11 @@ const COLLECTION_NAMES = {
   'AIBB': 'A.I. BitBots',
   'MM3D': 'Money Monsters 3D',
   'CELEBCATZ': 'Celebrity Catz',
-  'AUSQRL': 'Aussie Squirrels',
-  'AELxAIBB': 'AELx AI BitBots',
-  'AIRB': 'AIRB',
-  'SHXBB': 'SHx BB',
-  'CLB': 'CLB',
+  'SHXBB': 'A.I. Warriors',
+  'AUSQRL': 'A.I. Secret Squirrels',
+  'AELxAIBB': 'A.I. Energy Apes',
+  'AIRB': 'Rejected Bots',
+  'CLB': 'CandyBots',
   'DDBOT': 'DoodleBots'
 };
 
@@ -38,11 +38,11 @@ const COLLECTION_COUNT_COLUMNS = {
   'AIBB': 'ai_bitbots_count',
   'MM3D': 'money_monsters_3d_count',
   'CELEBCATZ': 'celeb_catz_count',
-  'AUSQRL': 'aussie_squirrels_count',
-  'AELxAIBB': 'aelx_ai_bitbots_count',
-  'AIRB': 'airb_count',
-  'SHXBB': 'shx_bb_count',
-  'CLB': 'clb_count',
+  'SHXBB': 'ai_warriors_count',
+  'AUSQRL': 'ai_secret_squirrels_count',
+  'AELxAIBB': 'ai_energy_apes_count',
+  'AIRB': 'rejected_bots_count',
+  'CLB': 'candybots_count',
   'DDBOT': 'doodlebots_count'
 };
 
@@ -50,13 +50,13 @@ const MAGICEDEN_TO_DB_SYMBOL = {
   'fcked_catz': 'FCKEDCATZ',
   'money_monsters': 'MM',
   'ai_bitbots': 'AIBB',
-  'money_monsters_3d': 'MM3D',
+  'moneymonsters3d': 'MM3D',
   'celebcatz': 'CELEBCATZ',
-  'aussie_squirrels': 'AUSQRL',
-  'aelx_ai_bitbots': 'AELxAIBB',
-  'airb': 'AIRB',
-  'shx_bb': 'SHXBB',
-  'clb': 'CLB',
+  'ai_warriors': 'SHXBB',
+  'ai_secret_squirrels': 'AUSQRL',
+  'ai_energy_apes': 'AELxAIBB',
+  'rejected_bots_ryc': 'AIRB',
+  'candybots': 'CLB',
   'doodlebots': 'DDBOT'
 };
 
@@ -83,11 +83,11 @@ const collectionCountsColumns = {
   'AIBB': 'ai_bitbots_count',
   'MM3D': 'money_monsters_3d_count',
   'CELEBCATZ': 'celeb_catz_count',
-  'SHXBB': 'shx_bb_count',
-  'AUSQRL': 'aussie_squirrels_count',
-  'AELxAIBB': 'aelx_ai_bitbots_count',
-  'AIRB': 'airb_count',
-  'CLB': 'clb_count',
+  'SHXBB': 'ai_warriors_count',
+  'AUSQRL': 'ai_secret_squirrels_count',
+  'AELxAIBB': 'ai_energy_apes_count',
+  'AIRB': 'rejected_bots_count',
+  'CLB': 'candybots_count',
   'DDBOT': 'doodlebots_count'
 };
 
@@ -339,7 +339,7 @@ export default async function handler(req, res) {
           'AIBB': 'ai_bitbots_count',
           'MM3D': 'money_monsters_3d_count',
           'CELEBCATZ': 'celeb_catz_count',
-          'SHXBB': 'shx_bb_count',
+          'SHXBB': 'ai_warriors_count',
           'AUSQRL': 'aussie_squirrels_count',
           'AELXAIBB': 'aelx_ai_bitbots_count',
           'AIRB': 'airb_count',
