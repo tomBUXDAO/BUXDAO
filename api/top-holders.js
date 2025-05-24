@@ -8,15 +8,59 @@ const COLLECTION_SLUGS = {
   'FCKEDCATZ': 'fcked_catz',
   'MM': 'money_monsters',
   'AIBB': 'ai_bitbots',
-  'MM3D': 'moneymonsters3d',
+  'MM3D': 'money_monsters_3d',
   'CELEBCATZ': 'celebcatz',
-  'SHXBB': 'ai_warriors',
-  'AUSQRL': 'ai_secret_squirrels',
-  'AELXAIBB': 'ai_energy_apes',
-  'AIRB': 'rejected_bots_ryc',
-  'CLB': 'candybots',
+  'AUSQRL': 'aussie_squirrels',
+  'AELxAIBB': 'aelx_ai_bitbots',
+  'AIRB': 'airb',
+  'SHxBB': 'shx_bb',
+  'CLB': 'clb',
   'DDBOT': 'doodlebots'
 };
+
+const COLLECTION_NAMES = {
+  'FCKEDCATZ': 'Fcked Catz',
+  'MM': 'Money Monsters',
+  'AIBB': 'A.I. BitBots',
+  'MM3D': 'Money Monsters 3D',
+  'CELEBCATZ': 'Celebrity Catz',
+  'AUSQRL': 'Aussie Squirrels',
+  'AELxAIBB': 'AELx AI BitBots',
+  'AIRB': 'AIRB',
+  'SHxBB': 'SHx BB',
+  'CLB': 'CLB',
+  'DDBOT': 'DoodleBots'
+};
+
+const COLLECTION_COUNT_COLUMNS = {
+  'FCKEDCATZ': 'fcked_catz_count',
+  'MM': 'money_monsters_count',
+  'AIBB': 'ai_bitbots_count',
+  'MM3D': 'money_monsters_3d_count',
+  'CELEBCATZ': 'celeb_catz_count',
+  'AUSQRL': 'aussie_squirrels_count',
+  'AELxAIBB': 'aelx_ai_bitbots_count',
+  'AIRB': 'airb_count',
+  'SHxBB': 'shx_bb_count',
+  'CLB': 'clb_count',
+  'DDBOT': 'doodlebots_count'
+};
+
+const MAGICEDEN_TO_DB_SYMBOL = {
+  'fcked_catz': 'FCKEDCATZ',
+  'money_monsters': 'MM',
+  'ai_bitbots': 'AIBB',
+  'money_monsters_3d': 'MM3D',
+  'celebcatz': 'CELEBCATZ',
+  'aussie_squirrels': 'AUSQRL',
+  'aelx_ai_bitbots': 'AELxAIBB',
+  'airb': 'AIRB',
+  'shx_bb': 'SHxBB',
+  'clb': 'CLB',
+  'doodlebots': 'DDBOT'
+};
+
+const allCollectionSymbols = ['FCKEDCATZ', 'MM', 'AIBB', 'MM3D', 'CELEBCATZ', 'SHxBB', 'AUSQRL', 'AELxAIBB', 'AIRB', 'CLB', 'DDBOT'];
 
 // Move these mappings to top-level scope
 const dbSymbols = {
@@ -47,20 +91,6 @@ const collectionCountsColumns = {
   'DDBOT': 'doodlebots_count'
 };
 
-const MAGICEDEN_TO_DB_SYMBOL = {
-  'fcked_catz': 'FCKEDCATZ',
-  'money_monsters': 'MM',
-  'ai_bitbots': 'AIBB',
-  'moneymonsters3d': 'MM3D',
-  'celebcatz': 'CELEBCATZ',
-  'ai_warriors': 'SHXBB',
-  'ai_secret_squirrels': 'AUSQRL',
-  'ai_energy_apes': 'AELXAIBB',
-  'rejected_bots_ryc': 'AIRB',
-  'candybots': 'CLB',
-  'doodlebots': 'DDBOT'
-};
-
 export default async function handler(req, res) {
   let client;
   try {
@@ -68,7 +98,6 @@ export default async function handler(req, res) {
     const collection = req.query.collection || 'all';
 
     console.log(`[DEBUG] Received collection parameter: ${collection}`);
-    const allCollectionSymbols = ['FCKEDCATZ', 'MM', 'AIBB', 'MM3D', 'CelebCatz', 'SHXBB', 'AUSQRL', 'AELXAIBB', 'AIRB', 'CLB', 'DDBOT'];
     const validCollections = allCollectionSymbols.map(symbol => symbol.toLowerCase());
     console.log(`[DEBUG] Backend valid collections list: ${validCollections.join(', ')}`);
 
