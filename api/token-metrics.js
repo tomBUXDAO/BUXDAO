@@ -64,8 +64,30 @@ router.get('/', async (req, res) => {
       'https://mainnet.helius-rpc.com/?api-key=15319bf4-5b40-4958-ac8d-6313aa55eb92'
     ];
 
-    let lpBalance = 32.5921 * LAMPORTS_PER_SOL;
-    const lpBalanceInSol = 32.5921;
+    // Start with the hardcoded value for the amount owed
+    const owedSol = 32.6921;
+    let fetchedLpBalanceSol = 0; // To store the fetched LP balance in SOL
+
+    const lpWalletAddress = new PublicKey('3WNHW6sr1sQdbRjovhPrxgEJdWASZ43egGWMMNrhgoRR');
+
+    // Attempt to fetch the actual LP balance from the blockchain
+    for (const endpoint of RPC_ENDPOINTS) {
+      try {
+        const connection = new Connection(endpoint, 'confirmed');
+        const balance = await connection.getBalance(lpWalletAddress);
+        if (balance !== null) {
+          fetchedLpBalanceSol = balance / LAMPORTS_PER_SOL;
+          console.log(`Successfully fetched LP balance from ${endpoint}: ${fetchedLpBalanceSol} SOL`);
+          break; // Exit loop on success
+        }
+      } catch (error) {
+        console.error(`Failed to fetch LP balance from ${endpoint}:`, error);
+        // Try the next endpoint
+      }
+    }
+
+    // Calculate the final LP balance as the sum of the owed amount and the fetched LP balance
+    const lpBalanceInSol = owedSol + fetchedLpBalanceSol;
 
     // Calculate token value (LP balance / public supply) with high precision
     const publicSupplyNum = public_supply || 1; // Prevent division by zero
