@@ -104,6 +104,187 @@ const Header = () => {
             </button>
           </div>
 
+          {/* Mobile menu panel */}
+          <div 
+            className={`fixed inset-x-0 top-0 origin-top-right transform p-2 transition duration-200 ease-out md:hidden ${
+              isMenuOpen ? 'scale-100 opacity-100' : 'scale-95 opacity-0 pointer-events-none'
+            }`}
+          >
+            <div className="rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 bg-gray-900 divide-y divide-gray-800">
+              <div className="pt-5 pb-6 px-5">
+                <div className="flex items-center justify-between">
+                  <Link to="/" onClick={() => setIsMenuOpen(false)}>
+                    <Logo />
+                  </Link>
+                  <div className="-mr-2">
+                    <button
+                      onClick={() => setIsMenuOpen(false)}
+                      className="inline-flex items-center justify-center rounded-md p-2 text-gray-400 hover:bg-gray-800 hover:text-white"
+                    >
+                      <span className="sr-only">Close menu</span>
+                      <XMarkIcon className="h-6 w-6" aria-hidden="true" />
+                    </button>
+                  </div>
+                </div>
+                <div className="mt-6">
+                  <nav className="grid gap-y-8">
+                    {/* Home with collapsible submenu */}
+                    <div>
+                      <button
+                        onClick={() => {
+                          setIsHomeDropdownOpen(!isHomeDropdownOpen);
+                          setIsBuxDropdownOpen(false); // Close BUX menu
+                        }}
+                        className="-m-3 flex items-center justify-between rounded-md p-3 text-gray-300 hover:bg-gray-800 w-full"
+                      >
+                        <span className="text-base font-medium text-white">Home</span>
+                        <ChevronDownIcon className={`h-5 w-5 transform ${isHomeDropdownOpen ? 'rotate-180' : ''}`} />
+                      </button>
+                      {/* Home Submenu */}
+                      <div 
+                        className={`ml-4 mt-2 space-y-2 ${isHomeDropdownOpen ? 'block' : 'hidden'}`}
+                      >
+                        {sections.map((item) => (
+                          <Link
+                            key={item.name}
+                            to="/"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              setIsMenuOpen(false);
+                              setIsHomeDropdownOpen(false);
+                              if (window.location.pathname !== '/') {
+                                window.location.href = '/#' + item.href.substring(1);
+                              } else {
+                                scrollToSection(item.href);
+                              }
+                            }}
+                            className="-m-3 block rounded-md p-3 text-sm font-medium text-gray-400 hover:bg-gray-800"
+                          >
+                            {item.name}
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* $BUX with collapsible submenu */}
+                    <div>
+                      <button
+                        onClick={() => {
+                          setIsBuxDropdownOpen(!isBuxDropdownOpen);
+                          setIsHomeDropdownOpen(false); // Close Home menu
+                        }}
+                        className="-m-3 flex items-center justify-between rounded-md p-3 text-gray-300 hover:bg-gray-800 w-full"
+                      >
+                        <span className="text-base font-medium text-white">$BUX</span>
+                        <ChevronDownIcon className={`h-5 w-5 transform ${isBuxDropdownOpen ? 'rotate-180' : ''}`} />
+                      </button>
+                      {/* $BUX Submenu */}
+                      <div 
+                        className={`ml-4 mt-2 space-y-2 ${isBuxDropdownOpen ? 'block' : 'hidden'}`}
+                      >
+                        {buxSections.map((item) => (
+                          <Link
+                            key={item.name}
+                            to={item.href}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              setIsMenuOpen(false);
+                              setIsBuxDropdownOpen(false);
+                              if (item.onClick) {
+                                item.onClick();
+                              }
+                            }}
+                            className="-m-3 block rounded-md p-3 text-sm font-medium text-gray-400 hover:bg-gray-800"
+                          >
+                            <div className="flex items-center justify-between">
+                              <span>{item.name}</span>
+                              {item.locked && (
+                                <LockClosedIcon className="h-4 w-4 text-gray-400" />
+                              )}
+                            </div>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Main links */}
+                    {mainLinks.map((link) => (
+                      <Link
+                        key={link.name}
+                        to={link.href}
+                        onClick={() => setIsMenuOpen(false)}
+                        className="-m-3 block rounded-md p-3 text-base font-medium text-white hover:bg-gray-800"
+                      >
+                        {link.name}
+                      </Link>
+                    ))}
+
+                    {/* Social links */}
+                    <div className="mt-6 pt-6 border-t border-gray-800 flex justify-center space-x-6">
+                      <a
+                        href="https://discord.gg/2dXNjyr593"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-gray-400 hover:text-[#5865F2]"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        <span className="sr-only">Discord</span>
+                        <DiscordIcon className="h-6 w-6" />
+                      </a>
+                      <a
+                        href="https://x.com/buxdao"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-gray-400 hover:opacity-80"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        <span className="sr-only">X (Twitter)</span>
+                        <img src="/x-logo.png" alt="X logo" className="h-6 w-6 object-contain" />
+                      </a>
+                    </div>
+                  </nav>
+                </div>
+              </div>
+
+              {/* Wallet/User section for mobile */}
+              <div className="py-6 px-5">
+                {discordUser ? (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <img
+                        src={`https://cdn.discordapp.com/avatars/${discordUser.discord_id}/${discordUser.avatar}.png`}
+                        alt={discordUser.discord_username}
+                        className="w-8 h-8 rounded-full"
+                      />
+                      <span className="text-base font-medium text-white">{discordUser.discord_username}</span>
+                    </div>
+                    <button
+                      onClick={() => {
+                        handleLogout();
+                        setIsMenuOpen(false);
+                      }}
+                      className="text-gray-400 hover:text-white"
+                    >
+                      <span className="sr-only">Logout</span>
+                      <ArrowRightOnRectangleIcon className="h-6 w-6" aria-hidden="true" />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setVisible(true);
+                      setIsMenuOpen(false);
+                    }}
+                    className="w-full flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-purple-600 hover:bg-purple-700"
+                  >
+                    <LockClosedIcon className="-ml-1 mr-2 h-5 w-5 text-white" aria-hidden="true" />
+                    Connect Wallet
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
           {/* Desktop menu */}
           <div className="hidden md:block">
             <div className="flex items-center space-x-8">
@@ -249,178 +430,46 @@ const Header = () => {
                     <span className="text-sm">{discordUser.discord_username}</span>
                     <ChevronDownIcon className={`h-4 w-4 transition-transform ${isUserDropdownOpen ? 'rotate-180' : ''}`} />
                   </button>
-
-                  {/* User Dropdown */}
+                  {/* User Dropdown menu */}
                   <div 
-                    className={`absolute right-0 w-48 rounded-md shadow-lg bg-gray-900 ring-1 ring-black ring-opacity-5 transform transition-all duration-200 origin-top-right ${
-                      isUserDropdownOpen ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-1 pointer-events-none'
+                    className={`absolute right-0 w-48 rounded-md shadow-lg bg-gray-900 ring-1 ring-black ring-opacity-5 transform transition-all duration-200 origin-top ${
+                      isUserDropdownOpen ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2 pointer-events-none'
                     }`}
                   >
-                    <div className="py-1">
+                    <div className="py-1" role="menu" aria-orientation="vertical">
                       {walletConnected ? (
-                        <div className="px-4 py-2 text-sm">
-                          <p className="text-gray-400">Wallet</p>
-                          <p className="text-gray-300 truncate">{walletAddress?.slice(0, 4)}...{walletAddress?.slice(-4)}</p>
-                        </div>
-                      ) : (
-                        <Link
-                          to="/verify"
-                          onClick={() => setIsUserDropdownOpen(false)}
-                          className="block w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white"
+                        <button
+                          onClick={handleLogout}
+                          className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white w-full text-left"
+                          role="menuitem"
                         >
-                          Connect Wallet
-                        </Link>
+                          <ArrowRightOnRectangleIcon className="h-4 w-4" />
+                          <span>Logout</span>
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => setVisible(true)}
+                          className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white w-full text-left"
+                          role="menuitem"
+                        >
+                          <LockClosedIcon className="h-4 w-4" />
+                          <span>Connect Wallet</span>
+                        </button>
                       )}
-                      <button
-                        onClick={handleLogout}
-                        className="flex items-center space-x-2 w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white"
-                      >
-                        <ArrowRightOnRectangleIcon className="h-4 w-4" />
-                        <span>Logout</span>
-                      </button>
                     </div>
                   </div>
                 </div>
               ) : (
-                <Link to="/verify">
-                  <button className="bg-gradient-to-r from-purple-500 to-pink-500 px-6 py-2 rounded-full text-white hover:opacity-90 transition-opacity">
-                    Connect Wallet
-                  </button>
-                </Link>
+                <button
+                  onClick={() => setVisible(true)}
+                  className="text-gray-300 hover:text-white transition-colors py-2"
+                >
+                  Connect Wallet
+                </button>
               )}
             </div>
           </div>
         </div>
-
-        {/* Mobile menu */}
-        {isMenuOpen && (
-          <div className="md:hidden mt-6 pb-6">
-            <div className="flex flex-col space-y-6">
-              {/* Home sections in mobile */}
-              <div className="space-y-4">
-                <Link 
-                  to="/"
-                  className="block text-sm font-semibold text-gray-400 uppercase tracking-wider hover:text-white transition-colors"
-                  onClick={(e) => {
-                    setIsMenuOpen(false);
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
-                >
-                  HOME
-                </Link>
-                {sections.map(item => (
-                  <a
-                    key={item.name}
-                    href={item.href}
-                    className="block text-gray-300 hover:text-white transition-colors pl-4 text-sm tracking-wide"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setIsMenuOpen(false);
-                      if (window.location.pathname !== '/') {
-                        window.location.href = '/#' + item.href.substring(1);
-                      } else {
-                        scrollToSection(item.href);
-                      }
-                    }}
-                  >
-                    {item.name}
-                  </a>
-                ))}
-              </div>
-
-              {/* $BUX sections in mobile */}
-              <div className="space-y-4">
-                <Link
-                  to="/bux"
-                  className="text-sm font-semibold text-gray-400 uppercase tracking-wider hover:text-white transition-colors"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  $BUX
-                </Link>
-                {buxSections.map(item => (
-                  <Link
-                    key={item.name}
-                    to={item.href}
-                    className="block text-gray-300 hover:text-white transition-colors pl-4 text-sm tracking-wide"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setIsMenuOpen(false);
-                      if (item.onClick) {
-                        item.onClick();
-                      }
-                    }}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span>{item.name}</span>
-                      {item.locked && (
-                        <LockClosedIcon className="h-4 w-4 text-gray-400" />
-                      )}
-                    </div>
-                  </Link>
-                ))}
-              </div>
-
-              {/* Main links in mobile menu */}
-              {mainLinks.map(link => (
-                <Link 
-                  key={link.name}
-                  to={link.href} 
-                  className="text-sm font-semibold text-gray-400 uppercase tracking-wider hover:text-white transition-colors"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  {link.name.toUpperCase()}
-                </Link>
-              ))}
-
-              {/* User section in mobile */}
-              {discordUser ? (
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-3">
-                    <img 
-                      src={`https://cdn.discordapp.com/avatars/${discordUser.discord_id}/${discordUser.avatar}.png`}
-                      alt={discordUser.discord_username}
-                      className="w-8 h-8 rounded-full"
-                    />
-                    <span className="text-sm text-gray-300">{discordUser.discord_username}</span>
-                  </div>
-                  {walletConnected ? (
-                    <div className="pl-11">
-                      <p className="text-gray-400 text-xs">Wallet</p>
-                      <p className="text-gray-300 text-sm truncate">{walletAddress?.slice(0, 4)}...{walletAddress?.slice(-4)}</p>
-                    </div>
-                  ) : (
-                    <Link
-                      to="/verify"
-                      onClick={() => setIsMenuOpen(false)}
-                      className="w-full text-left pl-11 text-sm text-gray-300"
-                    >
-                      Connect Wallet
-                    </Link>
-                  )}
-                  <button
-                    onClick={() => {
-                      handleLogout();
-                      setIsMenuOpen(false);
-                    }}
-                    className="flex items-center space-x-2 w-full text-left pl-11 text-sm text-gray-300"
-                  >
-                    <ArrowRightOnRectangleIcon className="h-4 w-4" />
-                    <span>Logout</span>
-                  </button>
-                </div>
-              ) : (
-                <Link 
-                  to="/verify"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  <button className="bg-gradient-to-r from-purple-500 to-pink-500 px-6 py-2 rounded-full text-white hover:opacity-90 transition-opacity text-sm tracking-wide">
-                    Connect Wallet
-                  </button>
-                </Link>
-              )}
-            </div>
-          </div>
-        )}
       </nav>
     </header>
   );
