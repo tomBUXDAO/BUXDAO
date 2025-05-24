@@ -32,15 +32,16 @@ router.get('/:discord_id', async (req, res) => {
         COALESCE(money_monsters_3d_count, 0) as mm3d_count,
         COALESCE(fcked_catz_count, 0) as fckedcatz_count,
         COALESCE(money_monsters_count, 0) as mm_count,
-        COALESCE(ai_bitbots_count, 0) as aibb_count,
+        COALESCE(aibitbots_count, 0) as aibb_count,
+        COALESCE(ai_collabs_count, 0) as ai_collabs_count,
         COALESCE(ai_warriors_count, 0) as shxbb_count,
         COALESCE(ai_secret_squirrels_count, 0) as ausqrl_count,
         COALESCE(ai_energy_apes_count, 0) as aelxaibb_count,
-        COALESCE(rejected_bots_count, 0) as airb_count,
+        COALESCE(rejected_bots_ryc_count, 0) as airb_count,
         COALESCE(candybots_count, 0) as clb_count,
         COALESCE(doodlebots_count, 0) as ddbot_count,
-        COALESCE(mm_top_10, 0) as mm_top_10,
-        COALESCE(mm3d_top_10, 0) as mm3d_top_10,
+        COALESCE(money_monsters_top_10, 0) as money_monsters_top_10,
+        COALESCE(money_monsters_3d_top_10, 0) as money_monsters_3d_top_10,
         COALESCE(branded_catz_count, 0) as branded_catz_count,
         COALESCE(total_count, 0) as total_count
       FROM collection_counts 
@@ -66,8 +67,8 @@ router.get('/:discord_id', async (req, res) => {
         airb_count: 0,
         clb_count: 0,
         ddbot_count: 0,
-        mm_top_10: 0,
-        mm3d_top_10: 0,
+        money_monsters_top_10: 0,
+        money_monsters_3d_top_10: 0,
         branded_catz_count: 0,
         total_count: 0,
         balance: 0
@@ -86,7 +87,21 @@ router.get('/:discord_id', async (req, res) => {
     console.log('Balance result:', balanceResult.rows[0]);
 
     const response = {
-      ...result.rows[0],
+      celebcatz_count: result.rows[0].celebcatz_count,
+      mm3d_count: result.rows[0].mm3d_count,
+      fckedcatz_count: result.rows[0].fckedcatz_count,
+      mm_count: result.rows[0].mm_count,
+      aibb_count: result.rows[0].aibb_count,
+      shxbb_count: result.rows[0].shxbb_count,
+      ausqrl_count: result.rows[0].ausqrl_count,
+      aelxaibb_count: result.rows[0].aelxaibb_count,
+      airb_count: result.rows[0].airb_count,
+      clb_count: result.rows[0].clb_count,
+      ddbot_count: result.rows[0].ddbot_count,
+      money_monsters_top_10: result.rows[0].money_monsters_top_10,
+      money_monsters_3d_top_10: result.rows[0].money_monsters_3d_top_10,
+      branded_catz_count: result.rows[0].branded_catz_count,
+      total_count: result.rows[0].total_count,
       balance: Number(balanceResult.rows[0]?.balance || 0).toFixed(2)
     };
 

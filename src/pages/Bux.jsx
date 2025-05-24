@@ -334,17 +334,16 @@ const Bux = () => {
                   <h3 className="text-2xl md:text-3xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 mb-4">
                     Revenue Sources
                   </h3>
-                  <ul className="space-y-2">
+                  <div className="space-y-2">
                     {revenueSources.map((source, index) => (
-                      <li key={index} className="text-gray-400 text-sm flex items-center">
-                        <span className="w-1.5 h-1.5 bg-purple-400 rounded-full mr-2"></span>
+                      <div key={index} className="text-gray-400 text-sm">
                         <div>
                           <div className="text-gray-200 font-semibold mb-1">{source.title}</div>
                           <p className="text-gray-400 text-sm">{source.description}</p>
                         </div>
-                      </li>
+                      </div>
                     ))}
-                  </ul>
+                  </div>
                 </div>
               </div>
             </div>
@@ -624,7 +623,7 @@ const Bux = () => {
 
       {/* Add UserProfile section at the bottom */}
       <section id="mybux" className="mt-12">
-        <UserProfile />
+        <UserProfile tokenValue={tokenData.tokenValue} solPrice={tokenData.solPrice} />
       </section>
     </div>
   );

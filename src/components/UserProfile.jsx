@@ -25,7 +25,7 @@ const SYMBOL_TO_NAME = {
   'AIBB': 'A.I. BitBots'
 };
 
-const UserProfile = () => {
+const UserProfile = ({ tokenValue, solPrice }) => {
   const { discordUser } = useUser();
   const wallet = useWallet();
   const [userData, setUserData] = useState({
@@ -166,17 +166,25 @@ const UserProfile = () => {
           const collectionData = await collectionCountsResponse.json();
           console.log('Collection counts:', collectionData);
 
-          // Map collection counts to the expected format
+          // Map collection counts to the expected format and sum individual collabs
           const collectionCounts = {
-            'celeb_catz_count': collectionData.celeb_catz_count || 0,
-            'money_monsters_3d_count': collectionData.money_monsters_3d_count || 0,
-            'fcked_catz_count': collectionData.fcked_catz_count || 0,
-            'money_monsters_count': collectionData.money_monsters_count || 0,
-            'aibitbots_count': collectionData.aibitbots_count || 0,
-            'ai_collabs_count': collectionData.ai_collabs_count || 0,
+            'celeb_catz_count': collectionData.celebcatz_count || 0,
+            'money_monsters_3d_count': collectionData.mm3d_count || 0,
+            'fcked_catz_count': collectionData.fckedcatz_count || 0,
+            'money_monsters_count': collectionData.mm_count || 0,
+            'aibitbots_count': collectionData.aibb_count || 0,
+            // Sum individual AI Collab counts
+            'ai_collabs_count': (
+              collectionData.shxbb_count || 0) +
+              (collectionData.ausqrl_count || 0) +
+              (collectionData.aelxaibb_count || 0) +
+              (collectionData.airb_count || 0) +
+              (collectionData.clb_count || 0) +
+              (collectionData.ddbot_count || 0
+            ),
             'money_monsters_top_10': collectionData.money_monsters_top_10 || 0,
             'money_monsters_3d_top_10': collectionData.money_monsters_3d_top_10 || 0,
-            'branded_catz_count': collectionData.branded_catz_count || 0
+            'branded_catz_count': collectionData.branded_catz_count || 0,
           };
 
           // Get claim account data
@@ -187,7 +195,8 @@ const UserProfile = () => {
           setUserData(prev => ({
             ...prev,
             collections: collectionCounts,
-            totalCount: collectionData.total_count || 0,
+            // Calculate total count by summing up individual collection counts
+            totalCount: Object.values(collectionCounts).reduce((sum, count) => sum + count, 0),
             balance: collectionData.balance || 0,
             unclaimed_rewards: claimData.unclaimed_amount || 0
           }));
@@ -403,8 +412,8 @@ const UserProfile = () => {
     <div className="space-y-6">
       <h2 className="text-6xl font-bold text-purple-400 text-center">My BUX</h2>
       <div className="p-8 mx-8 space-y-8">
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Top Row Grid - NFTs and Roles */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* NFT Holdings */}
           <div className="bg-gradient-to-br from-gray-900/90 to-gray-800/90 rounded-lg p-6 shadow-lg backdrop-blur-sm border border-fuchsia-500/20">
             <h3 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
@@ -520,27 +529,22 @@ const UserProfile = () => {
               ))}
             </div>
           </div>
+        </div>
 
-          {/* Claim & Cashout */}
+        {/* Bottom Row Grid - Claim and Cashout */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Claim Section */}
           <div className="bg-gradient-to-br from-gray-900/90 to-gray-800/90 rounded-lg p-6 shadow-lg backdrop-blur-sm border border-fuchsia-500/20">
             <h3 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
               <svg className="w-6 h-6" fill="white" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-                <path d="M 21 4 C 19.207031 4 17.582031 4.335938 16.3125 4.96875 C 15.042969 5.601563 14 6.632813 14 8 L 14 12 C 14 12.128906 14.042969 12.253906 14.0625 12.375 C 13.132813 12.132813 12.101563 12 11 12 C 9.207031 12 7.582031 12.335938 6.3125 12.96875 C 5.042969 13.601563 4 14.632813 4 16 L 4 24 C 4 25.367188 5.042969 26.398438 6.3125 27.03125 C 7.582031 27.664063 9.207031 28 11 28 C 12.792969 28 14.417969 27.664063 15.6875 27.03125 C 16.957031 26.398438 18 25.367188 18 24 L 18 23.59375 C 18.917969 23.835938 19.921875 24 21 24 C 22.792969 24 24.417969 23.664063 25.6875 23.03125 C 26.957031 22.398438 28 21.367188 28 20 L 28 8 C 28 6.632813 26.957031 5.601563 25.6875 4.96875 C 24.417969 4.335938 22.792969 4 21 4 Z M 21 6 C 22.523438 6 23.878906 6.328125 24.78125 6.78125 C 25.683594 7.234375 26 7.710938 26 8 C 26 8.289063 25.683594 8.765625 24.78125 9.21875 C 23.878906 9.671875 22.523438 10 21 10 C 19.476563 10 18.121094 9.671875 17.21875 9.21875 C 16.316406 8.765625 16 8.289063 16 8 C 16 7.710938 16.316406 7.234375 17.21875 6.78125 C 18.121094 6.328125 19.476563 6 21 6 Z M 16 10.84375 C 16.105469 10.902344 16.203125 10.976563 16.3125 11.03125 C 17.582031 11.664063 19.207031 12 21 12 C 22.792969 12 24.417969 11.664063 25.6875 11.03125 C 25.796875 10.976563 25.894531 10.902344 26 10.84375 L 26 12 C 26 12.289063 25.683594 12.765625 24.78125 13.21875 C 23.878906 13.671875 22.523438 14 21 14 C 19.476563 14 18.121094 13.671875 17.21875 13.21875 C 16.316406 12.765625 16 12.289063 16 12 Z M 11 14 C 12.523438 14 13.878906 14.328125 14.78125 14.78125 C 15.683594 15.234375 16 15.710938 16 16 C 16 16.289063 15.683594 16.765625 14.78125 17.21875 C 13.878906 17.671875 12.523438 18 11 18 C 9.476563 18 8.121094 17.671875 7.21875 17.21875 C 6.316406 16.765625 6 16.289063 6 16 C 6 15.710938 6.316406 15.234375 7.21875 14.78125 C 8.121094 14.328125 9.476563 14 11 14 Z M 26 14.84375 L 26 16 C 26 16.289063 25.683594 16.765625 24.78125 17.21875 C 23.878906 17.671875 22.523438 18 21 18 C 19.863281 18 18.835938 17.8125 18 17.53125 L 18 16 C 18 15.871094 17.957031 15.746094 17.9375 15.625 C 18.867188 15.867188 19.898438 16 21 16 C 22.792969 16 24.417969 15.664063 25.6875 15.03125 C 25.796875 14.976563 25.894531 14.902344 26 14.84375 Z M 6 18.84375 C 6.105469 18.902344 6.203125 18.976563 6.3125 19.03125 C 7.582031 19.664063 9.207031 20 11 20 C 12.792969 20 14.417969 19.664063 15.6875 19.03125 C 15.796875 18.976563 15.894531 18.902344 16 18.84375 L 16 20 C 16 20.289063 15.683594 20.765625 14.78125 21.21875 C 13.878906 21.671875 12.523438 22 11 22 C 9.476563 22 8.121094 21.671875 7.21875 21.21875 C 6.316406 20.765625 6 20.289063 6 20 Z M 26 18.84375 L 26 20 C 26 20.289063 25.683594 20.765625 24.78125 21.21875 C 23.878906 21.671875 22.523438 22 21 22 C 19.863281 22 18.835938 21.839844 18 21.5625 L 18 19.625 C 18.917969 19.867188 19.917969 20 21 20 C 22.792969 20 24.417969 19.664063 25.6875 19.03125 C 25.796875 18.976563 25.894531 18.902344 26 18.84375 Z M 6 22.84375 C 6.105469 22.902344 6.203125 22.976563 6.3125 23.03125 C 7.582031 23.664063 9.207031 24 11 24 C 12.792969 24 14.417969 23.664063 15.6875 23.03125 C 15.796875 22.976563 15.894531 22.902344 16 22.84375 L 16 24 C 16 24.289063 15.683594 24.765625 14.78125 25.21875 C 13.878906 25.671875 12.523438 26 11 26 C 9.476563 26 8.121094 25.671875 7.21875 25.21875 C 6.316406 24.765625 6 24.289063 6 24 Z" />
+                <path d="M 21 4 C 19.207031 4 17.582031 4.335938 16.3125 4.96875 C 15.042969 5.601563 14 6.632813 14 8 L 14 12 C 14 12.128906 14.042969 12.253906 14.0625 12.375 C 13.132813 12.132813 12.101563 12 11 12 C 9.207031 12 7.582031 12.335938 6.3125 12.96875 C 5.042969 13.601563 4 14.632813 4 16 L 4 24 C 4 25.367188 5.042969 26.398438 6.3125 27.03125 C 7.582031 27.664063 9.207031 28 11 28 C 12.792969 28 14.417969 27.664063 15.6875 27.03125 C 16.957031 26.398438 18 25.367188 18 24 L 18 23.59375 C 18.917969 23.835938 19.921875 24 21 24 C 22.792969 24 24.417969 23.664063 25.6875 23.03125 C 26.957031 22.398438 28 21.367188 28 20 L 28 8 C 28 6.632813 26.957031 5.601563 25.6875 4.96875 C 24.417969 4.335938 22.792969 4 21 4 Z" />
               </svg>
-              Claim & Cashout
+              Claim Rewards
             </h3>
             
             {/* Timer and Unclaimed Rewards */}
             <div className="mb-6">
-              <div className="flex items-center justify-between mb-4">
-                <p className="text-fuchsia-300">Unclaimed Rewards</p>
-                <div className="flex items-center gap-2">
-                  <p className="text-sm text-gray-400">Updates in:</p>
-                  <div className="bg-gray-900 px-3 py-1 rounded font-mono text-lg text-white">
-                    {formatTimeRemaining(timeUntilUpdate)}
-                  </div>
-                </div>
-              </div>
+              <p className="text-fuchsia-300 mb-2">Unclaimed Balance</p>
               
               <p className="text-2xl font-bold text-white mb-3">
                 {Number(userData?.unclaimed_rewards || 0).toFixed(2)} $BUX
@@ -552,7 +556,7 @@ const UserProfile = () => {
                     type="number"
                     value={claimAmount}
                     onChange={(e) => setClaimAmount(e.target.value)}
-                    placeholder="Enter amount to claim"
+                    placeholder="0"
                     disabled={true}
                     className="w-full p-2 border-2 border-white/20 rounded-lg bg-gray-900/50 
                              text-white placeholder-gray-400 focus:outline-none 
@@ -577,25 +581,39 @@ const UserProfile = () => {
                     </button>
                   </div>
                 </div>
-                <button
-                  disabled={true}
-                  className="w-full py-3 px-4 rounded-lg font-bold border-2 border-white/90 
-                            relative overflow-hidden transition-all duration-300
-                            disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <div className="absolute inset-0 bg-[linear-gradient(to_right,#c0c0c0,#e0e0e0,#c0c0c0)]" />
-                  <div className="relative z-10 text-white uppercase tracking-[0.15em] font-black 
-                                [text-shadow:_-1px_-1px_0_#000,_1px_-1px_0_#000,_-1px_1px_0_#000,_1px_1px_0_#000]">
-                    CLAIM FUNCTION COMING SOON
+                <div className="flex items-center gap-2 mb-4">
+                  <p className="text-fuchsia-300">Rewards update in:</p>
+                  <div className="bg-gray-900 px-3 py-1 rounded font-mono text-lg text-white">
+                    {formatTimeRemaining(timeUntilUpdate)}
                   </div>
-                </button>
-                <p className="text-sm text-center text-fuchsia-300">
-                  The claim function is currently being tested and will be available soon!
-                </p>
+                </div>
+                <div className="relative">
+                  <button
+                    disabled={true}
+                    className="w-full py-3 px-4 rounded-lg font-bold border-2 border-white/90 
+                              relative overflow-hidden transition-all duration-300
+                              disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <div className="absolute inset-0 bg-[linear-gradient(to_right,#c0c0c0,#e0e0e0,#c0c0c0)]" />
+                    <div className="relative z-10 text-white uppercase tracking-[0.15em] font-black 
+                                  [text-shadow:_-1px_-1px_0_#000,_1px_-1px_0_#000,_-1px_1px_0_#000,_1px_1px_0_#000]">
+                      CLAIM
+                    </div>
+                  </button>
+                </div>
               </div>
             </div>
+          </div>
 
-            {/* Cashout Section */}
+          {/* Cashout Section */}
+          <div className="bg-gradient-to-br from-gray-900/90 to-gray-800/90 rounded-lg p-6 shadow-lg backdrop-blur-sm border border-fuchsia-500/20">
+            <h3 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+              <svg className="w-6 h-6" fill="white" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+                <path d="M 21 4 C 19.207031 4 17.582031 4.335938 16.3125 4.96875 C 15.042969 5.601563 14 6.632813 14 8 L 14 12 C 14 12.128906 14.042969 12.253906 14.0625 12.375 C 13.132813 12.132813 12.101563 12 11 12 C 9.207031 12 7.582031 12.335938 6.3125 12.96875 C 5.042969 13.601563 4 14.632813 4 16 L 4 24 C 4 25.367188 5.042969 26.398438 6.3125 27.03125 C 7.582031 27.664063 9.207031 28 11 28 C 12.792969 28 14.417969 27.664063 15.6875 27.03125 C 16.957031 26.398438 18 25.367188 18 24 L 18 23.59375 C 18.917969 23.835938 19.921875 24 21 24 C 22.792969 24 24.417969 23.664063 25.6875 23.03125 C 26.957031 22.398438 28 21.367188 28 20 L 28 8 C 28 6.632813 26.957031 5.601563 25.6875 4.96875 C 24.417969 4.335938 22.792969 4 21 4 Z" />
+              </svg>
+              Cashout BUX
+            </h3>
+            
             <div>
               <p className="text-fuchsia-300 mb-2">BUX Balance</p>
               <p className="text-2xl font-bold text-white mb-3">
@@ -607,7 +625,7 @@ const UserProfile = () => {
                     type="number"
                     value={cashoutAmount}
                     onChange={(e) => setCashoutAmount(e.target.value)}
-                    placeholder="Enter amount to cashout"
+                    placeholder="0"
                     className="w-full p-2 border-2 border-white/20 rounded-lg bg-gray-900/50 
                              text-white placeholder-gray-400 focus:outline-none 
                              focus:border-white/40 shadow-inner"
@@ -627,8 +645,8 @@ const UserProfile = () => {
                     </button>
                   </div>
                 </div>
-                <p className="text-sm text-fuchsia-300">
-                  Value: {(cashoutAmount * 0.00001).toFixed(6)} SOL
+                <p className="text-sm text-fuchsia-300 py-2">
+                  Value: {(cashoutAmount * (tokenValue || 0)).toFixed(6)} SOL
                 </p>
                 <div className="relative">
                   <button

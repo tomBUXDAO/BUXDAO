@@ -3,14 +3,9 @@ import { PublicKey, Connection } from '@solana/web3.js';
 import { parse } from 'cookie';
 import pkg from 'pg';
 const { Pool } = pkg;
+import { pool } from '../config/database.js';
 
 const router = express.Router();
-const pool = new Pool({
-  connectionString: process.env.POSTGRES_URL,
-  ssl: {
-    rejectUnauthorized: false
-  }
-});
 
 const DISCORD_GUILD_ID = process.env.DISCORD_GUILD_ID;
 const RPC_URL = process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
