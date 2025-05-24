@@ -651,9 +651,11 @@ const UserProfile = ({ tokenValue, solPrice }) => {
                 <div className="relative">
                   <button
                     onClick={handleCashout}
+                    disabled={true}
                     className="w-full py-3 px-4 rounded-lg font-bold border-2 border-white/90
                               relative overflow-hidden
-                              transition-all duration-300"
+                              transition-all duration-300
+                              disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffd700,#faf0be,#ffd700)]
                                   hover:bg-[linear-gradient(to_right,#ffed4a,#faf0be,#ffed4a)]" />
