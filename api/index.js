@@ -8,6 +8,7 @@ dotenv.config();
 import authHandler from './auth/index.js';
 import collectionCountsHandler from './collection-counts/index.js';
 import nftLookupHandler from './nft-lookup.js';
+import userHandler from './user/index.js';
 
 const pool = new Pool({
   connectionString: process.env.POSTGRES_URL,
@@ -54,6 +55,13 @@ export default async function handler(req, res) {
     }
     req.params = { discord_id: discordId };
     return collectionCountsHandler(req, res);
+  }
+
+  // Handle user endpoints
+  if (req.url.startsWith('/api/user/')) {
+    // Adjust req.url to be relative to the user handler if needed
+    req.url = req.url.substring('/api/user'.length);
+    return userHandler(req, res);
   }
 
   if (req.method === 'GET') {

@@ -557,7 +557,6 @@ const UserProfile = ({ tokenValue, solPrice }) => {
                     value={claimAmount}
                     onChange={(e) => setClaimAmount(e.target.value)}
                     placeholder="0"
-                    disabled={true}
                     className="w-full p-2 border-2 border-white/20 rounded-lg bg-gray-900/50 
                              text-white placeholder-gray-400 focus:outline-none 
                              focus:border-white/40 shadow-inner disabled:opacity-50"
@@ -565,7 +564,6 @@ const UserProfile = ({ tokenValue, solPrice }) => {
                   <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-2">
                     <button 
                       onClick={handle50Claim}
-                      disabled={true}
                       className="px-2 py-1 text-xs bg-gray-800 text-white rounded hover:bg-gray-700 
                                disabled:opacity-50 disabled:cursor-not-allowed"
                     >
@@ -573,7 +571,6 @@ const UserProfile = ({ tokenValue, solPrice }) => {
                     </button>
                     <button 
                       onClick={handleMaxClaim}
-                      disabled={true}
                       className="px-2 py-1 text-xs bg-gray-800 text-white rounded hover:bg-gray-700
                                disabled:opacity-50 disabled:cursor-not-allowed"
                     >
@@ -588,8 +585,9 @@ const UserProfile = ({ tokenValue, solPrice }) => {
                   </div>
                 </div>
                 <div className="relative">
-                  <button
-                    disabled={true}
+                  <BuxClaimButton
+                    amount={parseInt(claimAmount)}
+                    onError={(error) => toast.error(error.message || 'Claim failed')}
                     className="w-full py-3 px-4 rounded-lg font-bold border-2 border-white/90 
                               relative overflow-hidden transition-all duration-300
                               disabled:opacity-50 disabled:cursor-not-allowed"
@@ -599,7 +597,7 @@ const UserProfile = ({ tokenValue, solPrice }) => {
                                   [text-shadow:_-1px_-1px_0_#000,_1px_-1px_0_#000,_-1px_1px_0_#000,_1px_1px_0_#000]">
                       CLAIM
                     </div>
-                  </button>
+                  </BuxClaimButton>
                 </div>
               </div>
             </div>

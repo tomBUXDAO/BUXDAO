@@ -5,7 +5,7 @@ import { API_BASE_URL } from '../config';
 import * as nacl from 'tweetnacl';
 import { getAssociatedTokenAddress } from '@solana/spl-token';
 
-const BUX_MINT = new PublicKey('FMiRxSbLqRTWiBszt1DZmXd7SrscWCccY7fcXNtwWxHK');
+const BUX_MINT = new PublicKey('AaKrMsZkuAdJL6TKZbj7X1VaH5qWioL7oDHagQZa1w59');
 
 const BuxClaimButton = ({ 
   amount, 
