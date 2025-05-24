@@ -13,7 +13,7 @@ const COLLECTION_SLUGS = {
   'AUSQRL': 'aussie_squirrels',
   'AELxAIBB': 'aelx_ai_bitbots',
   'AIRB': 'airb',
-  'SHxBB': 'shx_bb',
+  'SHXBB': 'shx_bb',
   'CLB': 'clb',
   'DDBOT': 'doodlebots'
 };
@@ -27,7 +27,7 @@ const COLLECTION_NAMES = {
   'AUSQRL': 'Aussie Squirrels',
   'AELxAIBB': 'AELx AI BitBots',
   'AIRB': 'AIRB',
-  'SHxBB': 'SHx BB',
+  'SHXBB': 'SHx BB',
   'CLB': 'CLB',
   'DDBOT': 'DoodleBots'
 };
@@ -41,7 +41,7 @@ const COLLECTION_COUNT_COLUMNS = {
   'AUSQRL': 'aussie_squirrels_count',
   'AELxAIBB': 'aelx_ai_bitbots_count',
   'AIRB': 'airb_count',
-  'SHxBB': 'shx_bb_count',
+  'SHXBB': 'shx_bb_count',
   'CLB': 'clb_count',
   'DDBOT': 'doodlebots_count'
 };
@@ -55,12 +55,12 @@ const MAGICEDEN_TO_DB_SYMBOL = {
   'aussie_squirrels': 'AUSQRL',
   'aelx_ai_bitbots': 'AELxAIBB',
   'airb': 'AIRB',
-  'shx_bb': 'SHxBB',
+  'shx_bb': 'SHXBB',
   'clb': 'CLB',
   'doodlebots': 'DDBOT'
 };
 
-const allCollectionSymbols = ['FCKEDCATZ', 'MM', 'AIBB', 'MM3D', 'CELEBCATZ', 'SHxBB', 'AUSQRL', 'AELxAIBB', 'AIRB', 'CLB', 'DDBOT'];
+const allCollectionSymbols = ['FCKEDCATZ', 'MM', 'AIBB', 'MM3D', 'CELEBCATZ', 'SHXBB', 'AUSQRL', 'AELxAIBB', 'AIRB', 'CLB', 'DDBOT'];
 
 // Move these mappings to top-level scope
 const dbSymbols = {
@@ -68,10 +68,10 @@ const dbSymbols = {
   'mm': 'MM',
   'aibb': 'AIBB',
   'mm3d': 'MM3D',
-  'celebcatz': 'CelebCatz',
+  'celebcatz': 'CELEBCATZ',
   'shxbb': 'SHXBB',
   'ausqrl': 'AUSQRL',
-  'aelxaibb': 'AELXAIBB',
+  'aelxaibb': 'AELxAIBB',
   'airb': 'AIRB',
   'clb': 'CLB',
   'ddbot': 'DDBOT'
@@ -80,14 +80,14 @@ const dbSymbols = {
 const collectionCountsColumns = {
   'FCKEDCATZ': 'fcked_catz_count',
   'MM': 'money_monsters_count',
-  'AIBB': 'aibitbots_count',
+  'AIBB': 'ai_bitbots_count',
   'MM3D': 'money_monsters_3d_count',
-  'CelebCatz': 'celeb_catz_count',
-  'SHXBB': 'ai_warriors_count',
-  'AUSQRL': 'ai_secret_squirrels_count',
-  'AELXAIBB': 'ai_energy_apes_count',
-  'AIRB': 'rejected_bots_ryc_count',
-  'CLB': 'candybots_count',
+  'CELEBCATZ': 'celeb_catz_count',
+  'SHXBB': 'shx_bb_count',
+  'AUSQRL': 'aussie_squirrels_count',
+  'AELxAIBB': 'aelx_ai_bitbots_count',
+  'AIRB': 'airb_count',
+  'CLB': 'clb_count',
   'DDBOT': 'doodlebots_count'
 };
 
@@ -323,7 +323,7 @@ export default async function handler(req, res) {
         'mm': 'MM',
         'aibb': 'AIBB',
         'mm3d': 'MM3D',
-        'celebcatz': 'CelebCatz',
+        'celebcatz': 'CELEBCATZ',
         'shxbb': 'SHXBB',
         'ausqrl': 'AUSQRL',
         'aelxaibb': 'AELXAIBB',
@@ -336,16 +336,15 @@ export default async function handler(req, res) {
       const collectionCountsColumns = {
           'FCKEDCATZ': 'fcked_catz_count',
           'MM': 'money_monsters_count',
-          'AIBB': 'aibitbots_count',
+          'AIBB': 'ai_bitbots_count',
           'MM3D': 'money_monsters_3d_count',
-          'CelebCatz': 'celeb_catz_count',
-          'SHXBB': 'ai_warriors_count', // New column
-          'AUSQRL': 'ai_secret_squirrels_count', // New column
-          'AELXAIBB': 'ai_energy_apes_count', // New column
-          'AIRB': 'rejected_bots_ryc_count', // New column
-          'CLB': 'candybots_count', // New column
-          'DDBOT': 'doodlebots_count' // New column
-          // Note: total_count and ai_collabs_count are also in collection_counts
+          'CELEBCATZ': 'celeb_catz_count',
+          'SHXBB': 'shx_bb_count',
+          'AUSQRL': 'aussie_squirrels_count',
+          'AELXAIBB': 'aelx_ai_bitbots_count',
+          'AIRB': 'airb_count',
+          'CLB': 'clb_count',
+          'DDBOT': 'doodlebots_count'
       };
 
       try {

@@ -2,14 +2,6 @@ import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import { useState, useEffect, useRef } from 'react';
 import { API_BASE_URL } from '../config';
 
-const COLLECTION_SUPPLIES = {
-  FCKEDCATZ: 1184,
-  CelebCatz: 124,
-  MM: 623,
-  MM3D: 647,
-  AIBB: 205
-};
-
 const collections = [
   { 
     id: 1, 
@@ -45,11 +37,11 @@ const collections = [
   },
   { 
     id: 5, 
-    title: 'Celeb Catz', 
+    title: 'Celebrity Catz', 
     image: '/gifs/celebs.gif',
     magicEdenUrl: 'https://magiceden.io/marketplace/celebcatz',
     tensorUrl: 'https://www.tensor.trade/trade/celebcatz',
-    symbol: 'CelebCatz'
+    symbol: 'CELEBCATZ'
   }
 ];
 
@@ -129,8 +121,8 @@ const Collection = () => {
               return {
                 ...collection,
                 floorPrice: '0.00',
-                totalSupply: COLLECTION_SUPPLIES[collection.symbol].toLocaleString(),
-                listedCount: 0 // Default listed count to 0 on error or invalid data
+                totalSupply: '0',
+                listedCount: '0'
               };
             }
           })
@@ -143,8 +135,8 @@ const Collection = () => {
           return {
             ...collections[index],
             floorPrice: '0.00',
-            totalSupply: COLLECTION_SUPPLIES[collections[index].symbol].toLocaleString(),
-            listedCount: 0 // Default listed count to 0 on error or invalid data
+            totalSupply: '0',
+            listedCount: '0'
           };
         });
 
@@ -160,8 +152,8 @@ const Collection = () => {
         setCollectionData(statsCache.data || collections.map(collection => ({
           ...collection,
           floorPrice: '0.00',
-          totalSupply: COLLECTION_SUPPLIES[collection.symbol].toLocaleString(),
-          listedCount: 0 // Default listed count to 0 on error or invalid data
+          totalSupply: '0',
+          listedCount: '0'
         })));
         setLoading(false);  // Set loading to false even if there's an error
       }
