@@ -4,25 +4,6 @@ import { pool } from '../config/database.js';
 const router = express.Router();
 
 router.get('/', async (req, res) => {
-  // Set CORS headers
-  const origin = process.env.NODE_ENV === 'production' 
-    ? ['https://buxdao.com', 'https://www.buxdao.com']
-    : ['http://localhost:5173', 'http://localhost:3001', 'http://localhost:3000'];
-  
-  const requestOrigin = req.headers?.origin;
-  if (requestOrigin && origin.includes(requestOrigin)) {
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-    res.setHeader('Access-Control-Allow-Origin', requestOrigin);
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cache-Control, Pragma');
-  }
-
-  // Handle OPTIONS request
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
-  }
-
   // Set headers for SSE
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');

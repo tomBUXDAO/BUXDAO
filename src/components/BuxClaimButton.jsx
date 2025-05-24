@@ -49,69 +49,72 @@ const BuxClaimButton = ({
       const responseData = await response.json();
       console.log('Raw response data:', responseData);
       
-      const { transaction } = responseData;
+      const { transaction: serializedTx } = responseData; // Get serialized unsigned transaction
       
       console.log('Received from backend:', {
-        hasTransaction: !!transaction,
-        transactionLength: transaction?.length
+        hasTransaction: !!serializedTx,
+        transactionLength: serializedTx?.length
       });
 
-      if (!transaction) {
+      if (!serializedTx) {
         throw new Error('No transaction received from backend');
       }
       
-      // Decode transaction that's already signed by treasury
-      const tx = Transaction.from(Buffer.from(transaction, 'base64'));
+      // Decode transaction received from backend (it should now be unsigned)
+      const tx = Transaction.from(Buffer.from(serializedTx, 'base64'));
       
       try {
-        // Send transaction - this will handle user signing since they are the fee payer
-        const signature = await sendTransaction(tx, connection, { skipPreflight: true });
-        console.log('Transaction sent:', signature);
+        // Sign transaction with the user's wallet
+        console.log('Requesting user signature...');
+        const signedTx = await signTransaction(tx); // Use signTransaction
+        console.log('User signed transaction:', signedTx.serialize().toString('base64'));
 
-        // Immediately update backend since we know the transaction succeeded
-        const confirmResponse = await fetch(`${API_BASE_URL}/api/user/claim/confirm`, {
+        // Send the user-signed transaction to the new finalize endpoint
+        console.log('Sending signed transaction to finalize endpoint...');
+        const finalizeResponse = await fetch(`${API_BASE_URL}/api/user/claim/finalize`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
           body: JSON.stringify({
-            signature,
+            signedTransaction: signedTx.serialize().toString('base64'),
             walletAddress: publicKey.toString(),
-            amount: amount
+            amount: amount // Include amount and walletAddress for backend validation/db update
           })
         });
 
-        if (!confirmResponse.ok) {
-          const error = await confirmResponse.json();
-          throw new Error(error.error || 'Failed to confirm claim in backend');
+        if (!finalizeResponse.ok) {
+          const error = await finalizeResponse.json();
+          throw new Error(error.error || 'Failed to finalize claim in backend');
         }
 
-        const confirmResult = await confirmResponse.json();
-        console.log('Claim confirmed:', confirmResult);
+        const finalizeResult = await finalizeResponse.json();
+        console.log('Claim finalized:', finalizeResult);
 
-        if (confirmResult.success) {
+        if (finalizeResult.success) {
           console.log('Claim successful:', {
-            newBalance: confirmResult.newBalance,
-            unclaimedAmount: confirmResult.unclaimedAmount
+            newBalance: finalizeResult.newBalance,
+            unclaimedAmount: finalizeResult.unclaimedAmount,
+            signature: finalizeResult.signature // Get signature from finalize endpoint response
           });
-          onSuccess?.(confirmResult);
+          onSuccess?.(finalizeResult);
 
           // Trigger frontend refresh by emitting a custom event
           window.dispatchEvent(new CustomEvent('bux:balanceUpdated', {
             detail: {
-              newBalance: confirmResult.newBalance,
-              unclaimedAmount: confirmResult.unclaimedAmount
+              newBalance: finalizeResult.newBalance,
+              unclaimedAmount: finalizeResult.unclaimedAmount
             }
           }));
         } else {
-          throw new Error('Claim confirmation failed');
+          throw new Error('Claim finalization failed');
         }
       } catch (error) {
         console.error('Transaction error:', error);
-        onError?.(error instanceof Error ? error : new Error('Unknown error occurred'));
+        onError?.(error instanceof Error ? error : new Error('Unknown error occurred during signing or finalization'));
       }
     } catch (error) {
-      console.error('Claim error:', error);
-      onError?.(error instanceof Error ? error : new Error('Unknown error occurred'));
+      console.error('Claim initiation error:', error); // Updated error message
+      onError?.(error instanceof Error ? error : new Error('Unknown error occurred during claim initiation'));
     } finally {
       setIsLoading(false);
     }

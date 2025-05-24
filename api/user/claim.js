@@ -188,9 +188,10 @@ router.post('/', async (req, res) => {
     const userPubkey = new PublicKey(walletAddress);
     const treasuryATA = await getOrCreateAssociatedTokenAccount(
       connection,
-      TREASURY_WALLET,
+      userPubkey, // Use user's public key as the payer for account creation if needed
       BUX_MINT,
-      TREASURY_WALLET.publicKey
+      TREASURY_WALLET.publicKey,
+      true // allowOwnerOffCurve
     );
 
     // Get user's token account address - we know it exists since they have tokens
@@ -413,6 +414,135 @@ router.post('/sign', async (req, res) => {
   } catch (error) {
     console.error('Treasury signing error:', error);
     res.status(500).json({ error: error.message });
+  }
+});
+
+// New endpoint to finalize claim after user signs
+router.post('/finalize', async (req, res) => {
+  const { signedTransaction, amount, walletAddress } = req.body;
+
+  if (!signedTransaction || !amount || !walletAddress) {
+    return res.status(400).json({ error: 'Missing required parameters' });
+  }
+
+  console.log('Finalizing claim:', { walletAddress, amount });
+
+  let client;
+  try {
+    client = await pool.connect();
+    await client.query('BEGIN');
+
+    // Deserialize the transaction
+    const transaction = Transaction.from(Buffer.from(signedTransaction, 'base64'));
+
+    // Add the treasury signature
+    transaction.partialSign(TREASURY_WALLET);
+
+    // Verify both signatures (optional but good practice)
+    // You might want to add verification logic here to ensure the user's signature is also valid
+
+    // Broadcast the transaction
+    const connection = new Connection(
+      process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com',
+      'confirmed'
+    );
+    console.log('Broadcasting transaction...');
+    const signature = await connection.sendRawTransaction(transaction.serialize());
+    console.log('Transaction broadcasted with signature:', signature);
+
+    // Wait for confirmation
+    console.log('Waiting for confirmation...');
+    const confirmation = await connection.confirmTransaction(signature, 'confirmed');
+
+    if (confirmation.value.err) {
+      console.error('Transaction failed on Solana:', confirmation.value.err);
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'Transaction failed on Solana' });
+    }
+
+    console.log('Transaction confirmed successfully');
+
+    // Get discord_id from claim_accounts
+    const userResult = await client.query(
+      'SELECT discord_id FROM claim_accounts WHERE wallet_address = $1',
+      [walletAddress]
+    );
+
+    if (!userResult.rows[0]?.discord_id) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'User not found in claim_accounts' });
+    }
+
+    const discord_id = userResult.rows[0].discord_id;
+
+    // Record claim in database (using the signature from the broadcast)
+    // Ensure tables exist with correct schema (this can be moved to a migration file)
+     await client.query(`
+      CREATE TABLE IF NOT EXISTS claim_transactions (
+        id SERIAL PRIMARY KEY,
+        discord_id VARCHAR(255),
+        wallet_address TEXT NOT NULL,
+        amount INTEGER NOT NULL,
+        transaction_hash TEXT UNIQUE NOT NULL,
+        status VARCHAR(20) DEFAULT 'completed',
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        processed_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    const claimResult = await client.query(
+      `INSERT INTO claim_transactions
+       (discord_id, amount, transaction_hash, status, processed_at)
+       VALUES ($1, $2, $3, 'completed', NOW())
+       RETURNING id`,
+      [discord_id, amount, signature]
+    );
+    console.log('Claim recorded:', claimResult.rows[0]);
+
+    // Update unclaimed rewards
+    const updateResult = await client.query(
+      `UPDATE claim_accounts
+       SET unclaimed_amount = unclaimed_amount - $1,
+           total_claimed = total_claimed + $1,
+           last_claim_time = NOW()
+       WHERE discord_id = $2
+       RETURNING unclaimed_amount, total_claimed`,
+      [amount, discord_id]
+    );
+    console.log('Claim account updated:', updateResult.rows[0]);
+
+    // Update user's BUX balance
+    const balanceResult = await client.query(
+      `INSERT INTO bux_holders (wallet_address, balance, owner_discord_id, last_updated)
+       VALUES ($1, $2, $3, NOW())
+       ON CONFLICT (wallet_address)
+       DO UPDATE SET
+         balance = bux_holders.balance + $2,
+         owner_discord_id = EXCLUDED.owner_discord_id,
+         last_updated = NOW()
+       RETURNING balance`,
+      [walletAddress, amount, discord_id]
+    );
+    console.log('BUX balance updated:', balanceResult.rows[0]);
+
+    await client.query('COMMIT');
+    console.log('Database transaction committed successfully');
+
+    res.json({
+      success: true,
+      newBalance: balanceResult.rows[0]?.balance,
+      unclaimedAmount: updateResult.rows[0]?.unclaimed_amount,
+      signature: signature // Return the broadcasted transaction signature
+    });
+
+  } catch (error) {
+    console.error('Error finalizing claim:', error);
+    if (client) {
+      console.log('Rolling back database transaction');
+      await client.query('ROLLBACK');
+    }
+    res.status(500).json({ error: 'Internal server error' });
+  } finally {
+    if (client) client.release();
   }
 });
 
