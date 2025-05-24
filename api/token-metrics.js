@@ -1,6 +1,7 @@
 import express from 'express';
 import { Connection, PublicKey, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import { pool } from './config/database.js';
+import { getSolPrice } from './utils/solPrice.js';
 
 const router = express.Router();
 
@@ -27,19 +28,14 @@ router.get('/', async (req, res) => {
 
     // Get current SOL price
     let solPrice = 0;
-    try {
-      console.log('Fetching SOL price from CoinGecko...');
-      const solPriceResponse = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd');
-      if (!solPriceResponse.ok) {
-        throw new Error(`CoinGecko API error: ${solPriceResponse.statusText}`);
-      }
-      const solPriceData = await solPriceResponse.json();
-      solPrice = Number(solPriceData.solana?.usd || 0);
-    } catch (error) {
-      console.error('Error fetching SOL price:', error);
-      solPrice = 195; // Fallback price
+    // Use the shared utility function to get SOL price with caching and fallback
+    solPrice = await getSolPrice();
+    
+    // Handle case where SOL price fetching ultimately failed (should use fallback)
+    if (solPrice === null || isNaN(solPrice)) {
+        console.error('Failed to get a valid SOL price even with fallback. Using 0 for USD calculations.');
+        solPrice = 0; // Ensure solPrice is a number for calculations
     }
-    console.log('SOL price:', solPrice);
 
     // Get LP balance with fallback RPC endpoints
     const RPC_ENDPOINTS = [

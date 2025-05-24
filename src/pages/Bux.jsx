@@ -27,23 +27,57 @@ const Bux = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [viewType, setViewType] = useState('bux,nfts');
   const [selectedCollection, setSelectedCollection] = useState('all');
+  const [collectionsWithHolders, setCollectionsWithHolders] = useState(new Set(['all']));
   
   const collections = [
     { id: 'all', name: 'All Collections' },
     { id: 'fckedcatz', name: 'Fcked Catz' },
-    { id: 'moneymonsters', name: 'Money Monsters' },
-    { id: 'aibitbots', name: 'A.I. BitBots' },
-    { id: 'moneymonsters3d', name: 'Money Monsters 3D' },
-    { id: 'celebcatz', name: 'Celebrity Catz' }
+    { id: 'mm', name: 'Money Monsters' },
+    { id: 'aibb', name: 'A.I. BitBots' },
+    { id: 'mm3d', name: 'Money Monsters 3D' },
+    { id: 'celebcatz', name: 'Celebrity Catz' },
+    { id: 'shxbb', name: 'A.I. Warriors' },
+    { id: 'ausqrl', name: 'A.I. Secret Squirrels' },
+    { id: 'aelxaibb', name: 'A.I. Energy Apes' },
+    { id: 'airb', name: 'Rejected Bots' },
+    { id: 'clb', name: 'CandyBots' },
+    { id: 'ddbot', name: 'DoodleBots' }
   ];
 
   // Get the base URL for API calls
   const baseUrl = import.meta.env.DEV ? 'http://localhost:3001' : 'https://buxdao.com';
 
-  // Add data validation helper
+  // Helper to get collection id from holder (for 'all' collections API response)
+  const getCollectionIdFromHolder = (holder) => {
+    // Try to infer collection id from holder data (backend should add a collectionId field if possible)
+    // For now, try to parse from holder.address or add a field in backend if needed
+    // This is a placeholder; adjust as needed if backend adds a collectionId field
+    return holder.collectionId || holder.symbol?.toLowerCase() || null;
+  };
+
+  useEffect(() => {
+    // For NFTs Only view, fetch all holders for all collections to determine which collections have holders
+    if (viewType === 'nfts') {
+      fetch(`${baseUrl}/api/top-holders?collection=all&type=nfts`)
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data.holders)) {
+            // Extract collection ids from holders
+            const ids = new Set(['all']);
+            data.holders.forEach(holder => {
+              const id = getCollectionIdFromHolder(holder);
+              if (id) ids.add(id);
+            });
+            setCollectionsWithHolders(ids);
+          }
+        })
+        .catch(() => setCollectionsWithHolders(new Set(['all'])));
+    }
+  }, [viewType, baseUrl]);
+
   const validateHolderData = (holder) => {
     if (!holder || typeof holder !== 'object') {
-      console.warn('Invalid holder data:', holder);
+      if (viewType !== 'nfts') console.warn('Invalid holder data:', holder);
       return false;
     }
 
@@ -55,11 +89,7 @@ const Bux = () => {
                      holder.amount.includes('NFTs') &&
                      typeof holder.value === 'string' &&
                      holder.value.includes('SOL');
-      
-      if (!isValid) {
-        console.warn('Invalid NFT holder data:', holder);
-      }
-      
+      // Silence warnings for NFTs Only view
       return isValid;
     }
 
@@ -70,11 +100,9 @@ const Bux = () => {
                      holder.value &&
                      typeof holder.value === 'string' &&
                      holder.value.includes('SOL');
-      
       if (!isValid) {
         console.warn('Invalid BUX holder data:', holder);
       }
-      
       return isValid;
     }
 
@@ -85,11 +113,9 @@ const Bux = () => {
                    holder.value &&
                    typeof holder.value === 'string' &&
                    holder.value.includes('SOL');
-    
     if (!isValid) {
       console.warn('Invalid combined holder data:', holder);
     }
-    
     return isValid;
   };
 
@@ -332,7 +358,7 @@ const Bux = () => {
                       value={selectedCollection}
                       onChange={(e) => setSelectedCollection(e.target.value)}
                     >
-                      {collections.map(collection => (
+                      {collections.filter(collection => collectionsWithHolders.has(collection.id)).map(collection => (
                         <option key={collection.id} value={collection.id}>
                           {collection.name}
                         </option>
@@ -399,48 +425,76 @@ const Bux = () => {
                         </thead>
                         <tbody>
                           {topHolders.filter(validateHolderData).map((holder, index) => {
-                            // Extract and validate value components
-                            const valueComponents = holder.value.split(' ');
-                            const solValue = parseFloat(valueComponents[0]);
-                            const usdValue = holder.value.split('($')[1]?.replace(')', '');
-                            
-                            if (isNaN(solValue)) {
-                              console.warn('Invalid SOL value:', holder.value);
+                            // Ensure holder and holder.value exist before processing
+                            if (!holder || typeof holder.value !== 'string') {
+                              console.warn('Skipping invalid holder data:', holder);
                               return null;
+                            }
+
+                            // Parse SOL value from the backend's value string (e.g., "XX.XX SOL ($YY.YY)")
+                            const solMatch = holder.value.match(/^(\d+(\.\d+)?)/);
+                            const solValue = solMatch ? parseFloat(solMatch[1]) : NaN;
+
+                            // Calculate USD value using the parsed SOL value and frontend's solPrice
+                            const usdValue = tokenData.solPrice !== null && !isNaN(tokenData.solPrice) && !isNaN(solValue)
+                              ? (solValue * tokenData.solPrice).toFixed(2)
+                              : 'NaN'; // Use 'NaN' string if solPrice or solValue is invalid
+
+                            // Handle cases where parsing fails
+                            if (isNaN(solValue)) {
+                              console.warn('Invalid SOL value parsed from:', holder.value);
+                              // Fallback display if parsing fails
+                              return (
+                                <tr key={index} className={`text-gray-200 border-b border-gray-800 ${index % 2 === 0 ? 'bg-gray-800/50' : 'bg-transparent'}`}>
+                                  <td className="py-3 px-6 text-center font-semibold">
+                                    {/* Rank display logic */}
+                                    {index + 1} {/* Simplified rank for fallback */}
+                                  </td>
+                                  <td className="py-3 px-6 text-purple-400">{renderHolderName(holder)}</td>
+                                  <td className="py-3 px-6 text-right">{holder.bux || 'N/A'}</td>
+                                  <td className="py-3 px-6 text-right">{holder.nfts?.replace(' NFTs', '') || 'N/A'}</td>
+                                  <td className="py-3 px-6 text-right">Invalid Value</td> {/* Indicate parsing failed */}
+                                  <td className="py-3 px-6 text-right">$NaN</td>
+                                </tr>
+                              );
                             }
 
                             return (
                               <tr key={index} className={`text-gray-200 border-b border-gray-800 ${index % 2 === 0 ? 'bg-gray-800/50' : 'bg-transparent'}`}>
                                 {viewType === 'bux' ? (
                                   <>
+                                    {/* BUX Only view logic remains here, using holder.amount and calculating value */}
                                     <td className="py-3 px-6 text-purple-400">{renderHolderName(holder)}</td>
                                     <td className="py-3 px-6 text-right">{holder.amount}</td>
                                     <td className="py-3 px-6 text-right">{holder.percentage}</td>
-                                    <td className="py-3 px-6 text-right">{solValue.toFixed(2)} SOL</td>
-                                    <td className="py-3 px-6 text-right">${usdValue}</td>
+                                    {/* Assuming BUX only view backend provides separate SOL/USD or we calculate */}
+                                     <td className="py-3 px-6 text-right">{parseFloat(holder.value.split(' ')[0]).toFixed(2)} SOL</td> {/* Parse SOL for BUX only */}
+                                     <td className="py-3 px-6 text-right">${tokenData.solPrice !== null && !isNaN(tokenData.solPrice) ? (parseFloat(holder.value.split(' ')[0]) * tokenData.solPrice).toFixed(2) : 'NaN'}</td> {/* Calculate USD for BUX only */}
                                   </>
                                 ) : viewType === 'nfts' ? (
                                   <>
                                     <td className="py-3 px-6 text-purple-400">{renderHolderName(holder)}</td>
                                     <td className="py-3 px-6 text-right">{holder.amount?.replace(' NFTs', '')}</td>
-                                    <td className="py-3 px-6 text-right">{solValue.toFixed(2)} SOL</td>
-                                    <td className="py-3 px-6 text-right">${usdValue}</td>
+                                    {/* Parse SOL value and calculate USD for NFTs Only view */}
+                                    <td className="py-3 px-6 text-right">{solValue.toFixed(2)} SOL</td> {/* Display parsed SOL value */}
+                                    <td className="py-3 px-6 text-right">${usdValue}</td> {/* Display calculated USD value */}
                                   </>
-                                ) : (
+                                ) : ( // Combined view (bux,nfts)
                                   <>
                                     <td className="py-3 px-6 text-center font-semibold">
+                                      {/* Rank display logic */}
                                       {index === 0 && <span title="1st Place" className="text-yellow-500">🥇 1</span>}
                                       {index === 1 && <span title="2nd Place" className="text-gray-300">🥈 2</span>}
                                       {index === 2 && <span title="3rd Place" className="text-amber-600">🥉 3</span>}
-                                      {index > 2 && index < 10 && <span title={`Top 10`} className="text-yellow-500">⭐ {index + 1}</span>}
-                                      {index >= 10 && index < 25 && <span title={`Top 25`} className="text-gray-300">⭐ {index + 1}</span>}
+                                      {index > 2 && index < 10 && <span title={`Top ${index + 1}`} className="text-yellow-500">⭐ {index + 1}</span>}
+                                      {index >= 10 && index < 25 && <span title={`Top ${index + 1}`} className="text-gray-300">⭐ {index + 1}</span>}
                                       {index >= 25 && <span title={`Rank ${index + 1}`} className="text-amber-600">● {index + 1}</span>}
                                     </td>
                                     <td className="py-3 px-6 text-purple-400">{renderHolderName(holder)}</td>
                                     <td className="py-3 px-6 text-right">{holder.bux}</td>
                                     <td className="py-3 px-6 text-right">{holder.nfts?.replace(' NFTs', '')}</td>
-                                    <td className="py-3 px-6 text-right">{solValue.toFixed(2)} SOL</td>
-                                    <td className="py-3 px-6 text-right">${usdValue}</td>
+                                    <td className="py-3 px-6 text-right">{solValue.toFixed(2)} SOL</td> {/* Display parsed SOL value */}
+                                    <td className="py-3 px-6 text-right">${usdValue}</td> {/* Display calculated USD value */}
                                   </>
                                 )}
                               </tr>

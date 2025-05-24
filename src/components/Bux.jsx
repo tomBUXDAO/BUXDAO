@@ -140,11 +140,17 @@ const Bux = () => {
             className="bg-gray-800 text-white rounded px-4 py-2"
           >
             <option value="all">All Collections</option>
-            <option value="fcked_catz">FCKed Catz</option>
-            <option value="money_monsters">Money Monsters</option>
-            <option value="ai_bitbots">AI BitBots</option>
+            <option value="fckedcatz">FCKed Catz</option>
+            <option value="moneymonsters">Money Monsters</option>
+            <option value="aibitbots">AI BitBots</option>
             <option value="moneymonsters3d">Money Monsters 3D</option>
             <option value="celebcatz">Celebrity Catz</option>
+            <option value="shxbb">A.I. Warriors</option>
+            <option value="ausqrl">A.I. Secret Squirrels</option>
+            <option value="aelxaibb">A.I. Energy Apes</option>
+            <option value="airb">Rejected Bots</option>
+            <option value="clb">CandyBots</option>
+            <option value="ddbot">DoodleBots</option>
           </select>
         )}
       </div>
