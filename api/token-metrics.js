@@ -5,6 +5,9 @@ import { getSolPrice } from './utils/solPrice.js';
 
 const router = express.Router();
 
+// Define the treasury wallet address
+const TREASURY_WALLET = 'FYfLzXckAf2JZoMYBz2W4fpF9vejqpA6UFV17d1A7C75';
+
 router.get('/', async (req, res) => {
   let client;
   try {
@@ -17,14 +20,29 @@ router.get('/', async (req, res) => {
     console.log('Querying supply metrics...');
     const result = await client.query(`
       SELECT 
-        SUM(balance) as total_supply,
-        SUM(CASE WHEN is_exempt = FALSE THEN balance ELSE 0 END) as public_supply,
-        SUM(CASE WHEN is_exempt = TRUE THEN balance ELSE 0 END) as exempt_supply
+        SUM(balance) as total_bux_holders_supply,
+        SUM(CASE WHEN wallet_address != $1 THEN balance ELSE 0 END) as public_bux_holders_supply,
+        SUM(CASE WHEN wallet_address = $1 THEN balance ELSE 0 END) as treasury_supply
       FROM bux_holders
+    `, [TREASURY_WALLET]);
+
+    console.log('Raw bux_holders supply metrics:', result.rows[0]);
+    const buxHoldersMetrics = result.rows[0];
+
+    // Get total unclaimed amount from claim_accounts
+    console.log('Querying unclaimed amounts...');
+    const unclaimedResult = await client.query(`
+      SELECT SUM(unclaimed_amount) as total_unclaimed
+      FROM claim_accounts
     `);
 
-    console.log('Raw supply metrics:', result.rows[0]);
-    const metrics = result.rows[0];
+    console.log('Raw unclaimed amounts:', unclaimedResult.rows[0]);
+    const totalUnclaimed = Number(unclaimedResult.rows[0]?.total_unclaimed) || 0;
+
+    // Calculate total and public supply
+    const total_supply = Number(buxHoldersMetrics.total_bux_holders_supply) + totalUnclaimed;
+    const public_supply = Number(buxHoldersMetrics.public_bux_holders_supply) + totalUnclaimed;
+    const exempt_supply = Number(buxHoldersMetrics.treasury_supply) || 0; // Now just the treasury supply
 
     // Get current SOL price
     let solPrice = 0;
@@ -50,7 +68,7 @@ router.get('/', async (req, res) => {
     const lpBalanceInSol = 32.5921;
 
     // Calculate token value (LP balance / public supply) with high precision
-    const publicSupplyNum = Number(metrics.public_supply) || 1; // Prevent division by zero
+    const publicSupplyNum = public_supply || 1; // Prevent division by zero
     const tokenValueInSol = lpBalanceInSol / publicSupplyNum;
     const tokenValueInUsd = tokenValueInSol * solPrice;
     const lpUsdValue = lpBalanceInSol * solPrice;
@@ -71,9 +89,9 @@ router.get('/', async (req, res) => {
     res.setHeader('Surrogate-Control', 'no-store');
     
     res.status(200).json({
-      totalSupply: Number(metrics.total_supply) || 0,
-      publicSupply: Number(metrics.public_supply) || 0,
-      exemptSupply: Number(metrics.exempt_supply) || 0,
+      totalSupply: total_supply,
+      publicSupply: public_supply,
+      exemptSupply: exempt_supply,
       liquidityPool: lpBalanceInSol,
       solPrice: solPrice,
       tokenValue: tokenValueInSol,
