@@ -9,7 +9,7 @@ const COLLECTION_SLUGS = {
   'MM': 'money_monsters',
   'AIBB': 'ai_bitbots',
   'MM3D': 'moneymonsters3d',
-  'CelebCatz': 'celebcatz',
+  'CELEBCATZ': 'celebcatz',
   'SHXBB': 'ai_warriors',
   'AUSQRL': 'ai_secret_squirrels',
   'AELXAIBB': 'ai_energy_apes',
