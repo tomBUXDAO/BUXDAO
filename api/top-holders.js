@@ -9,8 +9,8 @@ const COLLECTION_SLUGS = {
   'MM': 'money_monsters',
   'AIBB': 'ai_bitbots',
   'MM3D': 'moneymonsters3d',
-  'CELEBCATZ': 'celebcatz',
-  'SHXBB': 'ai_warriors',
+  'CelebCatz': 'celebcatz',
+  'SHxBB': 'ai_warriors',
   'AUSQRL': 'ai_secret_squirrels',
   'AELxAIBB': 'ai_energy_apes',
   'AIRB': 'rejected_bots_ryc',
@@ -18,58 +18,14 @@ const COLLECTION_SLUGS = {
   'DDBOT': 'doodlebots'
 };
 
-const COLLECTION_NAMES = {
-  'FCKEDCATZ': 'Fcked Catz',
-  'MM': 'Money Monsters',
-  'AIBB': 'A.I. BitBots',
-  'MM3D': 'Money Monsters 3D',
-  'CELEBCATZ': 'Celebrity Catz',
-  'SHXBB': 'A.I. Warriors',
-  'AUSQRL': 'A.I. Secret Squirrels',
-  'AELxAIBB': 'A.I. Energy Apes',
-  'AIRB': 'Rejected Bots',
-  'CLB': 'CandyBots',
-  'DDBOT': 'DoodleBots'
-};
-
-const COLLECTION_COUNT_COLUMNS = {
-  'FCKEDCATZ': 'fcked_catz_count',
-  'MM': 'money_monsters_count',
-  'AIBB': 'ai_bitbots_count',
-  'MM3D': 'money_monsters_3d_count',
-  'CELEBCATZ': 'celeb_catz_count',
-  'SHXBB': 'ai_warriors_count',
-  'AUSQRL': 'ai_secret_squirrels_count',
-  'AELxAIBB': 'ai_energy_apes_count',
-  'AIRB': 'rejected_bots_count',
-  'CLB': 'candybots_count',
-  'DDBOT': 'doodlebots_count'
-};
-
-const MAGICEDEN_TO_DB_SYMBOL = {
-  'fcked_catz': 'FCKEDCATZ',
-  'money_monsters': 'MM',
-  'ai_bitbots': 'AIBB',
-  'moneymonsters3d': 'MM3D',
-  'celebcatz': 'CELEBCATZ',
-  'ai_warriors': 'SHXBB',
-  'ai_secret_squirrels': 'AUSQRL',
-  'ai_energy_apes': 'AELxAIBB',
-  'rejected_bots_ryc': 'AIRB',
-  'candybots': 'CLB',
-  'doodlebots': 'DDBOT'
-};
-
-const allCollectionSymbols = ['FCKEDCATZ', 'MM', 'AIBB', 'MM3D', 'CELEBCATZ', 'SHXBB', 'AUSQRL', 'AELxAIBB', 'AIRB', 'CLB', 'DDBOT'];
-
 // Move these mappings to top-level scope
 const dbSymbols = {
   'fckedcatz': 'FCKEDCATZ',
   'mm': 'MM',
   'aibb': 'AIBB',
   'mm3d': 'MM3D',
-  'celebcatz': 'CELEBCATZ',
-  'shxbb': 'SHXBB',
+  'celebcatz': 'CelebCatz',
+  'shxbb': 'SHxBB',
   'ausqrl': 'AUSQRL',
   'aelxaibb': 'AELxAIBB',
   'airb': 'AIRB',
@@ -80,15 +36,29 @@ const dbSymbols = {
 const collectionCountsColumns = {
   'FCKEDCATZ': 'fcked_catz_count',
   'MM': 'money_monsters_count',
-  'AIBB': 'ai_bitbots_count',
+  'AIBB': 'aibitbots_count',
   'MM3D': 'money_monsters_3d_count',
-  'CELEBCATZ': 'celeb_catz_count',
-  'SHXBB': 'ai_warriors_count',
+  'CelebCatz': 'celeb_catz_count',
+  'SHxBB': 'ai_warriors_count',
   'AUSQRL': 'ai_secret_squirrels_count',
   'AELxAIBB': 'ai_energy_apes_count',
-  'AIRB': 'rejected_bots_count',
+  'AIRB': 'rejected_bots_ryc_count',
   'CLB': 'candybots_count',
   'DDBOT': 'doodlebots_count'
+};
+
+const MAGICEDEN_TO_DB_SYMBOL = {
+  'fcked_catz': 'FCKEDCATZ',
+  'money_monsters': 'MM',
+  'ai_bitbots': 'AIBB',
+  'moneymonsters3d': 'MM3D',
+  'celebcatz': 'CelebCatz',
+  'ai_warriors': 'SHxBB',
+  'ai_secret_squirrels': 'AUSQRL',
+  'ai_energy_apes': 'AELxAIBB',
+  'rejected_bots_ryc': 'AIRB',
+  'candybots': 'CLB',
+  'doodlebots': 'DDBOT'
 };
 
 export default async function handler(req, res) {
@@ -98,6 +68,7 @@ export default async function handler(req, res) {
     const collection = req.query.collection || 'all';
 
     console.log(`[DEBUG] Received collection parameter: ${collection}`);
+    const allCollectionSymbols = ['FCKEDCATZ', 'MM', 'AIBB', 'MM3D', 'CelebCatz', 'SHxBB', 'AUSQRL', 'AELxAIBB', 'AIRB', 'CLB', 'DDBOT'];
     const validCollections = allCollectionSymbols.map(symbol => symbol.toLowerCase());
     console.log(`[DEBUG] Backend valid collections list: ${validCollections.join(', ')}`);
 
@@ -275,14 +246,20 @@ export default async function handler(req, res) {
           };
         }
         combinedHoldings[wallet].nftCount += Number(nft.count);
-        const dbSymbol = nft.symbol && nft.symbol.toUpperCase();
-        const slug = COLLECTION_SLUGS[dbSymbol] || nft.symbol?.toLowerCase();
+        // Use the symbol directly from the database
+        const slug = COLLECTION_SLUGS[nft.symbol];
+        if (!slug) {
+          console.warn(`No Magic Eden slug mapping found for symbol: ${nft.symbol}`);
+          continue;
+        }
+
+        const floorPrice = floorPrices[slug] || 0;
         if (process.env.NODE_ENV === 'development') {
           if (!(slug in floorPrices)) {
             console.warn(`No floor price found for slug: ${slug} (original: ${nft.symbol})`);
           }
         }
-        combinedHoldings[wallet].nftValue += Number(nft.count) * (floorPrices[slug] || 0);
+        combinedHoldings[wallet].nftValue += Number(nft.count) * floorPrice;
       }
 
       // Format and sort combined holdings
@@ -323,10 +300,10 @@ export default async function handler(req, res) {
         'mm': 'MM',
         'aibb': 'AIBB',
         'mm3d': 'MM3D',
-        'celebcatz': 'CELEBCATZ',
-        'shxbb': 'SHXBB',
+        'celebcatz': 'CelebCatz',
+        'shxbb': 'SHxBB',
         'ausqrl': 'AUSQRL',
-        'aelxaibb': 'AELXAIBB',
+        'aelxaibb': 'AELxAIBB',
         'airb': 'AIRB',
         'clb': 'CLB',
         'ddbot': 'DDBOT'
@@ -336,16 +313,23 @@ export default async function handler(req, res) {
       const collectionCountsColumns = {
           'FCKEDCATZ': 'fcked_catz_count',
           'MM': 'money_monsters_count',
-          'AIBB': 'ai_bitbots_count',
+          'AIBB': 'aibitbots_count',
           'MM3D': 'money_monsters_3d_count',
-          'CELEBCATZ': 'celeb_catz_count',
-          'SHXBB': 'ai_warriors_count',
-          'AUSQRL': 'aussie_squirrels_count',
-          'AELXAIBB': 'aelx_ai_bitbots_count',
-          'AIRB': 'airb_count',
-          'CLB': 'clb_count',
-          'DDBOT': 'doodlebots_count'
+          'CelebCatz': 'celeb_catz_count',
+          'SHxBB': 'ai_warriors_count', // New column
+          'AUSQRL': 'ai_secret_squirrels_count', // New column
+          'AELxAIBB': 'ai_energy_apes_count', // New column
+          'AIRB': 'rejected_bots_ryc_count', // New column
+          'CLB': 'candybots_count', // New column
+          'DDBOT': 'doodlebots_count' // New column
+          // Note: total_count and ai_collabs_count are also in collection_counts
       };
+
+      // Create the list of available collections for the dropdown
+      const availableCollections = [
+        { value: 'all', label: 'All Collections' },
+        ...allCollectionSymbols.map(symbol => ({ value: symbol.toLowerCase(), label: symbol }))
+      ];
 
       try {
         // Validate database connection
@@ -369,8 +353,8 @@ export default async function handler(req, res) {
                 // Should not happen if mappings are correct, but as a safeguard
                 throw new Error(`No collection_counts column found for symbol: ${dbSymbol}`);
             }
+            console.log(`[DEBUG] Using count column for ${dbSymbol}: ${countColumn}`);
             // We select the count for the specific collection and join with holders for discord info
-            // Note: discord_id and discord_name are available in collection_counts as well, might simplify if we use that directly
             query = `
                 SELECT
                   cc.wallet_address,
@@ -383,24 +367,33 @@ export default async function handler(req, res) {
                 AND cc.wallet_address NOT IN ($1, $2)
             `;
             queryParams = [PROJECT_WALLET, ME_ESCROW, dbSymbol];
+            console.log(`[DEBUG] Query for specific collection:`, { query, queryParams });
         } else {
-            // Use nft_metadata for \'all\' collections (original logic)
-            // We could potentially sum counts from collection_counts here too, but keeping original logic for \'all\'
+            // Use collection_counts for 'all' collections
             query = `
                 SELECT
-                  owner_wallet,
-                  symbol,
-                  COUNT(*) as count,
-                  COUNT(*) FILTER (WHERE owner_wallet IS NOT NULL AND owner_wallet != \'\') as valid_count,
-                  owner_name as discord_username
-                FROM nft_metadata
-                WHERE owner_wallet NOT IN ($1, $2)
-                AND owner_wallet IS NOT NULL
-                AND owner_wallet != \'\'
-                GROUP BY owner_wallet, symbol, owner_name
-                HAVING COUNT(*) > 0
-              `;
+                  cc.wallet_address as owner_wallet,
+                  'all' as symbol,
+                  cc.total_count as count,
+                  cc.total_count as valid_count,
+                  cc.discord_name as discord_username,
+                  cc.fcked_catz_count,
+                  cc.money_monsters_count,
+                  cc.aibitbots_count,
+                  cc.money_monsters_3d_count,
+                  cc.celeb_catz_count,
+                  cc.ai_warriors_count,
+                  cc.ai_secret_squirrels_count,
+                  cc.ai_energy_apes_count,
+                  cc.rejected_bots_ryc_count,
+                  cc.candybots_count,
+                  cc.doodlebots_count
+                FROM collection_counts cc
+                WHERE cc.total_count > 0
+                AND cc.wallet_address NOT IN ($1, $2)
+            `;
             queryParams = [PROJECT_WALLET, ME_ESCROW];
+            console.log(`[DEBUG] Query for all collections:`, { query, queryParams });
         }
 
         console.log('Executing query:', {
@@ -411,6 +404,10 @@ export default async function handler(req, res) {
         const nftResult = await client.query(query, queryParams);
 
         console.log('[DEBUG] Raw NFT query result rows:', nftResult.rows);
+        console.log('[DEBUG] Number of rows returned:', nftResult.rows.length);
+        if (nftResult.rows.length > 0) {
+            console.log('[DEBUG] First row sample:', nftResult.rows[0]);
+        }
 
         if (!nftResult || !Array.isArray(nftResult.rows)) {
           throw new Error('Invalid query result structure');
@@ -434,8 +431,17 @@ export default async function handler(req, res) {
                console.log('[DEBUG] Processing row (single collection):', { wallet: wallet_address, count: numericCount, dbSymbol, row });
                if (isNaN(numericCount) || numericCount <= 0) continue;
 
-               // Use the dbSymbol for floor price lookup
-               const floorPrice = floorPrices[dbSymbol] || 0;
+               // Use the Magic Eden slug for floor price lookup
+               const slug = COLLECTION_SLUGS[dbSymbol];
+               const floorPrice = (slug && floorPrices[slug]) || 0;
+               
+               if (process.env.NODE_ENV === 'development') {
+                 if (!slug) {
+                    console.warn(`[DEBUG] No Magic Eden slug found for DB symbol: ${dbSymbol}`);
+                 } else if (!(slug in floorPrices)) {
+                    console.warn(`[DEBUG] No floor price found for slug: ${slug} (DB symbol: ${dbSymbol})`);
+                 }
+               }
 
                totals[wallet_address] = {
                    nfts: numericCount,
@@ -446,64 +452,47 @@ export default async function handler(req, res) {
                console.log('[DEBUG] Processed holder (single collection):', { wallet: wallet_address, count: numericCount, floorPrice, value: totals[wallet_address].value });
 
           } else { // Original logic for 'all' collections
-              const { owner_wallet, symbol, valid_count, discord_username } = row;
+              const { owner_wallet, symbol, valid_count, discord_username, 
+                      fcked_catz_count, money_monsters_count, aibitbots_count,
+                      money_monsters_3d_count, celeb_catz_count, ai_warriors_count,
+                      ai_secret_squirrels_count, ai_energy_apes_count,
+                      rejected_bots_ryc_count, candybots_count, doodlebots_count } = row;
               
               if (!owner_wallet || !symbol || valid_count === undefined) {
                 console.warn('Skipping invalid row:', row);
                 continue;
               }
 
-               // Debug log to check symbol and floor price lookup
-              console.log(`[DEBUG] Processing NFT for value calculation (all collections): Wallet=${owner_wallet}, Symbol=${symbol}, Count=${valid_count}, FloorPriceLookup=${floorPrices[symbol]}, ActualFloorPricesObject=`, floorPrices);
-
-              // Normalize the symbol to match our COLLECTION_SLUGS keys
-              const normalizedSymbol = symbol?.toUpperCase();
-              const slug = COLLECTION_SLUGS[normalizedSymbol];
-              if (!slug) {
-                console.warn(`No Magic Eden slug mapping found for symbol: ${symbol} (normalized: ${normalizedSymbol})`);
-                continue;
-              }
-
-              const floorPrice = floorPrices[slug] || 0;
-              if (process.env.NODE_ENV === 'development') {
-                if (!(slug in floorPrices)) {
-                  console.warn(`No floor price found for slug: ${slug} (original: ${symbol}, normalized: ${normalizedSymbol})`);
-                }
-              }
-              totals[owner_wallet] = {
-                nfts: 0,
-                value: 0,
-                discord_username: discord_username || null,
-                symbol: symbol?.toLowerCase()  // Use the original database symbol for dropdown
+              // Calculate total value by summing individual collection values
+              const collectionValues = {
+                'FCKEDCATZ': fcked_catz_count * (floorPrices['fcked_catz'] || 0),
+                'MM': money_monsters_count * (floorPrices['money_monsters'] || 0),
+                'AIBB': aibitbots_count * (floorPrices['ai_bitbots'] || 0),
+                'MM3D': money_monsters_3d_count * (floorPrices['moneymonsters3d'] || 0),
+                'CelebCatz': celeb_catz_count * (floorPrices['celebcatz'] || 0),
+                'SHxBB': ai_warriors_count * (floorPrices['ai_warriors'] || 0),
+                'AUSQRL': ai_secret_squirrels_count * (floorPrices['ai_secret_squirrels'] || 0),
+                'AELxAIBB': ai_energy_apes_count * (floorPrices['ai_energy_apes'] || 0),
+                'AIRB': rejected_bots_ryc_count * (floorPrices['rejected_bots_ryc'] || 0),
+                'CLB': candybots_count * (floorPrices['candybots'] || 0),
+                'DDBOT': doodlebots_count * (floorPrices['doodlebots'] || 0)
               };
 
-              const count = Number(valid_count);
-              console.log('[DEBUG] Processing row (all collections):', { 
-                wallet: owner_wallet, 
-                count: count, 
-                originalSymbol: symbol,
-                normalizedSymbol,
-                slug,
-                floorPrice,
-                row 
-              });
-              if (isNaN(count)) {
-                console.warn('Invalid count value:', valid_count);
-                continue;
-              }
+              const totalValue = Object.values(collectionValues).reduce((sum, value) => sum + value, 0);
 
-              totals[owner_wallet].nfts += count;
-              totals[owner_wallet].value += count * floorPrice;
+              totals[owner_wallet] = {
+                nfts: Number(valid_count),
+                value: totalValue,
+                discord_username: discord_username || null,
+                symbol: 'all'
+              };
 
-              console.log('Processing holder (all collections):', {
+              console.log('[DEBUG] Processed holder (all collections):', {
                 wallet: owner_wallet,
-                symbol,
-                slug,
-                count,
-                floorPrice,
-                totalNFTs: totals[owner_wallet].nfts,
-                totalValue: totals[owner_wallet].value,
-                discordUsername: totals[owner_wallet].discord_username
+                totalNFTs: valid_count,
+                collectionValues,
+                totalValue,
+                discordUsername: discord_username
               });
           }
         }
@@ -512,7 +501,7 @@ export default async function handler(req, res) {
 
         if (Object.keys(totals).length === 0) {
           console.warn('No valid holders found');
-          return res.status(200).json({ holders: [] });
+          return res.status(200).json({ holders: [], availableCollections });
         }
 
         console.log('Processed totals:', {
@@ -545,11 +534,13 @@ export default async function handler(req, res) {
 
         if (holders.length === 0) {
           console.warn('No holders after formatting');
-          return res.status(200).json({ holders: [] });
+          return res.status(200).json({ holders: [], availableCollections });
         }
 
         res.setHeader('Cache-Control', 'public, s-maxage=60');
-        return res.status(200).json({ holders });
+        
+        // Include list of all valid collections in the response
+        return res.status(200).json({ holders, availableCollections });
       } catch (error) {
         console.error('Error processing NFT holders:', error);
         return res.status(500).json({ 

@@ -29,6 +29,9 @@ const Bux = () => {
   const [selectedCollection, setSelectedCollection] = useState('all');
   const [collectionsWithHolders, setCollectionsWithHolders] = useState(new Set(['all']));
   
+  // New state to store available collections from the API
+  const [availableCollections, setAvailableCollections] = useState([]);
+  
   const collections = [
     { id: 'all', name: 'All Collections' },
     { id: 'fckedcatz', name: 'Fcked Catz' },
@@ -57,6 +60,8 @@ const Bux = () => {
 
   useEffect(() => {
     // For NFTs Only view, fetch all holders for all collections to determine which collections have holders
+    // This logic is no longer needed as the backend provides availableCollections
+    /*
     if (viewType === 'nfts') {
       fetch(`${baseUrl}/api/top-holders?collection=all&type=nfts`)
         .then(res => res.json())
@@ -73,6 +78,7 @@ const Bux = () => {
         })
         .catch(() => setCollectionsWithHolders(new Set(['all'])));
     }
+    */
   }, [viewType, baseUrl]);
 
   const validateHolderData = (holder) => {
@@ -150,6 +156,29 @@ const Bux = () => {
 
         if (!Array.isArray(holdersData.holders)) {
           throw new Error('Invalid holders data received');
+        }
+
+        // Update available collections if provided in the response
+        if (holdersData.availableCollections && Array.isArray(holdersData.availableCollections)) {
+          console.log('Available Collections from API:', holdersData.availableCollections);
+          setAvailableCollections(holdersData.availableCollections);
+        } else {
+           // Fallback: if API doesn't provide the list, use the hardcoded list (shouldn't happen with recent backend changes)
+           console.warn('API did not provide availableCollections, using hardcoded list.');
+           setAvailableCollections([
+            { id: 'all', name: 'All Collections' },
+            { id: 'fckedcatz', name: 'Fcked Catz' },
+            { id: 'mm', name: 'Money Monsters' },
+            { id: 'aibb', name: 'A.I. BitBots' },
+            { id: 'mm3d', name: 'Money Monsters 3D' },
+            { id: 'celebcatz', name: 'Celebrity Catz' },
+            { id: 'shxbb', name: 'A.I. Warriors' },
+            { id: 'ausqrl', name: 'A.I. Secret Squirrels' },
+            { id: 'aelxaibb', name: 'A.I. Energy Apes' },
+            { id: 'airb', name: 'Rejected Bots' },
+            { id: 'clb', name: 'CandyBots' },
+            { id: 'ddbot', name: 'DoodleBots' }
+          ]);
         }
 
         // Validate the data before setting state
@@ -358,10 +387,13 @@ const Bux = () => {
                       value={selectedCollection}
                       onChange={(e) => setSelectedCollection(e.target.value)}
                     >
-                      {collections.filter(collection => collectionsWithHolders.has(collection.id)).map(collection => (
-                        <option key={collection.id} value={collection.id}>
-                          {collection.name}
-                        </option>
+                      {/* Use availableCollections from state to filter frontend collections list */}
+                      {collections
+                        .filter(collection => availableCollections.some(avail => avail.value === collection.id))
+                        .map(collection => (
+                          <option key={collection.id} value={collection.id}>
+                            {collection.name}
+                          </option>
                       ))}
                     </select>
                   )}

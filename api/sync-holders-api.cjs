@@ -1,10 +1,9 @@
 const { Connection, PublicKey } = require('@solana/web3.js');
 const { TOKEN_PROGRAM_ID } = require('@solana/spl-token');
-const { Pool } = require('pg');
+const { pool } = require('./config/database.js');
 
 // Configuration
 const RPC_ENDPOINT = process.env.QUICKNODE_RPC_URL;
-const DB_CONNECTION_STRING = process.env.POSTGRES_URL;
 const CRON_SECRET = process.env.CRON_SECRET_TOKEN;
 
 async function getTokenHolders(connection, mintAddress) {
@@ -79,8 +78,7 @@ module.exports = async (req, res) => {
     const currentHolders = await getTokenHolders(connection, mintAddress);
     console.log(`Found ${currentHolders.length} holders`);
 
-    // Get database connection
-    const pool = new Pool({ connectionString: DB_CONNECTION_STRING });
+    // Get client from shared pool
     client = await pool.connect();
 
     // Start transaction
@@ -134,6 +132,5 @@ module.exports = async (req, res) => {
     if (client) {
       client.release();
     }
-    await pool.end();
   }
 }; 

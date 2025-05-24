@@ -1,20 +1,6 @@
 import { getClient } from '../../config/database.js';
+import { getCollectionBySymbol } from '../../config/collections.js';
 import fetch from 'node-fetch';
-
-// Magic Eden collection slugs mapping
-const COLLECTION_SLUGS = {
-  'FCKEDCATZ': 'fcked-catz',
-  'MM': 'money-monsters',
-  'AIBB': 'ai-bitbots',
-  'MM3D': 'moneymonsters3d',
-  'CelebCatz': 'celebcatz',
-  'SHxBB': 'ai_warriors',
-  'AUSQRL': 'ai_secret_squirrels',
-  'AELxAIBB': 'ai_energy_apes',
-  'AIRB': 'rejected_bots_ryc',
-  'CLB': 'candybots',
-  'DDBOT': 'doodlebots'
-};
 
 export default async function handler(req, res) {
   // Set CORS headers
@@ -39,6 +25,15 @@ export default async function handler(req, res) {
   const { symbol } = req.query;
   console.log('Fetching stats for:', symbol);
 
+  // Get collection config
+  const collection = getCollectionBySymbol(symbol);
+  if (!collection) {
+    return res.status(404).json({
+      error: 'Collection not found',
+      details: `No configuration found for symbol: ${symbol}`
+    });
+  }
+
   let client;
   try {
     client = await getClient();
@@ -46,40 +41,40 @@ export default async function handler(req, res) {
     // Get total supply
     const totalSupplyResult = await client.query(
       'SELECT COUNT(*) FROM nft_metadata WHERE symbol = $1',
-      [symbol]
+      [collection.symbol]
     );
     const totalSupply = totalSupplyResult.rows[0].count;
 
     // Get listed count
     const listedCountResult = await client.query(
       'SELECT COUNT(*) FROM nft_metadata WHERE symbol = $1 AND is_listed = TRUE',
-      [symbol]
+      [collection.symbol]
     );
     const listedCount = listedCountResult.rows[0].count;
 
     // Get floor price from Magic Eden
     let floorPrice = 0;
-    const collectionSlug = COLLECTION_SLUGS[symbol];
-    if (collectionSlug) {
-      try {
-        const meResponse = await fetch(`https://api-mainnet.magiceden.dev/v2/collections/${collectionSlug}/stats`);
-        if (meResponse.ok) {
-          const meData = await meResponse.json();
-          floorPrice = meData.floorPrice || 0;
-        } else {
-          console.error(`Failed to fetch floor price from Magic Eden for ${symbol}:`, meResponse.statusText);
-        }
-      } catch (error) {
-        console.error(`Error fetching floor price from Magic Eden for ${symbol}:`, error);
+    try {
+      const meResponse = await fetch(`https://api-mainnet.magiceden.dev/v2/collections/${collection.meSlug}/stats`);
+      if (meResponse.ok) {
+        const meData = await meResponse.json();
+        floorPrice = meData.floorPrice || 0;
+      } else {
+        console.error(`Failed to fetch floor price from Magic Eden for ${collection.symbol}:`, meResponse.statusText);
       }
+    } catch (error) {
+      console.error(`Error fetching floor price from Magic Eden for ${collection.symbol}:`, error);
     }
 
     // Add cache control headers
     res.setHeader('Cache-Control', 'public, s-maxage=60');
     return res.status(200).json({
+      symbol: collection.symbol,
+      name: collection.name,
       totalSupply: parseInt(totalSupply, 10),
       listedCount: parseInt(listedCount, 10),
-      floorPrice: floorPrice
+      floorPrice: floorPrice,
+      rewardRate: collection.rewardRate
     });
   } catch (error) {
     console.error('Error fetching stats:', error);

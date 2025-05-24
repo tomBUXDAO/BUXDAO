@@ -1,24 +1,15 @@
 import { PublicKey } from '@solana/web3.js';
-
-// Collection addresses
-const COLLECTIONS = {
-  fckedCatz: 'FCKEDcaTZZxf6c3tF3JYb7PhBZzXhQwEBDuSP6GSi9Q',
-  moneyMonsters: 'MMNFTxVtpK2u7PRqRLBf1GDgKYKQg5PpJV1F2ppKxfd',
-  aiBitbots: 'AiBiTboTxPRL9knyTKZBEJsNAoXvxjpZwYYpZHzYB5Y',
-  moneyMonsters3d: 'MM3DxqWxszLFGQBwjKCQAAGbQHPRJN3UydswgGrWiPZ',
-  celebCatz: 'CCATZxVtpK2u7PRqRLBf1GDgKYKQg5PpJV1F2ppKxfd'
-};
+import { COLLECTION_ADDRESSES } from '../config/collections.js';
 
 export async function checkHoldings(connection, walletAddress) {
   try {
     const publicKey = new PublicKey(walletAddress);
-    const holdings = {
-      fckedCatz: 0,
-      moneyMonsters: 0,
-      aiBitbots: 0,
-      moneyMonsters3d: 0,
-      celebCatz: 0
-    };
+    const holdings = {};
+
+    // Initialize holdings for all collections
+    for (const [symbol, address] of Object.entries(COLLECTION_ADDRESSES)) {
+      holdings[symbol] = 0;
+    }
 
     // Get all token accounts for the wallet
     const accounts = await connection.getParsedTokenAccountsByOwner(publicKey, {
@@ -31,9 +22,9 @@ export async function checkHoldings(connection, walletAddress) {
       const balance = account.data.parsed.info.tokenAmount.uiAmount;
 
       // Check which collection this token belongs to
-      for (const [collection, address] of Object.entries(COLLECTIONS)) {
+      for (const [symbol, address] of Object.entries(COLLECTION_ADDRESSES)) {
         if (mintAddress === address && balance > 0) {
-          holdings[collection] = balance;
+          holdings[symbol] = balance;
           break;
         }
       }

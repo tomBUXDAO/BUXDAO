@@ -1,4 +1,5 @@
 import { pool } from './config/database.js';
+import { getCollectionBySymbol } from './config/collections.js';
 
 // Collection configurations
 const COLLECTIONS = {
@@ -55,7 +56,7 @@ export default async function handler(req, res) {
     });
   }
 
-  const collectionConfig = COLLECTIONS[collection];
+  const collectionConfig = getCollectionBySymbol(collection);
   if (!collectionConfig) {
     return res.status(400).json({
       type: 4,
