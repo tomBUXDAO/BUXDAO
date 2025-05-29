@@ -68,7 +68,7 @@ const Hero = () => {
   };
 
   return (
-    <section className="bg-gradient-to-b from-black to-purple-900">
+    <section className="bg-gradient-to-b from-black to-purple-900 pt-10 sm:pt-6">
       <div className="pt-6">
         {/* Gallery at top for mobile and tablet portrait */}
         <div className="block landscape:hidden lg:hidden">
@@ -84,7 +84,7 @@ const Hero = () => {
                   BUXDAO is a community owned NFT project, focused on providing passive income for holding members
                 </h1>
                 <div className="text-xs sm:text-sm text-gray-200 font-normal mb-8 landscape:mb-0 sm:mb-10">
-                  <ul className="list-disc list-inside pl-4 space-y-2">
+                  <ul className="list-disc list-outside pl-5 space-y-2">
                     <li>Collect NFTs from our digital art collections</li>
                     <li>Connect your discord profile and wallet using the "holder verify" button below</li>
                     <li>Automatically start receiving daily rewards paid out in our $BUX token</li>
@@ -120,7 +120,7 @@ const Hero = () => {
             </div>
 
             {/* Icons grid */}
-            <div className="landscape:col-span-3 sm:col-span-3 grid grid-cols-2 landscape:grid-cols-1 sm:grid-cols-1 gap-4 sm:gap-6 landscape:h-full landscape:justify-center">
+            <div className="landscape:col-span-3 sm:col-span-3 grid grid-cols-1 sm:grid-cols-2 landscape:grid-cols-1 gap-4 sm:gap-6 landscape:h-full landscape:justify-center">
               {featureCards.map((card) => (
                 <div
                   key={card.title}

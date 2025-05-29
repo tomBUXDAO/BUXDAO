@@ -284,7 +284,7 @@ const Collection = () => {
   }
 
   return (
-    <section id="collection" className="bg-black pt-8 sm:pt-12 pb-12 sm:pb-20">
+    <section id="collection" className="bg-black pt-8 sm:pt-12 pb-12 sm:pb-20 mt-24 md:mt-0">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 mb-12 text-center">
           Featured Collections

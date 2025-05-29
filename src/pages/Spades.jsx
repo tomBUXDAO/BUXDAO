@@ -28,11 +28,16 @@ const Spades = () => {
     <div className="bg-black min-h-screen flex flex-col items-center justify-center pt-24 pb-12">
       {/* Hero Section */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center w-full">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 mb-3">
-            BUX Spades
-          </h1>
-          <p className="text-md text-gray-300 max-w-2xl mx-auto">
+        <div className="text-center mb-8 flex flex-col items-center justify-center">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 items-center">
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 py-6 overflow-visible" style={{ fontFamily: "'Pacifico', cursive" }}>
+              www.bux-spades.pro
+            </h1>
+            <span className="ml-0 sm:ml-4 px-6 py-4 min-w-[120px] bg-purple-600/30 text-purple-300 font-bold text-lg rounded-full inline-flex flex-col items-center justify-center align-middle mt-4 sm:mt-0 text-center" style={{ fontSize: '1.5rem', lineHeight: '1.2' }}>
+              Coming<br />Soon
+            </span>
+          </div>
+          <p className="text-md text-gray-300 max-w-2xl mx-auto mt-6">
             Get ready for BUX Spades, the ulimate spades platform.<br/>Play with friends, win coins in a fun and competitive online card game experience with unique and customisable game rules features.
           </p>
         </div>
@@ -43,7 +48,6 @@ const Spades = () => {
           <div className="md:col-span-2 order-1 md:order-1 text-center">
             <p className="text-lg text-yellow-400 mb-3 font-semibold inline-flex items-center">
               5mil FREE coins for new members
-              <span className="ml-3 px-2 py-0.5 bg-purple-600/20 text-purple-400 font-medium text-xs rounded-full">Coming Soon</span>
             </p>
             <div className="bg-gray-900 rounded-xl p-3 shadow-lg border border-purple-700 mx-auto max-w-md md:max-w-none">
               <div className="aspect-video rounded-lg overflow-hidden">
@@ -58,16 +62,6 @@ const Spades = () => {
                 </video>
               </div>
             </div>
-             <div className="mt-6">
-               <a
-                 href="https://bux-spades.pro"
-                 target="_blank"
-                 rel="noopener noreferrer"
-                 className="inline-flex items-center px-6 py-2.5 border border-transparent text-base font-medium rounded-full text-white bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 transition-all duration-300 shadow-lg transform hover:scale-105"
-               >
-                 Play Now
-               </a>
-             </div>
           </div>
 
           {/* Features List - Right Column */}

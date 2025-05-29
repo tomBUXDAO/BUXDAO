@@ -18,6 +18,7 @@ import Spades from './pages/Spades';
 import HolderVerification from './components/HolderVerification';
 import { UserProvider } from './contexts/UserContext';
 import PageTransition from './components/PageTransition';
+import ScrollToTop from './components/ScrollToTop';
 
 // Import your styles
 import './index.css';
@@ -74,6 +75,7 @@ const App = () => {
           <div className="min-h-screen bg-black text-white">
             <Toaster position="top-right" />
             <Header />
+            <ScrollToTop />
             <AnimatedRoutes />
           </div>
         </UserProvider>
