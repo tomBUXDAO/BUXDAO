@@ -1,6 +1,13 @@
+import { useState, useEffect } from 'react';
 import { CurrencyDollarIcon, TrophyIcon, ChatBubbleLeftRightIcon, CogIcon } from '@heroicons/react/24/outline';
 
 const Spades = () => {
+  const [showBadge, setShowBadge] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setShowBadge(true), 1000);
+    return () => clearTimeout(timer);
+  }, []);
+
   const features = [
     {
       title: 'Tournaments',
@@ -33,24 +40,23 @@ const Spades = () => {
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 py-6 overflow-visible" style={{ fontFamily: "'Pacifico', cursive" }}>
               www.bux-spades.pro
             </h1>
-            <span className="ml-0 sm:ml-4 px-6 py-4 min-w-[120px] bg-purple-600/30 text-purple-300 font-bold text-lg rounded-full inline-flex flex-col items-center justify-center align-middle mt-4 sm:mt-0 text-center" style={{ fontSize: '1.5rem', lineHeight: '1.2' }}>
+            <span className={`ml-0 sm:ml-4 px-4 py-2 min-w-[90px] bg-yellow-400 text-black font-bold text-base rounded-full inline-flex flex-col items-center justify-center align-middle mt-4 sm:mt-0 text-center transition-opacity duration-700 ${showBadge ? 'opacity-100' : 'opacity-0'}`} style={{ fontSize: '1.1rem', lineHeight: '1.2' }}>
               Coming<br />Soon
             </span>
           </div>
-          <p className="text-md text-gray-300 max-w-2xl mx-auto mt-6">
-            Get ready for BUX Spades, the ulimate spades platform.<br/>Play with friends, win coins in a fun and competitive online card game experience with unique and customisable game rules features.
-          </p>
+          <div className="mt-6">
+            <p className="text-2xl sm:text-3xl font-bold text-white mb-2">Get ready for BUX Spades, the ultimate spades platform.</p>
+            <p className="text-md text-gray-300 max-w-2xl mx-auto">Play with friends, win coins in a fun and competitive online card game experience with unique and customisable game rules features.</p>
+          </div>
+          <p className="text-lg text-yellow-400 mt-6 mb-2 font-semibold text-center w-full">5mil FREE coins for new members</p>
         </div>
 
         {/* Content: Video and Features Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
           {/* Game Preview - Left Column */}
-          <div className="md:col-span-2 order-1 md:order-1 text-center">
-            <p className="text-lg text-yellow-400 mb-3 font-semibold inline-flex items-center">
-              5mil FREE coins for new members
-            </p>
-            <div className="bg-gray-900 rounded-xl p-3 shadow-lg border border-purple-700 mx-auto max-w-md md:max-w-none">
-              <div className="aspect-video rounded-lg overflow-hidden">
+          <div className="md:col-span-2 order-1 md:order-1 text-center h-full flex flex-col justify-center">
+            <div className="bg-gray-900 rounded-xl p-3 shadow-lg border border-purple-700 mx-auto max-w-md md:max-w-none h-full flex flex-col justify-center">
+              <div className="aspect-video rounded-lg overflow-hidden flex-1 flex flex-col justify-center">
                 <video 
                   className="w-full h-full object-cover"
                   autoPlay
@@ -66,7 +72,7 @@ const Spades = () => {
 
           {/* Features List - Right Column */}
           <div className="md:col-span-1 order-2 md:order-2 h-full flex items-center">
-            <div className="bg-gray-900 rounded-xl p-5 w-full shadow-lg border border-purple-700">
+            <div className="bg-gray-900 rounded-xl p-5 w-full shadow-lg border border-purple-700 h-full flex flex-col justify-center">
               <h3 className="text-xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 mb-5 text-left">Game Features</h3>
               <ul className="space-y-4">
                 {features.map((feature) => (
