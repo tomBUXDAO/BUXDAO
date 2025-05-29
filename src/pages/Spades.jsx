@@ -36,11 +36,11 @@ const Spades = () => {
       {/* Hero Section */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center w-full">
         <div className="text-center mb-8 flex flex-col items-center justify-center">
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 items-center">
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 py-6 overflow-visible" style={{ fontFamily: "'Pacifico', cursive" }}>
+          <div className="flex flex-row flex-wrap items-center justify-center gap-2">
+            <h1 className="text-3xl sm:text-4xl lg:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 py-2 sm:py-6 overflow-visible truncate" style={{ fontFamily: "'Pacifico', cursive" }}>
               www.bux-spades.pro
             </h1>
-            <span className={`ml-0 sm:ml-4 px-4 py-2 min-w-[90px] bg-yellow-400 text-black font-bold text-base rounded-full inline-flex flex-col items-center justify-center align-middle mt-4 sm:mt-0 text-center transition-opacity duration-700 ${showBadge ? 'opacity-100' : 'opacity-0'}`} style={{ fontSize: '1.1rem', lineHeight: '1.2' }}>
+            <span className={`ml-2 sm:ml-4 px-2 py-1 min-w-[64px] sm:px-4 sm:py-2 sm:min-w-[90px] bg-yellow-400 text-black font-bold text-[10px] sm:text-base rounded-full inline-flex flex-col items-center justify-center align-middle mt-0 text-center transition-opacity duration-700 shrink-0 ${showBadge ? 'opacity-100' : 'opacity-0'}`} style={{ lineHeight: '1.1' }}>
               Coming<br />Soon
             </span>
           </div>
