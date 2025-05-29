@@ -31,11 +31,11 @@ const Hero = () => {
   const { discordUser } = useUser();
 
   const gifs = [
-    '/gifs/bitbot.gif',
-    '/gifs/catz.gif',
-    '/gifs/celebs.gif',
     '/gifs/mm.gif',
-    '/gifs/mm3d.gif'
+    '/gifs/catz.gif',
+    '/gifs/bitbot.gif',
+    '/gifs/mm3d.gif',
+    '/gifs/celebs.gif'
   ];
 
   const GallerySection = () => {
