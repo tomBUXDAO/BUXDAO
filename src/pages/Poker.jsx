@@ -27,16 +27,25 @@ const Poker = () => {
             <div className="bg-gray-900/80 border border-purple-700 rounded-xl p-5 max-w-xl mx-auto mb-6 shadow-lg">
               <ul className="text-left text-gray-200 space-y-5 text-sm sm:text-base">
                 <li className="flex items-start gap-3">
-                  <span className="mt-1 text-[#5865F2]"><FaDiscord size={20} /></span>
-                  <span><span className="font-semibold text-yellow-400">Holder-Only Tournaments via Discord:</span> All registration happens inside gated Discord channels, and only members with a verified holder role can see and enter. If you hold the NFT, you've already got access — just hit the button to register.</span>
+                  <span className="mt-1 text-yellow-400"><FaDiscord size={20} /></span>
+                  <span>
+                    <span className="font-semibold text-yellow-400 block">Holder-Only Tournaments via Discord:</span>
+                    <span className="block mt-1">All registration happens inside gated Discord channels, and only members with a verified holder role can see and enter. If you hold the NFT, you've already got access — just hit the button to register.</span>
+                  </span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <span className="mt-1 text-green-400"><FaWallet size={20} /></span>
-                  <span><span className="font-semibold text-yellow-400">Wallet-Synced Prizes:</span> Our system links your Discord to your wallet using the website's holder database. That means when you win, your prizes are sent automatically — no claiming, no gas fees.</span>
+                  <span className="mt-1 text-yellow-400"><FaWallet size={20} /></span>
+                  <span>
+                    <span className="font-semibold text-yellow-400 block">Wallet-Synced Prizes:</span>
+                    <span className="block mt-1">Our system links your Discord to your wallet using the website's holder database. That means when you win, your prizes are sent automatically — no claiming, no gas fees.</span>
+                  </span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <span className="mt-1 text-pink-400"><FaListOl size={20} /></span>
-                  <span><span className="font-semibold text-yellow-400">The BUX Leaderboard: Play Daily, Win Monthly:</span> Leaderboard games run every Sunday to Thursday, and each season ends after 20 games. Earn points based on performance, and the top players each month win exclusive NFTs and $BUX tokens.</span>
+                  <span className="mt-1 text-yellow-400"><FaListOl size={20} /></span>
+                  <span>
+                    <span className="font-semibold text-yellow-400 block">The BUX Leaderboard: Play Daily, Win Monthly:</span>
+                    <span className="block mt-1">Leaderboard games run every Sunday to Thursday, and each season ends after 20 games. Earn points based on performance, and the top players each month win exclusive NFTs and $BUX tokens.</span>
+                  </span>
                 </li>
               </ul>
             </div>
