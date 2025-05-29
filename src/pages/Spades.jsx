@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { CurrencyDollarIcon, TrophyIcon, ChatBubbleLeftRightIcon, CogIcon } from '@heroicons/react/24/outline';
+import { CurrencyDollarIcon, TrophyIcon, ChatBubbleLeftRightIcon, CogIcon, UserIcon, UsersIcon, StarIcon, LockClosedIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 
 const Spades = () => {
   const [showBadge, setShowBadge] = useState(false);
@@ -8,27 +8,17 @@ const Spades = () => {
     return () => clearTimeout(timer);
   }, []);
 
+  // New, more thorough features list
   const features = [
-    {
-      title: 'Tournaments',
-      description: 'Scheduled with prizes',
-      icon: TrophyIcon
-    },
-    {
-      title: 'Private Rooms',
-      description: 'Custom games & chat',
-      icon: ChatBubbleLeftRightIcon
-    },
-    {
-      title: 'Custom Rules',
-      description: 'Set your preferences',
-      icon: CogIcon
-    },
-    {
-      title: 'Purchase Coins',
-      description: 'With USDC or Sol',
-      icon: CurrencyDollarIcon
-    }
+    { icon: UserIcon, title: 'Login with Discord or Facebook' },
+    { icon: ChatBubbleLeftRightIcon, title: 'Integrated lobby and table chats' },
+    { icon: UsersIcon, title: 'Create/join game tables' },
+    { icon: StarIcon, title: 'View detailed player stats' },
+    { icon: UserIcon, title: 'Add friends and block players' },
+    { icon: CogIcon, title: 'Customise bidding and game rules' },
+    { icon: LockClosedIcon, title: 'Create/join invite only game rooms' },
+    { icon: TrophyIcon, title: 'Join scheduled tournaments' },
+    { icon: ArrowPathIcon, title: 'Allow sub players if players disconnect' },
   ];
 
   return (
@@ -74,16 +64,11 @@ const Spades = () => {
           <div className="md:col-span-1 order-2 md:order-2 h-full flex items-center">
             <div className="bg-gray-900 rounded-xl p-5 w-full shadow-lg border border-purple-700 h-full flex flex-col justify-center">
               <h3 className="text-xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 mb-5 text-left">Game Features</h3>
-              <ul className="space-y-4">
+              <ul className="space-y-1.5 text-[11px] sm:text-xs text-left">
                 {features.map((feature) => (
-                  <li key={feature.title} className="flex items-start text-gray-400 text-left">
-                    <div className="bg-purple-600/30 p-2 rounded-lg w-fit mr-3 flex-shrink-0">
-                       <feature.icon className="h-5 w-5 text-purple-400" />
-                    </div>
-                    <div>
-                      <p className="text-white font-medium text-md mb-0.5">{feature.title}</p>
-                      <p className="text-gray-400 text-xs">{feature.description}</p>
-                    </div>
+                  <li key={feature.title} className="flex items-start text-gray-300">
+                    <feature.icon className="h-3 w-3 text-purple-400 mt-0.5 mr-2 flex-shrink-0" />
+                    <span>{feature.title}</span>
                   </li>
                 ))}
               </ul>
