@@ -19,6 +19,7 @@ import HolderVerification from './components/HolderVerification';
 import { UserProvider } from './contexts/UserContext';
 import PageTransition from './components/PageTransition';
 import ScrollToTop from './components/ScrollToTop';
+import Poker from './pages/Poker';
 
 // Import your styles
 import './index.css';
@@ -61,6 +62,9 @@ const AnimatedRoutes = () => {
           <PageTransition>
             <HolderVerification />
           </PageTransition>
+        } />
+        <Route path="/poker" element={
+          <Poker />
         } />
       </Routes>
     </AnimatePresence>

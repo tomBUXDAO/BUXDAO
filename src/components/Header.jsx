@@ -15,6 +15,7 @@ const Header = () => {
 
   const mainLinks = [
     { name: 'Spades', href: '/spades' },
+    { name: 'Poker', href: '/poker' },
     { name: 'Merch', href: '/merch' }
   ];
 
