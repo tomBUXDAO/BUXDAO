@@ -238,12 +238,12 @@ const Bux = () => {
   };
 
   return (
-    <div className="bg-black min-h-screen pt-20">
+    <div className="bg-black min-h-screen pt-8">
       {/* Hero Section */}
-      <section className="bg-black py-16 sm:py-24">
+      <section className="bg-black py-8 sm:py-12">
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col items-center text-center">
-            <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 mb-6">
+            <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 mb-6 py-6">
               $BUX - tokenomics kept simple
             </h2>
             <div className="max-w-3xl mx-auto space-y-6 text-gray-200 text-xl px-8 sm:px-16 border-2 border-purple-400/20 rounded-2xl py-8 mb-16">
@@ -622,7 +622,7 @@ const Bux = () => {
       </section>
 
       {/* Add UserProfile section at the bottom */}
-      <section id="mybux" className="mt-12">
+      <section id="mybux" className="mt-4">
         <UserProfile tokenValue={tokenData.tokenValue} solPrice={tokenData.solPrice} />
       </section>
     </div>

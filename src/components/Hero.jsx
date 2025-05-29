@@ -69,7 +69,7 @@ const Hero = () => {
 
   return (
     <section className="bg-gradient-to-b from-black to-purple-900">
-      <div className="pt-20">
+      <div className="pt-6">
         {/* Gallery at top for mobile and tablet portrait */}
         <div className="block landscape:hidden lg:hidden">
           <GallerySection />
@@ -81,14 +81,17 @@ const Hero = () => {
             <div className="landscape:col-span-7 sm:col-span-7 sm:pr-8 landscape:flex landscape:flex-col landscape:justify-between landscape:gap-8">
               <div className="landscape:flex landscape:flex-col landscape:gap-8">
                 <h1 className="text-3xl portrait:text-2xl landscape:text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold mb-8 landscape:mb-0 sm:mb-10 bg-gradient-to-r from-purple-400 to-pink-400 text-transparent bg-clip-text">
-                  <span className="text-4xl portrait:text-3xl landscape:text-5xl sm:text-6xl md:text-7xl lg:text-8xl">BUXDAO</span> is a community owned NFT project, focused on providing passive income for holding members
+                  BUXDAO is a community owned NFT project, focused on providing passive income for holding members
                 </h1>
-                <h2 className="text-sm sm:text-base md:text-lg lg:text-xl font-bold text-gray-300 mb-8 landscape:mb-0 sm:mb-10">
-                  <span className="inline-flex items-center gap-6 px-6">
-                    <ChartBarIcon className="h-20 w-20 landscape:h-16 landscape:w-16 sm:h-20 sm:w-20 text-white" />
-                    100% REVENUE SHARE PAID OUT THROUGH DAILY TOKEN-BASED REWARDS
-                  </span>
-                </h2>
+                <div className="text-xs sm:text-sm text-gray-200 font-normal mb-8 landscape:mb-0 sm:mb-10">
+                  <ul className="list-disc list-inside pl-4 space-y-2">
+                    <li>Collect NFTs from our digital art collections</li>
+                    <li>Connect your discord profile and wallet using the "holder verify" button below</li>
+                    <li>Automatically start receiving daily rewards paid out in our $BUX token</li>
+                    <li>Claim the tokens you earn for all NFTs in a single low cost transaction</li>
+                    <li>Cashout your $BUX tokens for Solana from our community wallet (coming soon)</li>
+                  </ul>
+                </div>
               </div>
 
               {/* Center button and text section */}

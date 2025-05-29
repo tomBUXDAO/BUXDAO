@@ -435,7 +435,7 @@ router.post('/finalize', async (req, res) => {
     // Deserialize the transaction
     const transaction = Transaction.from(Buffer.from(signedTransaction, 'base64'));
 
-    // Add the treasury signature
+    // Add the treasury signature (this is where the treasury signs)
     transaction.partialSign(TREASURY_WALLET);
 
     // Verify both signatures (optional but good practice)
@@ -450,7 +450,30 @@ router.post('/finalize', async (req, res) => {
     const signature = await connection.sendRawTransaction(transaction.serialize());
     console.log('Transaction broadcasted with signature:', signature);
 
-    // Wait for confirmation
+    // Check if this transaction signature has already been processed *after* getting the signature
+    const existingClaim = await client.query(
+      'SELECT id, status FROM claim_transactions WHERE transaction_hash = $1',
+      [signature] // **Corrected: Use the actual transaction signature**
+    );
+
+    if (existingClaim.rows.length > 0) {
+      const claimStatus = existingClaim.rows[0].status;
+      console.log('Claim with this signature already exists:', { signature, status: claimStatus });
+      
+      // If already completed, just return success
+      if (claimStatus === 'completed') {
+        await client.query('COMMIT'); // Commit the read transaction
+        return res.json({
+          success: true,
+          message: 'Claim already processed', // Provide informative message
+          signature: signature
+        });
+      }
+       await client.query('ROLLBACK'); // Rollback if exists but not completed
+       return res.status(409).json({ error: `Claim with signature ${signature} is already being processed or failed previously.` });
+    }
+
+    // Wait for confirmation (Moved after idempotency check)
     console.log('Waiting for confirmation...');
     const confirmation = await connection.confirmTransaction(signature, 'confirmed');
 
@@ -464,7 +487,7 @@ router.post('/finalize', async (req, res) => {
 
     // Get discord_id from claim_accounts
     const userResult = await client.query(
-      'SELECT discord_id FROM claim_accounts WHERE wallet_address = $1',
+      'SELECT discord_id, unclaimed_amount, total_claimed FROM claim_accounts WHERE wallet_address = $1',
       [walletAddress]
     );
 
@@ -474,6 +497,20 @@ router.post('/finalize', async (req, res) => {
     }
 
     const discord_id = userResult.rows[0].discord_id;
+    const current_unclaimed_amount = parseFloat(userResult.rows[0].unclaimed_amount);
+    const current_total_claimed = parseFloat(userResult.rows[0].total_claimed);
+    const amount_claimed = parseFloat(amount); // Ensure amount is treated as float for calculation comparison
+
+    // Log values before update
+    console.log('Claim database update values:', {
+      walletAddress: walletAddress,
+      discordId: discord_id,
+      currentUnclaimed: current_unclaimed_amount,
+      claimAmount: amount_claimed,
+      calculatedNewUnclaimed: current_unclaimed_amount - amount_claimed,
+      currentTotalClaimed: current_total_claimed,
+      calculatedNewTotalClaimed: current_total_claimed + amount_claimed
+    });
 
     // Record claim in database (using the signature from the broadcast)
     // Ensure tables exist with correct schema (this can be moved to a migration file)
@@ -494,7 +531,7 @@ router.post('/finalize', async (req, res) => {
        (discord_id, amount, transaction_hash, status, processed_at)
        VALUES ($1, $2, $3, 'completed', NOW())
        RETURNING id`,
-      [discord_id, amount, signature]
+      [discord_id, amount, signature] // **Corrected: Use the actual transaction signature**
     );
     console.log('Claim recorded:', claimResult.rows[0]);
 
@@ -531,7 +568,7 @@ router.post('/finalize', async (req, res) => {
       success: true,
       newBalance: balanceResult.rows[0]?.balance,
       unclaimedAmount: updateResult.rows[0]?.unclaimed_amount,
-      signature: signature // Return the broadcasted transaction signature
+      signature: signature // **Corrected: Return the actual transaction signature**
     });
 
   } catch (error) {
