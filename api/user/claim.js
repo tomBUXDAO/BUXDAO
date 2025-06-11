@@ -432,122 +432,51 @@ router.post('/finalize', async (req, res) => {
     client = await pool.connect();
     await client.query('BEGIN');
 
-    // Deserialize the transaction
-    const transaction = Transaction.from(Buffer.from(signedTransaction, 'base64'));
-
-    // Add the treasury signature (this is where the treasury signs)
-    transaction.partialSign(TREASURY_WALLET);
-
-    // Verify both signatures (optional but good practice)
-    // You might want to add verification logic here to ensure the user's signature is also valid
-
-    // Broadcast the transaction
-    const connection = new Connection(
-      process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com',
-      'confirmed'
-    );
-    console.log('Broadcasting transaction...');
-    const signature = await connection.sendRawTransaction(transaction.serialize());
-    console.log('Transaction broadcasted with signature:', signature);
-
-    // Check if this transaction signature has already been processed *after* getting the signature
-    const existingClaim = await client.query(
-      'SELECT id, status FROM claim_transactions WHERE transaction_hash = $1',
-      [signature] // **Corrected: Use the actual transaction signature**
-    );
-
-    if (existingClaim.rows.length > 0) {
-      const claimStatus = existingClaim.rows[0].status;
-      console.log('Claim with this signature already exists:', { signature, status: claimStatus });
-      
-      // If already completed, just return success
-      if (claimStatus === 'completed') {
-        await client.query('COMMIT'); // Commit the read transaction
-        return res.json({
-          success: true,
-          message: 'Claim already processed', // Provide informative message
-          signature: signature
-        });
-      }
-       await client.query('ROLLBACK'); // Rollback if exists but not completed
-       return res.status(409).json({ error: `Claim with signature ${signature} is already being processed or failed previously.` });
-    }
-
-    // Wait for confirmation (Moved after idempotency check)
-    console.log('Waiting for confirmation...');
-    const confirmation = await connection.confirmTransaction(signature, 'confirmed');
-
-    if (confirmation.value.err) {
-      console.error('Transaction failed on Solana:', confirmation.value.err);
-      await client.query('ROLLBACK');
-      return res.status(400).json({ error: 'Transaction failed on Solana' });
-    }
-
-    console.log('Transaction confirmed successfully');
-
-    // Get discord_id from claim_accounts
-    const userResult = await client.query(
-      'SELECT discord_id, unclaimed_amount, total_claimed FROM claim_accounts WHERE wallet_address = $1',
+    // First, lock the user's claim account to prevent concurrent claims
+    const lockResult = await client.query(
+      `SELECT discord_id, unclaimed_amount, total_claimed 
+       FROM claim_accounts 
+       WHERE wallet_address = $1 
+       FOR UPDATE`,
       [walletAddress]
     );
 
-    if (!userResult.rows[0]?.discord_id) {
+    if (!lockResult.rows[0]?.discord_id) {
       await client.query('ROLLBACK');
       return res.status(404).json({ error: 'User not found in claim_accounts' });
     }
 
-    const discord_id = userResult.rows[0].discord_id;
-    const current_unclaimed_amount = parseFloat(userResult.rows[0].unclaimed_amount);
-    const current_total_claimed = parseFloat(userResult.rows[0].total_claimed);
-    const amount_claimed = parseFloat(amount); // Ensure amount is treated as float for calculation comparison
+    const discord_id = lockResult.rows[0].discord_id;
+    const current_unclaimed_amount = parseFloat(lockResult.rows[0].unclaimed_amount);
+    const current_total_claimed = parseFloat(lockResult.rows[0].total_claimed);
+    const amount_claimed = parseFloat(amount);
 
-    // Log values before update
-    console.log('Claim database update values:', {
-      walletAddress: walletAddress,
-      discordId: discord_id,
-      currentUnclaimed: current_unclaimed_amount,
-      claimAmount: amount_claimed,
-      calculatedNewUnclaimed: current_unclaimed_amount - amount_claimed,
-      currentTotalClaimed: current_total_claimed,
-      calculatedNewTotalClaimed: current_total_claimed + amount_claimed
-    });
+    // Validate claim amount
+    if (amount_claimed > current_unclaimed_amount) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'Claim amount exceeds unclaimed balance' });
+    }
 
-    // Record claim in database (using the signature from the broadcast)
-    // Ensure tables exist with correct schema (this can be moved to a migration file)
-     await client.query(`
-      CREATE TABLE IF NOT EXISTS claim_transactions (
-        id SERIAL PRIMARY KEY,
-        discord_id VARCHAR(255),
-        wallet_address TEXT NOT NULL,
-        amount INTEGER NOT NULL,
-        transaction_hash TEXT UNIQUE NOT NULL,
-        status VARCHAR(20) DEFAULT 'completed',
-        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-        processed_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-    const claimResult = await client.query(
-      `INSERT INTO claim_transactions
-       (discord_id, amount, transaction_hash, status, processed_at)
-       VALUES ($1, $2, $3, 'completed', NOW())
-       RETURNING id`,
-      [discord_id, amount, signature] // **Corrected: Use the actual transaction signature**
-    );
-    console.log('Claim recorded:', claimResult.rows[0]);
-
-    // Update unclaimed rewards
+    // Update database FIRST
+    // 1. Update unclaimed rewards
     const updateResult = await client.query(
       `UPDATE claim_accounts
        SET unclaimed_amount = unclaimed_amount - $1,
            total_claimed = total_claimed + $1,
            last_claim_time = NOW()
        WHERE discord_id = $2
+         AND unclaimed_amount >= $1
        RETURNING unclaimed_amount, total_claimed`,
       [amount, discord_id]
     );
-    console.log('Claim account updated:', updateResult.rows[0]);
 
-    // Update user's BUX balance
+    if (!updateResult.rows[0]) {
+      console.error('Failed to update unclaimed amount - possible race condition');
+      await client.query('ROLLBACK');
+      return res.status(500).json({ error: 'Failed to update unclaimed amount' });
+    }
+
+    // 2. Update user's BUX balance
     const balanceResult = await client.query(
       `INSERT INTO bux_holders (wallet_address, balance, owner_discord_id, last_updated)
        VALUES ($1, $2, $3, NOW())
@@ -559,16 +488,89 @@ router.post('/finalize', async (req, res) => {
        RETURNING balance`,
       [walletAddress, amount, discord_id]
     );
-    console.log('BUX balance updated:', balanceResult.rows[0]);
+
+    if (!balanceResult.rows[0]) {
+      console.error('Failed to update BUX balance');
+      await client.query('ROLLBACK');
+      return res.status(500).json({ error: 'Failed to update BUX balance' });
+    }
+
+    // Now proceed with blockchain transaction
+    const transaction = Transaction.from(Buffer.from(signedTransaction, 'base64'));
+    
+    // Verify the transaction amount matches the claim amount
+    const transferInstruction = transaction.instructions[0];
+    if (!transferInstruction || transferInstruction.programId.toString() !== TOKEN_PROGRAM_ID.toString()) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'Invalid transaction: not a token transfer' });
+    }
+
+    // Add the treasury signature
+    transaction.partialSign(TREASURY_WALLET);
+
+    // Broadcast the transaction
+    const connection = new Connection(
+      process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com',
+      'confirmed'
+    );
+    console.log('Broadcasting transaction...');
+    const signature = await connection.sendRawTransaction(transaction.serialize());
+    console.log('Transaction broadcasted with signature:', signature);
+
+    // Check for existing claim with this signature
+    const existingClaim = await client.query(
+      'SELECT id, status FROM claim_transactions WHERE transaction_hash = $1',
+      [signature]
+    );
+
+    if (existingClaim.rows.length > 0) {
+      const claimStatus = existingClaim.rows[0].status;
+      console.log('Claim with this signature already exists:', { signature, status: claimStatus });
+      
+      if (claimStatus === 'completed') {
+        await client.query('COMMIT');
+        return res.json({
+          success: true,
+          message: 'Claim already processed',
+          signature: signature
+        });
+      }
+      await client.query('ROLLBACK');
+      return res.status(409).json({ 
+        error: `Claim with signature ${signature} is already being processed or failed previously.` 
+      });
+    }
+
+    // Wait for confirmation
+    console.log('Waiting for confirmation...');
+    const confirmation = await connection.confirmTransaction(signature, 'confirmed');
+
+    if (confirmation.value.err) {
+      console.error('Transaction failed on Solana:', confirmation.value.err);
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'Transaction failed on Solana' });
+    }
+
+    console.log('Transaction confirmed successfully');
+
+    // Record claim in database
+    const claimResult = await client.query(
+      `INSERT INTO claim_transactions
+       (discord_id, wallet_address, amount, transaction_hash, status, processed_at)
+       VALUES ($1, $2, $3, $4, 'completed', NOW())
+       RETURNING id`,
+      [discord_id, walletAddress, amount, signature]
+    );
+    console.log('Claim recorded:', claimResult.rows[0]);
 
     await client.query('COMMIT');
     console.log('Database transaction committed successfully');
 
     res.json({
       success: true,
-      newBalance: balanceResult.rows[0]?.balance,
-      unclaimedAmount: updateResult.rows[0]?.unclaimed_amount,
-      signature: signature // **Corrected: Return the actual transaction signature**
+      newBalance: balanceResult.rows[0].balance,
+      unclaimedAmount: updateResult.rows[0].unclaimed_amount,
+      signature: signature
     });
 
   } catch (error) {

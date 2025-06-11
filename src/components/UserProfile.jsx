@@ -588,7 +588,6 @@ const UserProfile = ({ tokenValue, solPrice }) => {
                   <BuxClaimButton
                     amount={parseInt(claimAmount)}
                     onError={(error) => toast.error(error.message || 'Claim failed')}
-                    disabled={true}
                     className="w-full py-3 px-4 rounded-lg font-bold border-2 border-white/90 
                               relative overflow-hidden transition-all duration-300
                               disabled:opacity-50 disabled:cursor-not-allowed"
