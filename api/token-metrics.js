@@ -1,14 +1,17 @@
-import express from 'express';
 import { Connection, PublicKey, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import { pool } from './config/database.js';
 import { getSolPrice } from './utils/solPrice.js';
 
-const router = express.Router();
+export default async function handler(req, res) {
+  // CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
 
-// Define the treasury wallet address
-const TREASURY_WALLET = 'FYfLzXckAf2JZoMYBz2W4fpF9vejqpA6UFV17d1A7C75';
-
-router.get('/', async (req, res) => {
   let client;
   try {
     console.log('Fetching token metrics...');
@@ -133,6 +136,4 @@ router.get('/', async (req, res) => {
       client.release();
     }
   }
-});
-
-export default router; 
+} 

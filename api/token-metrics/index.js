@@ -1,10 +1,8 @@
 import fetch from 'node-fetch';
-import express from 'express';
 import pkg from 'pg';
 import { Connection, PublicKey, LAMPORTS_PER_SOL } from '@solana/web3.js';
 const { Pool } = pkg;
 
-const router = express.Router();
 const pool = new Pool({
   connectionString: process.env.POSTGRES_URL,
   ssl: {
@@ -12,7 +10,16 @@ const pool = new Pool({
   }
 });
 
-router.get('/', async (req, res) => {
+export default async function handler(req, res) {
+  // CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+
   let client;
   try {
     console.log('Fetching token metrics...');
@@ -105,6 +112,4 @@ router.get('/', async (req, res) => {
       client.release();
     }
   }
-});
-
-export default router; 
+} 
