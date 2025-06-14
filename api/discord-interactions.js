@@ -309,7 +309,11 @@ export default async function handler(request, response) {
                   color: 0xFF0000
                 }]
               }
-            }), { headers: { 'Content-Type': 'application/json' } });
+            }), { 
+              headers: { 
+                'Content-Type': 'application/json'
+              }
+            });
           }
           const discordId = userOption.value;
           const username = userOption.user?.username || userOption.user?.global_name || 'Unknown';
@@ -317,8 +321,32 @@ export default async function handler(request, response) {
           const issuerId = interaction.member?.user?.id || interaction.user?.id;
           // Define your admin Discord IDs here or load from env/config
           const adminIds = (process.env.DISCORD_ADMIN_IDS || '').split(',').map(id => id.trim()).filter(Boolean);
-          const result = await handleAddClaim({ discordId, username, amount, issuerId, adminIds });
-          return new Response(JSON.stringify(result), { headers: { 'Content-Type': 'application/json' } });
+          
+          try {
+            const result = await handleAddClaim({ discordId, username, amount, issuerId, adminIds });
+            console.log('[addclaim] Command result:', result);
+            return new Response(JSON.stringify(result), { 
+              headers: { 
+                'Content-Type': 'application/json'
+              }
+            });
+          } catch (error) {
+            console.error('[addclaim] Error:', error);
+            return new Response(JSON.stringify({
+              type: 4,
+              data: {
+                embeds: [{
+                  title: 'Error',
+                  description: error.message || 'An error occurred processing the command',
+                  color: 0xFF0000
+                }]
+              }
+            }), { 
+              headers: { 
+                'Content-Type': 'application/json'
+              }
+            });
+          }
         }
 
         return new Response(JSON.stringify({
