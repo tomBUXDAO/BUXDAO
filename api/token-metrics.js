@@ -2,6 +2,8 @@ import { Connection, PublicKey, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import { pool } from './config/database.js';
 import { getSolPrice } from './utils/solPrice.js';
 
+const TREASURY_WALLET = 'FYfLzXckAf2JZoMYBz2W4fpF9vejqpA6UFV17d1A7C75';
+
 export default async function handler(req, res) {
   // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
