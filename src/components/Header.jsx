@@ -150,7 +150,11 @@ const Header = () => {
                 ) : (
                   <button
                     onClick={() => {
-                      setVisible(true);
+                      if (!discordUser) {
+                        window.location.href = '/verify';
+                      } else {
+                        setVisible(true);
+                      }
                       setIsMenuOpen(false);
                     }}
                     className="w-full flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-purple-600 hover:bg-purple-700"
@@ -246,7 +250,13 @@ const Header = () => {
                         </button>
                       ) : (
                         <button
-                          onClick={() => setVisible(true)}
+                          onClick={() => {
+                            if (!discordUser) {
+                              window.location.href = '/verify';
+                            } else {
+                              setVisible(true);
+                            }
+                          }}
                           className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-300 hover:text-[#5865F2] hover:bg-gray-800 w-full text-left transition-colors"
                           role="menuitem"
                         >
@@ -259,7 +269,13 @@ const Header = () => {
                 </div>
               ) : (
                 <button
-                  onClick={() => setVisible(true)}
+                  onClick={() => {
+                    if (!discordUser) {
+                      window.location.href = '/verify';
+                    } else {
+                      setVisible(true);
+                    }
+                  }}
                   className="text-gray-300 hover:text-[#5865F2] transition-colors py-2"
                 >
                   Connect Wallet
