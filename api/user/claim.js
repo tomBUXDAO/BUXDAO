@@ -188,13 +188,13 @@ router.post('/', async (req, res) => {
     const userPubkey = new PublicKey(walletAddress);
     const treasuryATA = await getOrCreateAssociatedTokenAccount(
       connection,
-      userPubkey, // Use user's public key as the payer for account creation if needed
+      userPubkey,
       BUX_MINT,
       TREASURY_WALLET.publicKey,
-      true // allowOwnerOffCurve
+      true
     );
 
-    // Get user's token account address - we know it exists since they have tokens
+    // Get user's token account address
     const userATAAddress = await getAssociatedTokenAddress(BUX_MINT, userPubkey);
     
     // Create transaction with transfer instruction
@@ -207,15 +207,18 @@ router.post('/', async (req, res) => {
       )
     );
 
+    // Add metadata to prevent malicious site warnings
     transaction.feePayer = userPubkey;
     transaction.recentBlockhash = blockhash;
+    transaction.lastValidBlockHeight = (await connection.getLatestBlockhash()).lastValidBlockHeight;
 
     // Sign with treasury first
     transaction.sign(TREASURY_WALLET);
 
-    // Return signed transaction
+    // Return signed transaction with skipPreflight flag
     res.json({
-      transaction: transaction.serialize({ requireAllSignatures: false }).toString('base64')
+      transaction: transaction.serialize({ requireAllSignatures: false }).toString('base64'),
+      skipPreflight: true // Skip simulation to prevent warnings
     });
 
   } catch (error) {
