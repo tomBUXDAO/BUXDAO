@@ -15,6 +15,7 @@ console.log('Starting NFT sync scheduler...');
 // List of all sync scripts to run sequentially
 const syncScripts = [
   'ensure-claim-accounts.js',
+  'sync-holders.js',
   'sync-celebcatz.js',
   'sync-fckedcatz.js',
   'sync-monsters.js',
