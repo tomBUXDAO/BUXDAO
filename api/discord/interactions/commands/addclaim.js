@@ -83,13 +83,14 @@ export async function handleAddClaim({ discordId, username, amount, issuerId, ad
       data: {
         embeds: [{
           title: 'BUX Tokens Awarded!',
-          description: `Successfully added ${amount} BUX to **${dbUsername}**'s claim account.`,
+          description: `Successfully added ${amount} BUX to **${dbUsername}**'s claim account.\n\n` +
+            `**User:** ${dbUsername}\n` +
+            `**Amount Awarded:** ${amount}\n` +
+            `**New Unclaimed Balance:** ${newAmount}`,
           color: 0x4CAF50,
-          fields: [
-            { name: 'User', value: dbUsername, inline: true },
-            { name: 'Amount Awarded', value: String(amount), inline: true },
-            { name: 'New Unclaimed Balance', value: String(newAmount), inline: true }
-          ]
+          footer: {
+            text: 'BUXDAO - Putting Community First'
+          }
         }],
         flags: 0 // Public
       }
