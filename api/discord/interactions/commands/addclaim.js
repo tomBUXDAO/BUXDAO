@@ -51,7 +51,7 @@ export async function handleAddClaim({ discordId, username, amount, issuerId, ad
     console.log('[addclaim] Connected to DB. Checking if user exists...');
     // Check if user exists
     const result = await client.query(
-      'SELECT unclaimed_amount, discord_username FROM claim_accounts WHERE discord_id = $1',
+      'SELECT unclaimed_amount, discord_name FROM claim_accounts WHERE discord_id = $1',
       [discordId]
     );
     console.log('[addclaim] Query result:', result.rows);
@@ -71,7 +71,7 @@ export async function handleAddClaim({ discordId, username, amount, issuerId, ad
     }
     // Add amount to unclaimed_amount
     const newAmount = Number(result.rows[0].unclaimed_amount) + Number(amount);
-    const dbUsername = result.rows[0].discord_username;
+    const dbUsername = result.rows[0].discord_name;
     console.log('[addclaim] Updating unclaimed_amount to:', newAmount);
     await client.query(
       'UPDATE claim_accounts SET unclaimed_amount = $1 WHERE discord_id = $2',
