@@ -312,7 +312,7 @@ export default async function handler(request, response) {
             });
           }
           const discordId = userOption.value;
-          const username = userOption.user?.username || userOption.user?.global_name || 'Unknown';
+          const username = userOption.user?.username || userOption.user?.global_name || userOption.user?.name || 'Unknown';
           const amount = amountOption.value;
           const issuerId = interaction.member?.user?.id || interaction.user?.id;
           // Define your admin Discord IDs here or load from env/config
