@@ -38,6 +38,25 @@ const commands = [
         required: true
       }]
     }))
+  },
+  {
+    name: 'addclaim',
+    description: 'Admin: Award BUX tokens to a user's claim account',
+    type: 1, // CHAT_INPUT
+    options: [
+      {
+        type: 6, // USER
+        name: 'user',
+        description: 'User to award BUX to',
+        required: true
+      },
+      {
+        type: 4, // INTEGER
+        name: 'amount',
+        description: 'Amount of BUX to award',
+        required: true
+      }
+    ]
   }
 ];
 

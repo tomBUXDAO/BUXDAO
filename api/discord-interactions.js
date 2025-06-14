@@ -98,6 +98,8 @@ async function verifyDiscordRequest(body, signature, timestamp, clientPublicKey)
   }
 }
 
+import { handleAddClaim } from './interactions/commands/addclaim.js';
+
 export default async function handler(request) {
   try {
     // Get the raw body and headers
@@ -294,6 +296,33 @@ export default async function handler(request) {
 
           // Return the response directly
           return response;
+        }
+
+        // Handle addclaim command
+        if (command.name === 'addclaim') {
+          // Extract options
+          const userOption = command.options?.find(opt => opt.name === 'user');
+          const amountOption = command.options?.find(opt => opt.name === 'amount');
+          if (!userOption || !amountOption) {
+            return new Response(JSON.stringify({
+              type: 4,
+              data: {
+                embeds: [{
+                  title: 'Error',
+                  description: 'Missing user or amount',
+                  color: 0xFF0000
+                }]
+              }
+            }), { headers: { 'Content-Type': 'application/json' } });
+          }
+          const discordId = userOption.value;
+          const username = userOption.user?.username || userOption.user?.global_name || 'Unknown';
+          const amount = amountOption.value;
+          const issuerId = interaction.member?.user?.id || interaction.user?.id;
+          // Define your admin Discord IDs here or load from env/config
+          const adminIds = (process.env.DISCORD_ADMIN_IDS || '').split(',').map(id => id.trim()).filter(Boolean);
+          const result = await handleAddClaim({ discordId, username, amount, issuerId, adminIds });
+          return new Response(JSON.stringify(result), { headers: { 'Content-Type': 'application/json' } });
         }
 
         return new Response(JSON.stringify({
