@@ -96,12 +96,12 @@ async function verifyDiscordRequest(body, signature, timestamp, clientPublicKey)
 
 import { handleAddClaim } from './discord/interactions/commands/addclaim.js';
 
-export default async function handler(request) {
+export default async function handler(request, response) {
   try {
-    // Get the raw body and headers
-    const signature = request.headers.get('x-signature-ed25519');
-    const timestamp = request.headers.get('x-signature-timestamp');
-    const rawBody = await request.text();
+    // For Node.js Serverless/Express, use headers[...] and body as Buffer
+    const signature = request.headers['x-signature-ed25519'];
+    const timestamp = request.headers['x-signature-timestamp'];
+    const rawBody = request.body instanceof Buffer ? request.body.toString('utf8') : JSON.stringify(request.body);
 
     // Log headers for debugging
     console.log('Discord headers:', {
