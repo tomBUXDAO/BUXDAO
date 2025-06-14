@@ -1,8 +1,4 @@
-// Edge Function configuration
-export const config = {
-  runtime: 'edge',
-  regions: ['iad1']  // Use Virginia for lowest latency to Discord
-};
+// Removed Edge Function config to allow Node.js Serverless Function runtime
 
 // Collection configurations
 const COLLECTIONS = {
