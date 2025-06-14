@@ -94,7 +94,7 @@ async function verifyDiscordRequest(body, signature, timestamp, clientPublicKey)
   }
 }
 
-import { handleAddClaim } from './interactions/commands/addclaim.js';
+import { handleAddClaim } from './discord/interactions/commands/addclaim.js';
 
 export default async function handler(request) {
   try {
