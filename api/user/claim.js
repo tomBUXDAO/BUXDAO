@@ -182,7 +182,7 @@ router.post('/', async (req, res) => {
     }
 
     const connection = new Connection(process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com');
-    const { blockhash } = await connection.getRecentBlockhash('confirmed');
+    const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
 
     // Create transfer instruction
     const userPubkey = new PublicKey(walletAddress);
@@ -198,27 +198,34 @@ router.post('/', async (req, res) => {
     const userATAAddress = await getAssociatedTokenAddress(BUX_MINT, userPubkey);
     
     // Create transaction with transfer instruction
-    const transaction = new Transaction().add(
+    const transaction = new Transaction();
+    
+    // Add transfer instruction with explicit program ID
+    transaction.add(
       createTransferInstruction(
         treasuryATA.address,
         userATAAddress,
         TREASURY_WALLET.publicKey,
-        BigInt(claimAmount * 1e9)
+        BigInt(claimAmount * 1e9),
+        [],
+        TOKEN_PROGRAM_ID
       )
     );
 
-    // Add metadata to prevent malicious site warnings
+    // Add proper transaction metadata
     transaction.feePayer = userPubkey;
     transaction.recentBlockhash = blockhash;
-    transaction.lastValidBlockHeight = (await connection.getLatestBlockhash()).lastValidBlockHeight;
+    transaction.lastValidBlockHeight = lastValidBlockHeight;
 
     // Sign with treasury first
     transaction.sign(TREASURY_WALLET);
 
-    // Return signed transaction with skipPreflight flag
+    // Return signed transaction with explicit metadata
     res.json({
       transaction: transaction.serialize({ requireAllSignatures: false }).toString('base64'),
-      skipPreflight: true // Skip simulation to prevent warnings
+      skipPreflight: true,
+      maxRetries: 3,
+      preflightCommitment: 'confirmed'
     });
 
   } catch (error) {
