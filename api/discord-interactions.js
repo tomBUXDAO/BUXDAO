@@ -300,7 +300,7 @@ export default async function handler(request, response) {
           const userOption = command.options?.find(opt => opt.name === 'user');
           const amountOption = command.options?.find(opt => opt.name === 'amount');
           if (!userOption || !amountOption) {
-            return new Response(JSON.stringify({
+            return response.status(200).json({
               type: 4,
               data: {
                 embeds: [{
@@ -308,10 +308,6 @@ export default async function handler(request, response) {
                   description: 'Missing user or amount',
                   color: 0xFF0000
                 }]
-              }
-            }), { 
-              headers: { 
-                'Content-Type': 'application/json'
               }
             });
           }
@@ -325,14 +321,10 @@ export default async function handler(request, response) {
           try {
             const result = await handleAddClaim({ discordId, username, amount, issuerId, adminIds });
             console.log('[addclaim] Command result:', result);
-            return new Response(JSON.stringify(result), { 
-              headers: { 
-                'Content-Type': 'application/json'
-              }
-            });
+            return response.status(200).json(result);
           } catch (error) {
             console.error('[addclaim] Error:', error);
-            return new Response(JSON.stringify({
+            return response.status(200).json({
               type: 4,
               data: {
                 embeds: [{
@@ -340,10 +332,6 @@ export default async function handler(request, response) {
                   description: error.message || 'An error occurred processing the command',
                   color: 0xFF0000
                 }]
-              }
-            }), { 
-              headers: { 
-                'Content-Type': 'application/json'
               }
             });
           }
