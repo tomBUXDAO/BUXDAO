@@ -70,7 +70,8 @@ export async function handleAddClaim({ discordId, username, amount, issuerId, ad
       };
     }
     // Add amount to unclaimed_amount
-    const newAmount = Number(result.rows[0].unclaimed_amount) + Number(amount);
+    const oldAmount = Number(result.rows[0].unclaimed_amount);
+    const newAmount = oldAmount + Number(amount);
     const dbUsername = result.rows[0].discord_name;
     console.log('[addclaim] Updating unclaimed_amount to:', newAmount);
     await client.query(
@@ -95,8 +96,9 @@ export async function handleAddClaim({ discordId, username, amount, issuerId, ad
         embeds: [{
           title: `**${dbUsername} received ${amount} BUX Tokens!**`,
           color: 0x4CAF50,
+          description: `🎁 **Unclaimed balance:** ${oldAmount} + ${amount}`,
           fields: [
-            { name: '🎁 New Unclaimed Balance', value: `${newAmount}`, inline: false }
+            { name: '💰 New Balance', value: `**${newAmount}**`, inline: true }
           ],
           thumbnail: avatarUrl ? { url: avatarUrl } : undefined,
           footer: {
