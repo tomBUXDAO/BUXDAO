@@ -123,6 +123,25 @@ export async function syncUserRoles(discordId, guildId) {
         return false;
       }
 
+      // --- Update discord_name in user_roles and claim_accounts if changed ---
+      if (member && member.user && member.user.username) {
+        const newDiscordName = member.user.username;
+        if (userRoles.discord_name !== newDiscordName) {
+          await client.query(
+            'UPDATE user_roles SET discord_name = $1 WHERE discord_id = $2',
+            [newDiscordName, discordId]
+          );
+          // Optionally update in claim_accounts as well
+          await client.query(
+            'UPDATE claim_accounts SET discord_name = $1 WHERE discord_id = $2',
+            [newDiscordName, discordId]
+          );
+          console.log(`Updated discord_name for ${discordId} to ${newDiscordName}`);
+        }
+      }
+      // --- Fetch user's avatar URL for use in embeds ---
+      // const avatarUrl = member.user.displayAvatarURL();
+
       // Track role changes
       const rolesToAdd = [];
       const rolesToRemove = [];

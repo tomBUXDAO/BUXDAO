@@ -78,16 +78,28 @@ export async function handleAddClaim({ discordId, username, amount, issuerId, ad
       [newAmount, discordId]
     );
     console.log('[addclaim] Update successful. Returning success embed.');
+
+    // Fetch the user's avatar URL from Discord
+    let avatarUrl;
+    try {
+      // You need to implement this utility in your codebase
+      const { getUserAvatarUrl } = await import('../../../discord/utils.js');
+      avatarUrl = await getUserAvatarUrl(discordId);
+    } catch (e) {
+      avatarUrl = undefined;
+    }
+
     return {
       type: 4,
       data: {
         embeds: [{
-          title: 'BUX Tokens Awarded!',
-          description: `Successfully added ${amount} BUX to **${dbUsername}**'s claim account.\n\n` +
-            `**User:** ${dbUsername}\n` +
-            `**Amount Awarded:** ${amount}\n` +
-            `**New Unclaimed Balance:** ${newAmount}`,
+          title: `**${dbUsername} received ${amount} BUX Tokens!**`,
           color: 0x4CAF50,
+          fields: [
+            { name: 'Amount Awarded', value: `${amount}`, inline: false },
+            { name: 'New Unclaimed Balance', value: `${newAmount}`, inline: false }
+          ],
+          thumbnail: avatarUrl ? { url: avatarUrl } : undefined,
           footer: {
             text: 'BUXDAO - Putting Community First'
           }

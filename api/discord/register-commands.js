@@ -41,7 +41,7 @@ const commands = [
   },
   {
     name: 'addclaim',
-    description: 'Admin: Award BUX tokens to a user's claim account',
+    description: "Admin: Award BUX tokens to a user's claim account",
     type: 1, // CHAT_INPUT
     options: [
       {
