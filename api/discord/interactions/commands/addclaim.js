@@ -96,8 +96,7 @@ export async function handleAddClaim({ discordId, username, amount, issuerId, ad
           title: `**${dbUsername} received ${amount} BUX Tokens!**`,
           color: 0x4CAF50,
           fields: [
-            { name: 'Amount Awarded', value: `${amount}`, inline: false },
-            { name: 'New Unclaimed Balance', value: `${newAmount}`, inline: false }
+            { name: '🎁 New Unclaimed Balance', value: `${newAmount}`, inline: false }
           ],
           thumbnail: avatarUrl ? { url: avatarUrl } : undefined,
           footer: {
