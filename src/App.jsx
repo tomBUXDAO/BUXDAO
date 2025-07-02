@@ -24,6 +24,8 @@ import Poker from './pages/Poker';
 // Import your styles
 import './index.css';
 
+// Trigger Vercel deployment
+
 const AnimatedRoutes = () => {
   const location = useLocation();
 
