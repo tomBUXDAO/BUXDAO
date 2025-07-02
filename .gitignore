@@ -13,3 +13,7 @@ dist-ssr
 test-ledger/
 sol dev course/
 .vercel
+solana-release-x86_64-apple-darwin.tar.bz2
+solana-release/bin/solana-test-validator
+solana-release/bin/solana-validator
+solana-release/bin/solang
