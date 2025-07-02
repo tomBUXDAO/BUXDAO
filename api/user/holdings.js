@@ -13,7 +13,7 @@ export default async function handler(req, res) {
     const client = await pool.connect();
 
     try {
-      // Get user's NFT holdings by collection
+      // Get user's aggregated NFT holdings by collection across all wallets
       const holdingsQuery = `
         SELECT 
           n.collection,

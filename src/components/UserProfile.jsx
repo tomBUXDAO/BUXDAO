@@ -173,15 +173,14 @@ const UserProfile = ({ tokenValue, solPrice }) => {
             'fcked_catz_count': collectionData.fckedcatz_count || 0,
             'money_monsters_count': collectionData.mm_count || 0,
             'aibitbots_count': collectionData.aibb_count || 0,
-            // Sum individual AI Collab counts
-            'ai_collabs_count': (
-              collectionData.shxbb_count || 0) +
-              (collectionData.ausqrl_count || 0) +
-              (collectionData.aelxaibb_count || 0) +
-              (collectionData.airb_count || 0) +
-              (collectionData.clb_count || 0) +
-              (collectionData.ddbot_count || 0
-            ),
+            // Sum individual AI Collab counts, forcing all to numbers
+            'ai_collabs_count':
+              Number(collectionData.shxbb_count || 0) +
+              Number(collectionData.ausqrl_count || 0) +
+              Number(collectionData.aelxaibb_count || 0) +
+              Number(collectionData.airb_count || 0) +
+              Number(collectionData.clb_count || 0) +
+              Number(collectionData.ddbot_count || 0),
             'money_monsters_top_10': collectionData.money_monsters_top_10 || 0,
             'money_monsters_3d_top_10': collectionData.money_monsters_3d_top_10 || 0,
             'branded_catz_count': collectionData.branded_catz_count || 0,
@@ -455,12 +454,13 @@ const UserProfile = ({ tokenValue, solPrice }) => {
                       }
                     })();
 
+                    const numericCount = Number(count) || 0;
                     const dailyYield = calculateCollectionYield(collection);
 
                     return (
                       <tr key={collection} className="border-t">
                         <td className="py-2">{displayName}</td>
-                        <td className="text-center py-2">{count}</td>
+                        <td className="text-center py-2">{numericCount}</td>
                         <td className="text-center py-2">{dailyYield}</td>
                       </tr>
                     );
@@ -485,7 +485,11 @@ const UserProfile = ({ tokenValue, solPrice }) => {
                   )}
                   <tr className="font-semibold">
                     <td className="py-2 text-fuchsia-300">Total</td>
-                    <td className="py-2 text-fuchsia-300 text-center">{userData.totalCount}</td>
+                    <td className="py-2 text-fuchsia-300 text-center">{
+                      Object.entries(userData.collections)
+                        .filter(([collection]) => collection !== 'money_monsters_top_10' && collection !== 'money_monsters_3d_top_10' && collection !== 'branded_catz_count')
+                        .reduce((sum, [, count]) => sum + (Number(count) || 0), 0)
+                    }</td>
                     <td className="py-2 text-fuchsia-300 text-center">{totalDailyYield}</td>
                   </tr>
                 </tbody>

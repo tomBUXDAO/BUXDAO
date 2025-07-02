@@ -160,16 +160,21 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Missing required parameters' });
     }
 
+    // Check if user is authenticated
+    if (!req.session?.user?.discord_id) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+
     // Regular claim request
     const claimAmount = parseFloat(amount);
     if (isNaN(claimAmount) || claimAmount <= 0) {
       return res.status(400).json({ error: 'Invalid amount' });
     }
 
-    // Check user's unclaimed rewards
+    // Check user's unclaimed rewards using discord_id from session (like balance endpoint)
     const userResult = await pool.query(
-      'SELECT unclaimed_amount FROM claim_accounts WHERE wallet_address = $1',
-      [walletAddress]
+      'SELECT unclaimed_amount FROM claim_accounts WHERE discord_id = $1',
+      [req.session.user.discord_id]
     );
 
     if (userResult.rows.length === 0) {
@@ -265,18 +270,19 @@ router.post('/confirm', async (req, res) => {
     // Wait 2 seconds before checking status to allow transaction to propagate
     await new Promise(resolve => setTimeout(resolve, 2000));
 
-    // Get discord_id from claim_accounts
+    // Get discord_id from claim_accounts using discord_id from session
+    const discord_id = req.session.user.discord_id;
+    
+    // Verify user exists in claim_accounts
     const userResult = await client.query(
-      'SELECT discord_id FROM claim_accounts WHERE wallet_address = $1',
-      [walletAddress]
+      'SELECT discord_id FROM claim_accounts WHERE discord_id = $1',
+      [discord_id]
     );
 
-    if (!userResult.rows[0]?.discord_id) {
+    if (!userResult.rows[0]) {
       await client.query('ROLLBACK');
       return res.status(404).json({ error: 'User not found in claim_accounts' });
     }
-
-    const discord_id = userResult.rows[0].discord_id;
 
     // Verify transaction on Solana
     const connection = new Connection(
@@ -436,10 +442,13 @@ router.post('/finalize', async (req, res) => {
     client = await pool.connect();
     await client.query('BEGIN');
 
-    // Get user's Discord ID
+    // Get user's Discord ID from session
+    const discord_id = req.session.user.discord_id;
+    
+    // Verify user exists in claim_accounts
     const userResult = await client.query(
-      'SELECT discord_id FROM claim_accounts WHERE wallet_address = $1',
-      [walletAddress]
+      'SELECT discord_id FROM claim_accounts WHERE discord_id = $1',
+      [discord_id]
     );
 
     if (!userResult.rows[0]) {
@@ -447,17 +456,15 @@ router.post('/finalize', async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    const discord_id = userResult.rows[0].discord_id;
-
     // 1. Update unclaimed amount FIRST
     const updateResult = await client.query(
       `UPDATE claim_accounts 
        SET unclaimed_amount = unclaimed_amount - $1,
            total_claimed = total_claimed + $1,
            last_claim_time = NOW()
-       WHERE wallet_address = $2 AND unclaimed_amount >= $1
+       WHERE discord_id = $2 AND unclaimed_amount >= $1
        RETURNING unclaimed_amount`,
-      [amount, walletAddress]
+      [amount, discord_id]
     );
 
     if (!updateResult.rows[0]) {

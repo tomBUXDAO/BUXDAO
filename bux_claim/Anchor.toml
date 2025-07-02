@@ -1,0 +1,22 @@
+[toolchain]
+package_manager = "yarn"
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.mainnet]
+bux_claim = "3TePi2zcFYLdtttQykiUxQ1MP26Nk1uaCqQuRQGJrows"
+
+[programs.devnet]
+bux_claim = "M4JfEjtHhvFDCjxk4of4JVmgQ1xvb1ZKw33BybWDSFK"
+
+[registry]
+url = "https://api.apr.dev"
+
+[provider]
+cluster = "mainnet"
+wallet = "~/.config/solana/treasury-wallet.json"
+
+[scripts]
+test = "yarn run mocha -t 1000000 tests/"

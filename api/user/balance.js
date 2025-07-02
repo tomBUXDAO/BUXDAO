@@ -12,14 +12,15 @@ router.get('/', async (req, res) => {
   try {
     client = await pool.connect();
 
-    // Get user's BUX balance and unclaimed rewards
+    // Get user's aggregated BUX balance and unclaimed rewards across all wallets
     const query = `
       SELECT 
-        COALESCE(bh.balance, 0) as balance,
+        COALESCE(SUM(bh.balance), 0) as balance,
         ca.unclaimed_amount
       FROM claim_accounts ca
       LEFT JOIN bux_holders bh ON bh.owner_discord_id = ca.discord_id
       WHERE ca.discord_id = $1
+      GROUP BY ca.discord_id, ca.unclaimed_amount
     `;
 
     console.log('Executing query with discord_id:', req.session.user.discord_id);

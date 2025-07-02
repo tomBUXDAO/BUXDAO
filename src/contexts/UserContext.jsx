@@ -59,6 +59,19 @@ export const UserProvider = ({ children }) => {
     checkAuth();
   }, []);
 
+  // Auto-link wallet on connect
+  useEffect(() => {
+    if (connected && publicKey && discordUser && discordUser.discord_id) {
+      // Optionally, check if wallet is already linked (if discordUser.wallets is available)
+      fetch(`${API_BASE_URL}/api/user/wallets`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ wallet_address: publicKey.toString() })
+      });
+    }
+  }, [connected, publicKey, discordUser]);
+
   const handleLogout = async () => {
     try {
       setDiscordUser(null);

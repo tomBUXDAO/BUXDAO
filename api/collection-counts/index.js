@@ -10,22 +10,20 @@ router.get('/:discord_id', async (req, res) => {
   try {
     client = await pool.connect();
 
-    // Get wallet address from user_roles
-    const walletResult = await client.query(
-      'SELECT wallet_address FROM user_roles WHERE discord_id = $1',
+    // Check if user exists in user_roles
+    const userResult = await client.query(
+      'SELECT discord_id FROM user_roles WHERE discord_id = $1',
       [discord_id]
     );
 
-    if (!walletResult.rows.length) {
+    if (!userResult.rows.length) {
       return res.status(404).json({
         error: 'User not found',
-        details: `No wallet found for Discord ID: ${discord_id}`
+        details: `No user found for Discord ID: ${discord_id}`
       });
     }
 
-    const wallet_address = walletResult.rows[0].wallet_address;
-
-    // Get user's NFT holdings from collection_counts table
+    // Get user's aggregated NFT holdings from collection_counts_aggregated view
     const query = `
       SELECT 
         COALESCE(celeb_catz_count, 0) as celebcatz_count,
@@ -44,17 +42,17 @@ router.get('/:discord_id', async (req, res) => {
         COALESCE(money_monsters_3d_top_10, 0) as money_monsters_3d_top_10,
         COALESCE(branded_catz_count, 0) as branded_catz_count,
         COALESCE(total_count, 0) as total_count
-      FROM collection_counts 
-      WHERE wallet_address = $1
+      FROM collection_counts_aggregated 
+      WHERE discord_id = $1
     `;
 
-    console.log('Executing collection counts query for wallet:', wallet_address);
-    const result = await client.query(query, [wallet_address]);
+    console.log('Executing collection counts query for discord_id:', discord_id);
+    const result = await client.query(query, [discord_id]);
     console.log('Collection counts result:', result.rows[0]);
     
     // If no results, return zeros
     if (!result.rows[0]) {
-      console.log('No NFTs found for wallet:', wallet_address);
+      console.log('No NFTs found for discord_id:', discord_id);
       return res.json({
         celebcatz_count: 0,
         mm3d_count: 0,
@@ -75,15 +73,15 @@ router.get('/:discord_id', async (req, res) => {
       });
     }
 
-    // Get BUX balance from bux_holders table
+    // Get aggregated BUX balance from bux_holders_aggregated view
     const balanceQuery = `
-      SELECT balance
-      FROM bux_holders
-      WHERE wallet_address = $1
+      SELECT total_balance
+      FROM bux_holders_aggregated
+      WHERE discord_id = $1
     `;
 
-    console.log('Executing balance query for wallet:', wallet_address);
-    const balanceResult = await client.query(balanceQuery, [wallet_address]);
+    console.log('Executing balance query for discord_id:', discord_id);
+    const balanceResult = await client.query(balanceQuery, [discord_id]);
     console.log('Balance result:', balanceResult.rows[0]);
 
     const response = {
@@ -102,7 +100,7 @@ router.get('/:discord_id', async (req, res) => {
       money_monsters_3d_top_10: result.rows[0].money_monsters_3d_top_10,
       branded_catz_count: result.rows[0].branded_catz_count,
       total_count: result.rows[0].total_count,
-      balance: Number(balanceResult.rows[0]?.balance || 0).toFixed(2)
+      balance: Number(balanceResult.rows[0]?.total_balance || 0).toFixed(2)
     };
 
     return res.json(response);

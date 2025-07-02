@@ -4,20 +4,39 @@ import { Bars3Icon, XMarkIcon, LockClosedIcon, ArrowRightOnRectangleIcon } from 
 import Logo from './Logo';
 import { useUser } from '../contexts/UserContext';
 import { useWalletModal } from '@solana/wallet-adapter-react-ui';
+import { useWallet } from '@solana/wallet-adapter-react';
 import { DiscordIcon } from './Icons';
 import XIcon from './XIcon';
+import { API_BASE_URL } from '../config';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const { discordUser, handleLogout, walletConnected, walletAddress } = useUser();
   const { setVisible } = useWalletModal();
+  const walletAdapter = useWallet();
+  const [userWallets, setUserWallets] = useState([]);
+  const [walletsLoading, setWalletsLoading] = useState(false);
 
   const mainLinks = [
     { name: 'Spades', href: '/spades' },
     { name: 'Poker', href: '/poker' },
     { name: 'Merch', href: '/merch' }
   ];
+
+  // Fetch wallets when dropdown opens
+  useEffect(() => {
+    if (isUserDropdownOpen && discordUser) {
+      setWalletsLoading(true);
+      fetch(`${API_BASE_URL}/api/user/wallets`, { credentials: 'include' })
+        .then(res => res.json())
+        .then(data => {
+          setUserWallets(data.wallets || []);
+        })
+        .catch(() => setUserWallets([]))
+        .finally(() => setWalletsLoading(false));
+    }
+  }, [isUserDropdownOpen, discordUser]);
 
   return (
     <header className="fixed w-full bg-black/80 backdrop-blur-sm z-50">
@@ -239,6 +258,25 @@ const Header = () => {
                     }`}
                   >
                     <div className="py-1" role="menu" aria-orientation="vertical">
+                      {/* Wallet list */}
+                      {walletsLoading ? (
+                        <div className="px-4 py-2 text-sm text-gray-400">Loading wallets...</div>
+                      ) : userWallets.length > 0 ? (
+                        <div className="px-4 py-2 text-sm text-gray-300 border-b border-gray-800">
+                          <div className="font-semibold mb-1">Wallets</div>
+                          {userWallets.map(addr => (
+                            <div key={addr} className="flex items-center space-x-2 truncate">
+                              <span className="truncate">{addr.slice(0, 4)}...{addr.slice(-4)}</span>
+                              {walletAdapter.publicKey && addr === walletAdapter.publicKey.toBase58() ? (
+                                <span className="text-green-400">&#10003;</span>
+                              ) : (
+                                <span className="text-red-400">&#10007;</span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ) : null}
+                      {/* Logout/Connect option */}
                       {walletConnected ? (
                         <button
                           onClick={handleLogout}
