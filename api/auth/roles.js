@@ -35,8 +35,10 @@ export default async function handler(req, res) {
 
     // The roles column is already a JSONB array with all the role information
     const roles = result.rows[0].roles || [];
-    console.log('Sending roles:', roles);
-    res.json({ roles });
+    // Flatten if nested (array of arrays)
+    const flatRoles = Array.isArray(roles[0]) ? roles[0] : roles;
+    console.log('Sending roles:', flatRoles);
+    res.json({ roles: flatRoles });
 
   } catch (error) {
     console.error('Error fetching user roles:', error);

@@ -28,17 +28,17 @@ router.get('/', async (req, res) => {
         });
       }
 
-      // Get wallet address from database with retries
+      // Get wallet addresses from user_wallets table with retries
       let dbRetries = 3;
       while (dbRetries > 0) {
         try {
           client = await pool.connect();
           const result = await client.query(
-            'SELECT wallet_address FROM user_roles WHERE discord_id = $1',
+            'SELECT wallet_address FROM user_wallets WHERE discord_id = $1',
             [discordUser.discord_id]
           );
 
-          if (client) client.release();
+          const walletAddresses = result.rows.map(row => row.wallet_address);
 
           return res.json({
             authenticated: true,
@@ -46,7 +46,7 @@ router.get('/', async (req, res) => {
               discord_id: discordUser.discord_id,
               discord_username: discordUser.discord_username,
               avatar: discordUser.avatar,
-              wallet_address: result.rows[0]?.wallet_address
+              wallet_addresses: walletAddresses
             }
           });
         } catch (dbError) {
@@ -56,11 +56,14 @@ router.get('/', async (req, res) => {
             retries: dbRetries - 1
           });
           
-          if (client) client.release();
-          
           dbRetries--;
           if (dbRetries === 0) throw dbError;
           await new Promise(resolve => setTimeout(resolve, 1000));
+        } finally {
+          if (client) {
+            client.release();
+            client = null;
+          }
         }
       }
     } catch (error) {
@@ -69,8 +72,6 @@ router.get('/', async (req, res) => {
         stack: error.stack,
         retries: retries - 1
       });
-
-      if (client) client.release();
       
       retries--;
       if (retries === 0) {

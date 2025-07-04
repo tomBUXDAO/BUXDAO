@@ -12,11 +12,11 @@ BEGIN
         FROM bux_holders
         WHERE wallet_address IN (SELECT wallet_address FROM user_wallets WHERE discord_id = user_record.discord_id);
 
-        -- Aggregate NFT counts across all wallets
+        -- Aggregate NFT counts by owner_discord_id (not wallet address)
         WITH nft_holdings AS (
             SELECT symbol, COUNT(*) as count
             FROM nft_metadata
-            WHERE owner_wallet IN (SELECT wallet_address FROM user_wallets WHERE discord_id = user_record.discord_id)
+            WHERE owner_discord_id = user_record.discord_id
             GROUP BY symbol
         )
         SELECT
