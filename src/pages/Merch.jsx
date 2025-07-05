@@ -1,5 +1,10 @@
 import { useState, useEffect } from 'react';
 import { ShoppingBagIcon, AdjustmentsHorizontalIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import countryData from '../utils/countryData'; // We'll create this file for country/dial code info
+import { useWallet, useConnection } from '@solana/wallet-adapter-react';
+import { PublicKey, Transaction } from '@solana/web3.js';
+import { getAssociatedTokenAddress, createTransferInstruction, TOKEN_PROGRAM_ID } from '@solana/spl-token';
+import ToggleSwitch from '../components/ToggleSwitch';
 
 const CATEGORIES = {
   all: 'All Products',
@@ -167,6 +172,16 @@ const ProductModal = ({ product: initialProduct, onClose, onAddToCart }) => {
       return;
     }
     
+    // Find the specific variant that matches both color and size
+    const specificVariant = variants.find(v => 
+      v.color === selectedColor && v.size === selectedSize
+    );
+    
+    if (!specificVariant) {
+      alert('Selected combination not available');
+      return;
+    }
+    
     const { frontImage } = getProductImages(product, selectedColor);
     
     onAddToCart({
@@ -174,8 +189,10 @@ const ProductModal = ({ product: initialProduct, onClose, onAddToCart }) => {
       size: selectedSize,
       color: selectedColor,
       quantity,
-      price: selectedVariant.retail_price,
-      thumbnail_url: frontImage
+      price: specificVariant.retail_price,
+      thumbnail_url: frontImage,
+      sync_variant_id: specificVariant.id, // This is required for Printful orders
+      variant_id: specificVariant.variant_id // Backup variant ID
     });
     onClose();
   };
@@ -334,8 +351,34 @@ const ProductModal = ({ product: initialProduct, onClose, onAddToCart }) => {
   );
 };
 
-const CartSidebar = ({ isOpen, onClose, items, onUpdateQuantity, onRemoveItem }) => {
+const CartSidebar = ({ isOpen, onClose, items, onUpdateQuantity, onRemoveItem, onCheckout, shippingForm, setShippingForm, shippingFormIsValid, setShippingFormIsValid, activeTab, setActiveTab }) => {
+  const { publicKey } = useWallet();
+  const [orders, setOrders] = useState([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [ordersError, setOrdersError] = useState(null);
+
   const total = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+  // Fetch orders when switching to My Orders tab
+  useEffect(() => {
+    const fetchOrders = async () => {
+      if (activeTab === 'orders' && publicKey) {
+        setOrdersLoading(true);
+        setOrdersError(null);
+        try {
+          const res = await fetch(`/api/printful/order/${publicKey.toString()}`);
+          if (!res.ok) throw new Error('Failed to fetch orders');
+          const data = await res.json();
+          setOrders(data.orders || []);
+        } catch (err) {
+          setOrdersError(err.message);
+        } finally {
+          setOrdersLoading(false);
+        }
+      }
+    };
+    fetchOrders();
+  }, [activeTab, publicKey]);
 
   return (
     <div className={`fixed inset-y-0 right-0 w-full sm:w-96 bg-gray-900 shadow-xl transform transition-transform duration-300 z-50 ${
@@ -344,69 +387,283 @@ const CartSidebar = ({ isOpen, onClose, items, onUpdateQuantity, onRemoveItem })
       <div className="h-full flex flex-col">
         <div className="p-6 border-b border-gray-800">
           <div className="flex justify-between items-center">
-            <h2 className="text-xl font-bold text-white">Shopping Cart</h2>
+            <ToggleSwitch
+              isOn={activeTab === 'orders'}
+              onToggle={() => setActiveTab(activeTab === 'cart' ? 'orders' : 'cart')}
+              leftLabel="Cart"
+              rightLabel="My Orders"
+              disabled={!publicKey && activeTab === 'orders'}
+              disabledTooltip="Connect wallet to view orders"
+            />
             <button onClick={onClose} className="text-gray-400 hover:text-white">
               <XMarkIcon className="h-6 w-6" />
             </button>
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6">
-          {items.length === 0 ? (
-            <div className="text-center text-gray-400 py-12">
-              Your cart is empty
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {items.map((item) => (
-                <div key={`${item.id}-${item.size}`} className="flex items-start space-x-4">
-                  <img
-                    src={item.thumbnail_url}
-                    alt={item.name}
-                    className="w-20 h-20 object-cover rounded-lg"
-                  />
-                  <div className="flex-1">
-                    <h3 className="text-white font-medium">{item.name}</h3>
-                    <p className="text-sm text-gray-400">Size: {item.size}</p>
-                    <div className="mt-2 flex items-center space-x-2">
-                      <button
-                        className="text-gray-400 hover:text-white"
-                        onClick={() => onUpdateQuantity(item, Math.max(1, item.quantity - 1))}
-                      >
-                        -
-                      </button>
-                      <span className="text-white">{item.quantity}</span>
-                      <button
-                        className="text-gray-400 hover:text-white"
-                        onClick={() => onUpdateQuantity(item, item.quantity + 1)}
-                      >
-                        +
-                      </button>
-                      <button
-                        className="ml-4 text-red-500 hover:text-red-400 text-sm"
-                        onClick={() => onRemoveItem(item)}
-                      >
-                        Remove
-                      </button>
+        <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
+          {activeTab === 'cart' ? (
+            items.length === 0 ? (
+              <div className="text-center text-gray-400 py-12">
+                Your cart is empty
+              </div>
+            ) : (
+              <>
+                <div className="space-y-6">
+                  {items.map((item) => (
+                    <div key={`${item.id}-${item.size}`} className="flex items-start space-x-4">
+                      <img
+                        src={item.thumbnail_url}
+                        alt={item.name}
+                        className="w-20 h-20 object-cover rounded-lg"
+                      />
+                      <div className="flex-1">
+                        <h3 className="text-white font-medium">{item.name}</h3>
+                        <p className="text-sm text-gray-400">Size: {item.size}</p>
+                        <div className="mt-2 flex items-center space-x-2">
+                          <button
+                            className="text-gray-400 hover:text-white"
+                            onClick={() => onUpdateQuantity(item, Math.max(1, item.quantity - 1))}
+                          >
+                            -
+                          </button>
+                          <span className="text-white">{item.quantity}</span>
+                          <button
+                            className="text-gray-400 hover:text-white"
+                            onClick={() => onUpdateQuantity(item, item.quantity + 1)}
+                          >
+                            +
+                          </button>
+                          <button
+                            className="ml-4 text-red-500 hover:text-red-400 text-sm"
+                            onClick={() => onRemoveItem(item)}
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  ))}
                 </div>
-              ))}
+                {/* Shipping Form below cart items */}
+                <ShippingForm
+                  form={shippingForm}
+                  setForm={setShippingForm}
+                  isValid={shippingFormIsValid}
+                  setIsValid={setShippingFormIsValid}
+                />
+              </>
+            )
+          ) : (
+            <div>
+              {!publicKey ? (
+                <div className="text-center text-gray-400 py-12">Connect your wallet to view orders.</div>
+              ) : ordersLoading ? (
+                <div className="text-center text-gray-400 py-12">Loading orders...</div>
+              ) : ordersError ? (
+                <div className="text-center text-red-500 py-12">{ordersError}</div>
+              ) : orders.length === 0 ? (
+                <div className="text-center text-gray-400 py-12">No orders found.</div>
+              ) : (
+                <div className="space-y-6">
+                  {orders.map(order => (
+                    <div key={order.id} className="bg-gray-800 rounded-lg p-4">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-white font-semibold">Order #{order.id}</span>
+                        <span className="text-xs text-gray-400">{new Date(order.created_at).toLocaleString()}</span>
+                      </div>
+                      <div className="text-sm text-gray-300 mb-2">
+                        Status: <span className="font-medium">{order.status}</span>
+                      </div>
+                      <div className="text-xs text-gray-400 mb-2">
+                        {order.cart && Array.isArray(order.cart) && order.cart.map((item, idx) => (
+                          <div key={idx}>
+                            {item.name} ({item.size}) x{item.quantity} - ${item.price}
+                          </div>
+                        ))}
+                      </div>
+                      <a
+                        href={`https://solscan.io/tx/${order.tx_signature}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-purple-400 hover:underline"
+                      >
+                        View Transaction
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
 
-        {items.length > 0 && (
+        {/* Only show checkout if Cart tab is active and there are items */}
+        {activeTab === 'cart' && items.length > 0 && (
           <div className="p-6 border-t border-gray-800">
             <div className="flex justify-between items-center mb-4">
               <span className="text-gray-400">Subtotal</span>
               <span className="text-white font-medium">${total.toFixed(2)}</span>
             </div>
-            <button className="w-full bg-purple-600 text-white py-3 px-6 rounded-full hover:bg-purple-700 transition-colors">
-              Checkout
+            <button 
+              onClick={() => onCheckout(items, total, shippingForm)}
+              className={`w-full bg-purple-600 text-white py-3 px-6 rounded-full hover:bg-purple-700 transition-colors ${!shippingFormIsValid ? 'opacity-50 cursor-not-allowed' : ''}`}
+              disabled={!shippingFormIsValid}
+            >
+              Checkout with USDC
             </button>
           </div>
         )}
+      </div>
+    </div>
+  );
+};
+
+const USDC_MINT = new PublicKey('EPjFWdd5AufqSSqeM2q8VsJb6AfxkTz4uD1F6P8Q9b7');
+const PROJECT_WALLET = new PublicKey('FYfLzXckAf2JZoMYBz2W4fpF9vejqpA6UFV17d1A7C75');
+
+// Helper: Capitalise first letter of each word
+function toTitleCase(str) {
+  return str.replace(/\w\S*/g, (txt) =>
+    txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase()
+  );
+}
+
+const ShippingForm = ({ form, setForm, isValid, setIsValid }) => {
+  const [saveDetails, setSaveDetails] = useState(false);
+
+  // Autofill from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('buxdao_shipping');
+    if (saved) {
+      setForm(JSON.parse(saved));
+      setSaveDetails(true);
+    }
+  }, [setForm]);
+
+  // Validate form fields
+  useEffect(() => {
+    const requiredFields = [
+      'firstName', 'lastName', 'email', 'country', 'dialCode',
+      'address1', 'city', 'state', 'postalCode'
+    ];
+    const allFilled = requiredFields.every(f => form[f] && form[f].trim() !== '');
+    const emailValid = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(form.email);
+    const countryObj = countryData.find(c => c.name === form.country);
+    const dialCodeMatches = countryObj && countryObj.dial_code === form.dialCode;
+    setIsValid(allFilled && emailValid && dialCodeMatches);
+  }, [form, setIsValid]);
+
+  // Save details to localStorage on submit (parent should call this after successful checkout)
+  const handleSaveDetails = () => {
+    if (saveDetails) {
+      localStorage.setItem('buxdao_shipping', JSON.stringify(form));
+    } else {
+      localStorage.removeItem('buxdao_shipping');
+    }
+  };
+
+  return (
+    <div className="bg-gray-900 rounded-lg p-6 mb-8 max-w-xl mx-auto">
+      <h2 className="text-xl font-bold text-white mb-4">Shipping & Contact Details</h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <input
+          className="bg-gray-800 text-white rounded px-4 py-2"
+          placeholder="First Name*"
+          value={form.firstName}
+          onChange={e => setForm(f => ({ ...f, firstName: toTitleCase(e.target.value) }))}
+        />
+        <input
+          className="bg-gray-800 text-white rounded px-4 py-2"
+          placeholder="Last Name*"
+          value={form.lastName}
+          onChange={e => setForm(f => ({ ...f, lastName: toTitleCase(e.target.value) }))}
+        />
+        <input
+          className="bg-gray-800 text-white rounded px-4 py-2 col-span-2"
+          placeholder="Email Address*"
+          type="email"
+          value={form.email}
+          onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+        />
+        <div className="col-span-2 flex flex-col sm:flex-row gap-2 min-w-0 overflow-hidden">
+          <select
+            className="bg-gray-800 text-white rounded px-4 py-2 flex-1 w-full"
+            value={form.country}
+            onChange={e => {
+              const country = e.target.value;
+              const countryObj = countryData.find(c => c.name === country);
+              setForm(f => ({ ...f, country, dialCode: countryObj ? countryObj.dial_code : '' }));
+            }}
+          >
+            <option value="">Country*</option>
+            {countryData.map(c => (
+              <option key={c.code} value={c.name}>{c.name}</option>
+            ))}
+          </select>
+          <select
+            className="bg-gray-800 text-white rounded px-4 py-2 w-full sm:w-24"
+            value={form.dialCode}
+            onChange={e => {
+              const dialCode = e.target.value;
+              const countryObj = countryData.find(c => c.dial_code === dialCode);
+              setForm(f => ({ ...f, dialCode, country: countryObj ? countryObj.name : f.country }));
+            }}
+          >
+            <option value="">Dial Code*</option>
+            {countryData.map(c => (
+              <option key={`${c.code}-${c.dial_code}`} value={c.dial_code}>
+                {c.dial_code} {c.flag}
+              </option>
+            ))}
+          </select>
+        </div>
+        <input
+          className="bg-gray-800 text-white rounded px-4 py-2 col-span-2"
+          placeholder="Phone Number (optional)"
+          value={form.phone}
+          onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
+        />
+        <input
+          className="bg-gray-800 text-white rounded px-4 py-2 col-span-2"
+          placeholder="Address Line 1*"
+          value={form.address1}
+          onChange={e => setForm(f => ({ ...f, address1: toTitleCase(e.target.value) }))}
+        />
+        <input
+          className="bg-gray-800 text-white rounded px-4 py-2 col-span-2"
+          placeholder="Address Line 2 (optional)"
+          value={form.address2}
+          onChange={e => setForm(f => ({ ...f, address2: toTitleCase(e.target.value) }))}
+        />
+        <input
+          className="bg-gray-800 text-white rounded px-4 py-2"
+          placeholder="City*"
+          value={form.city}
+          onChange={e => setForm(f => ({ ...f, city: toTitleCase(e.target.value) }))}
+        />
+        <input
+          className="bg-gray-800 text-white rounded px-4 py-2"
+          placeholder="State/Province/Region*"
+          value={form.state}
+          onChange={e => setForm(f => ({ ...f, state: toTitleCase(e.target.value) }))}
+        />
+        <input
+          className="bg-gray-800 text-white rounded px-4 py-2 col-span-2"
+          placeholder="Postal/ZIP Code*"
+          value={form.postalCode}
+          onChange={e => setForm(f => ({ ...f, postalCode: e.target.value }))}
+        />
+      </div>
+      <div className="flex items-center mt-4">
+        <input
+          type="checkbox"
+          id="saveDetails"
+          checked={saveDetails}
+          onChange={e => setSaveDetails(e.target.checked)}
+          className="mr-2"
+        />
+        <label htmlFor="saveDetails" className="text-white">Save my details for next time</label>
       </div>
     </div>
   );
@@ -416,11 +673,29 @@ const Merch = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [loadingProgress, setLoadingProgress] = useState(0);
   const [activeCategory, setActiveCategory] = useState('all');
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [cartItems, setCartItems] = useState([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [showingBackMap, setShowingBackMap] = useState({});  // New state for tracking front/back toggle
+  const [thankYou, setThankYou] = useState(false);
+  const [cartSidebarTab, setCartSidebarTab] = useState('cart');
+  const { publicKey, signTransaction, sendTransaction, connected } = useWallet();
+  const { connection } = useConnection();
+  const [shippingForm, setShippingForm] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    country: '',
+    dialCode: '',
+    phone: '',
+    address1: '',
+    city: '',
+    state: '',
+    postalCode: ''
+  });
+  const [shippingFormIsValid, setShippingFormIsValid] = useState(false);
 
   // Toggle front/back view for a specific product
   const toggleBackView = (productId) => {
@@ -431,6 +706,7 @@ const Merch = () => {
   };
 
   useEffect(() => {
+    let isMounted = true;
     const fetchProducts = async () => {
       try {
         console.log('Fetching products...');
@@ -459,19 +735,37 @@ const Merch = () => {
 
         console.log('Products data:', data);
         
-        // Fetch variants with rate limiting
+        // Fetch variants with caching and rate limiting
         const productsWithPrices = [];
-        for (const product of data) {
+        const variantCache = new Map();
+        const totalProducts = data.length;
+        
+        for (let i = 0; i < data.length; i++) {
+          const product = data[i];
+          const progress = Math.round(((i + 1) / totalProducts) * 100);
+          setLoadingProgress(progress);
           try {
-            // Add a small delay between requests
-            await new Promise(resolve => setTimeout(resolve, 100));
+            // Check cache first
+            if (variantCache.has(product.id)) {
+              const cachedVariants = variantCache.get(product.id);
+              productsWithPrices.push({
+                ...product,
+                sync_variants: cachedVariants
+              });
+              continue;
+            }
+            
+            // Add a small delay between requests to avoid rate limiting
+            await new Promise(resolve => setTimeout(resolve, 50));
             
             const variantResponse = await fetch(`${API_URL}/printful/products/${product.id}`);
             if (!variantResponse.ok) {
               console.warn(`Skipping variants for product ${product.id} due to API error:`, await variantResponse.text());
+              const emptyVariants = [];
+              variantCache.set(product.id, emptyVariants);
               productsWithPrices.push({
                 ...product,
-                sync_variants: []
+                sync_variants: emptyVariants
               });
               continue;
             }
@@ -483,37 +777,52 @@ const Merch = () => {
               variantData = JSON.parse(text);
             } catch (e) {
               console.warn(`Failed to parse variant response for ${product.id}:`, e);
+              const emptyVariants = [];
+              variantCache.set(product.id, emptyVariants);
               productsWithPrices.push({
                 ...product,
-                sync_variants: []
+                sync_variants: emptyVariants
               });
               continue;
             }
 
+            const variants = variantData.sync_variants || [];
+            variantCache.set(product.id, variants);
+            
             productsWithPrices.push({
               ...product,
-              sync_variants: variantData.sync_variants || []
+              sync_variants: variants
             });
           } catch (err) {
             console.warn(`Skipping variants for product ${product.id}:`, err);
+            const emptyVariants = [];
+            variantCache.set(product.id, emptyVariants);
             productsWithPrices.push({
               ...product,
-              sync_variants: []
+              sync_variants: emptyVariants
             });
           }
         }
         
         console.log('Products with prices:', productsWithPrices);
-        setProducts(productsWithPrices);
-        setLoading(false);
+        if (isMounted) {
+          setProducts(productsWithPrices);
+          setLoading(false);
+        }
       } catch (err) {
         console.error('Error fetching products:', err);
-        setError(err.message);
-        setLoading(false);
+        if (isMounted) {
+          setError(err.message);
+          setLoading(false);
+        }
       }
     };
 
     fetchProducts();
+    
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const categorizeProduct = (product) => {
@@ -568,6 +877,105 @@ const Merch = () => {
       )
     );
   };
+
+  const handleCheckout = async (items, total, shippingInfo) => {
+    if (!publicKey || !connected) {
+      alert('Please connect your wallet first.');
+      return;
+    }
+
+    try {
+      // Calculate total price in USDC (6 decimals)
+      const usdcAmount = total;
+      const usdcAmountRaw = Math.round(usdcAmount * 1e6); // USDC has 6 decimals
+
+      // Get associated token addresses
+      const userUsdcAddress = await getAssociatedTokenAddress(USDC_MINT, publicKey);
+      const projectUsdcAddress = await getAssociatedTokenAddress(USDC_MINT, PROJECT_WALLET);
+
+      // Create transfer instruction
+      const transferIx = createTransferInstruction(
+        userUsdcAddress,
+        projectUsdcAddress,
+        publicKey,
+        usdcAmountRaw,
+        [],
+        TOKEN_PROGRAM_ID
+      );
+
+      // Create transaction
+      const transaction = new Transaction().add(transferIx);
+
+      // Send transaction
+      const signature = await sendTransaction(transaction, connection);
+      console.log('USDC payment signature:', signature);
+
+      // Wait for confirmation
+      await connection.confirmTransaction(signature, 'confirmed');
+
+      // Create order in backend with real tx signature
+      const orderResponse = await fetch('/api/printful/order', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          shippingInfo,
+          cart: items,
+          txSignature: signature,
+          email: shippingInfo.email,
+          wallet_address: publicKey.toString()
+        }),
+      });
+
+      if (!orderResponse.ok) {
+        const errorData = await orderResponse.json();
+        console.error('Order creation failed:', errorData);
+        alert('Order creation failed: ' + (errorData.error || 'Unknown error'));
+        return;
+      } else {
+        const orderData = await orderResponse.json();
+        console.log('Order created successfully:', orderData);
+        alert(`Order created successfully! Order ID: ${orderData.order_id}`);
+      }
+      
+      setThankYou(true);
+    } catch (orderError) {
+      console.error('Failed to create order:', orderError);
+      alert('Failed to create order: ' + orderError.message);
+    }
+  };
+
+  if (thankYou) {
+    return (
+      <div className="bg-black min-h-screen flex items-center justify-center">
+        <div className="bg-gray-900 rounded-lg p-8 text-center relative max-w-md w-full">
+          {/* Close (X) button */}
+          <button
+            className="absolute top-4 right-4 text-gray-400 hover:text-white"
+            onClick={() => setThankYou(false)}
+            aria-label="Close"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+          <h2 className="text-2xl font-bold text-white mb-4">Thank you for your order!</h2>
+          <p className="text-gray-300 mb-6">We have received your payment and will process your order soon.</p>
+          <button
+            className="w-full bg-purple-600 text-white py-3 px-6 rounded-full hover:bg-purple-700 transition-colors mb-2"
+            onClick={() => {
+              setThankYou(false);
+              setIsCartOpen(true);
+              setCartSidebarTab('orders');
+            }}
+          >
+            View details in My Orders
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -739,6 +1147,13 @@ const Merch = () => {
         items={cartItems}
         onUpdateQuantity={updateCartItemQuantity}
         onRemoveItem={removeCartItem}
+        onCheckout={handleCheckout}
+        shippingForm={shippingForm}
+        setShippingForm={setShippingForm}
+        shippingFormIsValid={shippingFormIsValid}
+        setShippingFormIsValid={setShippingFormIsValid}
+        activeTab={cartSidebarTab}
+        setActiveTab={setCartSidebarTab}
       />
     </div>
   );

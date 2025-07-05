@@ -52,16 +52,16 @@ router.post('/', async (req, res) => {
     try {
       await client.query('BEGIN');
 
-      // Update wallet address
-      const result = await client.query(
-        'UPDATE user_roles SET wallet_address = $1 WHERE discord_id = $2 RETURNING *',
+      // Check if wallet already exists for this user
+      const existingWallet = await client.query(
+        'SELECT * FROM user_wallets WHERE wallet_address = $1 AND discord_id = $2',
         [wallet_address, discordUser.discord_id]
       );
 
-      if (result.rows.length === 0) {
-        // Insert if no update was made
+      if (existingWallet.rows.length === 0) {
+        // Insert new wallet for this user
         await client.query(
-          'INSERT INTO user_roles (wallet_address, discord_id, discord_username) VALUES ($1, $2, $3)',
+          'INSERT INTO user_wallets (wallet_address, discord_id, discord_username) VALUES ($1, $2, $3)',
           [wallet_address, discordUser.discord_id, discordUser.discord_username]
         );
       }

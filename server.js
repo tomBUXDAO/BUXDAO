@@ -97,6 +97,7 @@ import processRewardsRouter from './api/rewards/process-daily.js';
 import rewardsEventsRouter from './api/rewards/events.js';
 import nftLookupRouter from './api/nft-lookup.js';
 import rankLookupRouter from './api/nft-lookup/rank.js';
+import printfulOrderRouter from './api/printful/order.js';
 
 const app = express();
 
@@ -398,6 +399,7 @@ app.use('/api/rewards/process-daily', processRewardsRouter);
 app.use('/api/rewards/events', rewardsEventsRouter);
 app.use('/api/nft-lookup', nftLookupRouter);
 app.use('/api/nft-lookup/rank', rankLookupRouter);
+app.use('/api/printful', printfulOrderRouter);
 
 // Mount rewards routes
 const rewardsRouter = express.Router();

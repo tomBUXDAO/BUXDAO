@@ -2,6 +2,8 @@ import pkg from 'pg';
 const { Pool } = pkg;
 import axios from 'axios';
 import dotenv from 'dotenv';
+const printfulOrderRouter = require('./printful/order');
+const merchOrdersRouter = require('./merch/orders');
 
 dotenv.config();
 
@@ -97,4 +99,7 @@ export default async function handler(req, res) {
   
   // Handle 404 for unmatched routes
   return res.status(404).json({ error: 'API endpoint not found' });
-} 
+}
+
+app.use('/api/printful', printfulOrderRouter);
+app.use('/api/merch', merchOrdersRouter); 
