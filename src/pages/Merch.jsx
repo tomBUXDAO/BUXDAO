@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { ShoppingBagIcon, AdjustmentsHorizontalIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import countryData from '../utils/countryData'; // We'll create this file for country/dial code info
 import { useWallet, useConnection } from '@solana/wallet-adapter-react';
-import { PublicKey, Transaction } from '@solana/web3.js';
-import { getAssociatedTokenAddress, createTransferInstruction, TOKEN_PROGRAM_ID } from '@solana/spl-token';
+import { PublicKey, Transaction, SystemProgram } from '@solana/web3.js';
+import { getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import ToggleSwitch from '../components/ToggleSwitch';
 
 const CATEGORIES = {
@@ -529,6 +529,17 @@ function toTitleCase(str) {
   );
 }
 
+// Helper to encode a u64 as 8-byte little-endian Uint8Array
+function encodeU64LE(num) {
+  const buf = new Uint8Array(8);
+  let n = BigInt(num);
+  for (let i = 0; i < 8; i++) {
+    buf[i] = Number(n & 0xffn);
+    n >>= 8n;
+  }
+  return buf;
+}
+
 const ShippingForm = ({ form, setForm, isValid, setIsValid }) => {
   const [saveDetails, setSaveDetails] = useState(false);
 
@@ -696,6 +707,9 @@ const Merch = () => {
     postalCode: ''
   });
   const [shippingFormIsValid, setShippingFormIsValid] = useState(false);
+  // New state for transaction summary modal
+  const [showTxSummary, setShowTxSummary] = useState(false);
+  const [pendingCheckout, setPendingCheckout] = useState(null); // {items, total, shippingInfo}
 
   // Toggle front/back view for a specific product
   const toggleBackView = (productId) => {
@@ -878,12 +892,20 @@ const Merch = () => {
     );
   };
 
-  const handleCheckout = async (items, total, shippingInfo) => {
+  // Modified checkout handler to show summary first
+  const handleCheckout = (items, total, shippingInfo) => {
+    setPendingCheckout({ items, total, shippingInfo });
+    setShowTxSummary(true);
+  };
+
+  // Actual payment logic, only called after user confirms
+  const handleConfirmPayment = async () => {
+    setShowTxSummary(false);
     if (!publicKey || !connected) {
       alert('Please connect your wallet first.');
       return;
     }
-
+    const { items, total, shippingInfo } = pendingCheckout;
     try {
       // Calculate total price in USDC (6 decimals)
       const usdcAmount = total;
@@ -893,18 +915,23 @@ const Merch = () => {
       const userUsdcAddress = await getAssociatedTokenAddress(USDC_MINT, publicKey);
       const projectUsdcAddress = await getAssociatedTokenAddress(USDC_MINT, PROJECT_WALLET);
 
-      // Create transfer instruction
-      const transferIx = createTransferInstruction(
-        userUsdcAddress,
-        projectUsdcAddress,
-        publicKey,
-        usdcAmountRaw,
-        [],
-        TOKEN_PROGRAM_ID
-      );
+      // Create raw SPL Token transfer instruction for cleaner Phantom display
+      const transferIx = {
+        programId: TOKEN_PROGRAM_ID,
+        keys: [
+          { pubkey: userUsdcAddress, isSigner: false, isWritable: true }, // source
+          { pubkey: projectUsdcAddress, isSigner: false, isWritable: true }, // destination
+          { pubkey: publicKey, isSigner: true, isWritable: false }, // owner
+        ],
+        data: Buffer.from([
+          3, // Transfer instruction (3 = transfer)
+          ...encodeU64LE(usdcAmountRaw)
+        ])
+      };
 
-      // Create transaction
-      const transaction = new Transaction().add(transferIx);
+      // Create transaction with just the transfer instruction
+      const transaction = new Transaction();
+      transaction.add(transferIx);
 
       // Send transaction
       const signature = await sendTransaction(transaction, connection);
@@ -938,7 +965,6 @@ const Merch = () => {
         console.log('Order created successfully:', orderData);
         alert(`Order created successfully! Order ID: ${orderData.order_id}`);
       }
-      
       setThankYou(true);
     } catch (orderError) {
       console.error('Failed to create order:', orderError);
@@ -1155,6 +1181,40 @@ const Merch = () => {
         activeTab={cartSidebarTab}
         setActiveTab={setCartSidebarTab}
       />
+
+      {/* Transaction summary modal */}
+      {showTxSummary && pendingCheckout && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+          <div className="bg-gray-900 rounded-lg p-8 max-w-md w-full text-center relative">
+            <button
+              className="absolute top-4 right-4 text-gray-400 hover:text-white"
+              onClick={() => setShowTxSummary(false)}
+              aria-label="Close"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <h2 className="text-2xl font-bold text-white mb-4">Confirm Payment</h2>
+            <div className="text-gray-300 mb-2">You are about to pay:</div>
+            <div className="text-3xl font-bold text-purple-400 mb-4">{pendingCheckout.total.toFixed(2)} USDC</div>
+            <div className="text-gray-400 mb-2">To:</div>
+            <div className="text-xs text-white mb-4 break-all">{PROJECT_WALLET.toString()}</div>
+            <button
+              className="w-full bg-purple-600 text-white py-3 px-6 rounded-full hover:bg-purple-700 transition-colors mb-2"
+              onClick={handleConfirmPayment}
+            >
+              Confirm and Pay
+            </button>
+            <button
+              className="w-full bg-gray-700 text-white py-2 px-6 rounded-full hover:bg-gray-600 transition-colors"
+              onClick={() => setShowTxSummary(false)}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
