@@ -146,13 +146,17 @@ const ProductModal = ({ product: initialProduct, onClose, onAddToCart }) => {
     fetchVariants();
   }, [product.id]);
 
-  // Update selected variant when color changes
+  // Update selected variant and preselect size if only one size for color
   useEffect(() => {
     if (selectedColor && variants.length > 0) {
-      const newVariant = variants.find(v => v.color === selectedColor);
+      const colorVariants = variants.filter(v => v.color === selectedColor);
+      if (colorVariants.length === 1) {
+        setSelectedSize(colorVariants[0].size);
+      } else {
+        setSelectedSize('');
+      }
+      const newVariant = colorVariants[0];
       if (newVariant) {
-        console.log('Selected variant:', newVariant);
-        console.log('Variant files:', newVariant.files);
         setSelectedVariant(newVariant);
       }
     }
@@ -579,13 +583,13 @@ const ShippingForm = ({ form, setForm, isValid, setIsValid }) => {
       <h2 className="text-xl font-bold text-white mb-4">Shipping & Contact Details</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <input
-          className="bg-gray-800 text-white rounded px-4 py-2"
+          className="bg-gray-800 text-white rounded px-4 py-2 col-span-2"
           placeholder="First Name*"
           value={form.firstName}
           onChange={e => setForm(f => ({ ...f, firstName: toTitleCase(e.target.value) }))}
         />
         <input
-          className="bg-gray-800 text-white rounded px-4 py-2"
+          className="bg-gray-800 text-white rounded px-4 py-2 col-span-2"
           placeholder="Last Name*"
           value={form.lastName}
           onChange={e => setForm(f => ({ ...f, lastName: toTitleCase(e.target.value) }))}
@@ -648,13 +652,13 @@ const ShippingForm = ({ form, setForm, isValid, setIsValid }) => {
           onChange={e => setForm(f => ({ ...f, address2: toTitleCase(e.target.value) }))}
         />
         <input
-          className="bg-gray-800 text-white rounded px-4 py-2"
+          className="bg-gray-800 text-white rounded px-4 py-2 col-span-2"
           placeholder="City*"
           value={form.city}
           onChange={e => setForm(f => ({ ...f, city: toTitleCase(e.target.value) }))}
         />
         <input
-          className="bg-gray-800 text-white rounded px-4 py-2"
+          className="bg-gray-800 text-white rounded px-4 py-2 col-span-2"
           placeholder="State/Province/Region*"
           value={form.state}
           onChange={e => setForm(f => ({ ...f, state: toTitleCase(e.target.value) }))}
@@ -1032,7 +1036,7 @@ const Merch = () => {
                 BUXDAO Shop
               </h1>
               <p className="text-gray-300 text-lg mt-2">
-                All merchandise can be paid for using USDC
+                All merchandise can be purchased using USDC, prices are inclusive of posting and packaging.
               </p>
             </div>
             <button 
@@ -1098,14 +1102,14 @@ const Merch = () => {
               const isShowingBack = showingBackMap[product.id];
               
               return (
-                <div key={product.id} className="bg-gray-900 rounded-lg overflow-hidden group">
+                <div key={product.id} className="bg-gray-900 rounded-lg overflow-hidden group transition-transform duration-200 hover:scale-105 border-2 border-transparent hover:border-yellow-400" style={{ boxShadow: '0 2px 8px 0 rgba(0,0,0,0.08)' }}>
                   <div className="aspect-w-1 aspect-h-1 relative">
                     <img
                       src={isShowingBack ? backImage : frontImage}
                       alt={product.name}
-                      className="w-full h-full object-center object-cover group-hover:opacity-75 transition-opacity"
+                      className="w-full h-full object-center object-cover transition-transform duration-200 group-hover:scale-105"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    {/* Removed dark overlay */}
                     {hasBackDesign(product.name) && backImage && (
                       <button
                         onClick={(e) => {
@@ -1122,7 +1126,7 @@ const Merch = () => {
                       </button>
                     )}
                   </div>
-                  <div className="p-4">
+                  <div className="p-4 transition-transform duration-200 group-hover:scale-105">
                     <h3 className="text-lg font-medium text-white">{product.name}</h3>
                     <div className="mt-2 flex justify-between items-center">
                       <div className="text-purple-400 text-lg font-medium">
