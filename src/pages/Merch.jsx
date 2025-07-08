@@ -398,6 +398,8 @@ const CartSidebar = ({ isOpen, onClose, items, onUpdateQuantity, onRemoveItem, o
               rightLabel="My Orders"
               disabled={!publicKey && activeTab === 'orders'}
               disabledTooltip="Connect wallet to view orders"
+              setActiveTab={setActiveTab}
+              activeTab={activeTab}
             />
             <button onClick={onClose} className="text-gray-400 hover:text-white">
               <XMarkIcon className="h-6 w-6" />
@@ -601,6 +603,7 @@ const ShippingForm = ({ form, setForm, isValid, setIsValid }) => {
           value={form.email}
           onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
         />
+        {/* Removed dial code dropdown, only country selector and phone input remain */}
         <div className="col-span-2 flex flex-col sm:flex-row gap-2 min-w-0 overflow-hidden">
           <select
             className="bg-gray-800 text-white rounded px-4 py-2 flex-1 w-full"
@@ -616,29 +619,25 @@ const ShippingForm = ({ form, setForm, isValid, setIsValid }) => {
               <option key={c.code} value={c.name}>{c.name}</option>
             ))}
           </select>
-          <select
-            className="bg-gray-800 text-white rounded px-4 py-2 w-full sm:w-24"
-            value={form.dialCode}
-            onChange={e => {
-              const dialCode = e.target.value;
-              const countryObj = countryData.find(c => c.dial_code === dialCode);
-              setForm(f => ({ ...f, dialCode, country: countryObj ? countryObj.name : f.country }));
-            }}
-          >
-            <option value="">Dial Code*</option>
-            {countryData.map(c => (
-              <option key={`${c.code}-${c.dial_code}`} value={c.dial_code}>
-                {c.dial_code} {c.flag}
-              </option>
-            ))}
-          </select>
         </div>
-        <input
-          className="bg-gray-800 text-white rounded px-4 py-2 col-span-2"
-          placeholder="Phone Number (optional)"
-          value={form.phone}
-          onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
-        />
+        {/* Phone Number with flag and dial code prefix */}
+        <div className="col-span-2 flex items-center bg-gray-800 rounded px-4 py-2">
+          {/* Country flag and dial code prefix */}
+          {form.country && countryData.find(c => c.name === form.country) ? (
+            <span className="flex items-center mr-2 select-none">
+              <span className="text-lg mr-1">{countryData.find(c => c.name === form.country).flag}</span>
+              <span className="text-white font-medium">{countryData.find(c => c.name === form.country).dial_code}</span>
+            </span>
+          ) : null}
+          <input
+            className="bg-transparent text-white flex-1 outline-none border-none"
+            placeholder="Phone Number (optional)"
+            value={form.phone}
+            onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
+            style={{ minWidth: 0 }}
+            type="tel"
+          />
+        </div>
         <input
           className="bg-gray-800 text-white rounded px-4 py-2 col-span-2"
           placeholder="Address Line 1*"
@@ -1152,14 +1151,7 @@ const Merch = () => {
         )}
       </div>
 
-      {/* Free Shipping Banner */}
-      <div className="fixed bottom-0 left-0 right-0 bg-purple-900/90 backdrop-blur-sm py-3">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <p className="text-center text-white text-sm">
-            Free shipping on orders over $100<br className="sm:hidden" /> 🚚 Fast worldwide delivery
-          </p>
-        </div>
-      </div>
+      {/* Removed Free Shipping Banner */}
 
       {/* Product Modal */}
       {selectedProduct && (

@@ -6,11 +6,16 @@ const ToggleSwitch = ({
   leftLabel, 
   rightLabel, 
   disabled = false,
-  disabledTooltip = ''
+  disabledTooltip = '',
+  setActiveTab,
+  activeTab
 }) => {
   return (
     <div className="flex items-center space-x-3">
-      <span className={`text-sm font-medium ${isOn ? 'text-gray-400' : 'text-white'}`}>
+      <span
+        className={`text-sm font-medium cursor-pointer ${activeTab === 'cart' ? 'text-white' : 'text-gray-400'}`}
+        onClick={() => !disabled && setActiveTab && setActiveTab('cart')}
+      >
         {leftLabel}
       </span>
       <button
@@ -27,7 +32,10 @@ const ToggleSwitch = ({
           }`}
         />
       </button>
-      <span className={`text-sm font-medium ${isOn ? 'text-white' : 'text-gray-400'}`}>
+      <span
+        className={`text-sm font-medium cursor-pointer ${activeTab === 'orders' ? 'text-white' : 'text-gray-400'}`}
+        onClick={() => !disabled && setActiveTab && setActiveTab('orders')}
+      >
         {rightLabel}
       </span>
     </div>
