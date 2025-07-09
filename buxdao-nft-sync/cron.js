@@ -77,9 +77,20 @@ runAllSyncs();
 // Schedule to run every 15 minutes
 console.log('Setting up cron schedule...');
 cron.schedule('*/15 * * * *', () => {
-  console.log(`\n[${new Date().toISOString()}] Cron triggered - running all sync scripts...`);
-  runAllSyncs();
+  console.log(`\n[CRON RUN] ${new Date().toISOString()} (spawning independent sync run)`);
+  // Spawn a new detached process for each scheduled run
+  const child = spawn('node', [__filename, '--worker'], {
+    stdio: 'ignore',
+    env: process.env,
+    detached: true
+  });
+  child.unref();
 });
+
+// If started with --worker, only runAllSyncs and exit
+if (process.argv.includes('--worker')) {
+  runAllSyncs().then(() => process.exit(0)).catch(() => process.exit(1));
+}
 
 // Keep the process alive
 process.on('SIGTERM', () => {
