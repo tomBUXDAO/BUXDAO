@@ -565,6 +565,67 @@ function toTitleCase(str) {
   );
 }
 
+const US_STATES = [
+  { name: 'Alabama', code: 'AL' },
+  { name: 'Alaska', code: 'AK' },
+  { name: 'Arizona', code: 'AZ' },
+  { name: 'Arkansas', code: 'AR' },
+  { name: 'California', code: 'CA' },
+  { name: 'Colorado', code: 'CO' },
+  { name: 'Connecticut', code: 'CT' },
+  { name: 'Delaware', code: 'DE' },
+  { name: 'Florida', code: 'FL' },
+  { name: 'Georgia', code: 'GA' },
+  { name: 'Hawaii', code: 'HI' },
+  { name: 'Idaho', code: 'ID' },
+  { name: 'Illinois', code: 'IL' },
+  { name: 'Indiana', code: 'IN' },
+  { name: 'Iowa', code: 'IA' },
+  { name: 'Kansas', code: 'KS' },
+  { name: 'Kentucky', code: 'KY' },
+  { name: 'Louisiana', code: 'LA' },
+  { name: 'Maine', code: 'ME' },
+  { name: 'Maryland', code: 'MD' },
+  { name: 'Massachusetts', code: 'MA' },
+  { name: 'Michigan', code: 'MI' },
+  { name: 'Minnesota', code: 'MN' },
+  { name: 'Mississippi', code: 'MS' },
+  { name: 'Missouri', code: 'MO' },
+  { name: 'Montana', code: 'MT' },
+  { name: 'Nebraska', code: 'NE' },
+  { name: 'Nevada', code: 'NV' },
+  { name: 'New Hampshire', code: 'NH' },
+  { name: 'New Jersey', code: 'NJ' },
+  { name: 'New Mexico', code: 'NM' },
+  { name: 'New York', code: 'NY' },
+  { name: 'North Carolina', code: 'NC' },
+  { name: 'North Dakota', code: 'ND' },
+  { name: 'Ohio', code: 'OH' },
+  { name: 'Oklahoma', code: 'OK' },
+  { name: 'Oregon', code: 'OR' },
+  { name: 'Pennsylvania', code: 'PA' },
+  { name: 'Rhode Island', code: 'RI' },
+  { name: 'South Carolina', code: 'SC' },
+  { name: 'South Dakota', code: 'SD' },
+  { name: 'Tennessee', code: 'TN' },
+  { name: 'Texas', code: 'TX' },
+  { name: 'Utah', code: 'UT' },
+  { name: 'Vermont', code: 'VT' },
+  { name: 'Virginia', code: 'VA' },
+  { name: 'Washington', code: 'WA' },
+  { name: 'West Virginia', code: 'WV' },
+  { name: 'Wisconsin', code: 'WI' },
+  { name: 'Wyoming', code: 'WY' },
+  { name: 'District of Columbia', code: 'DC' },
+  { name: 'American Samoa', code: 'AS' },
+  { name: 'Guam', code: 'GU' },
+  { name: 'Northern Mariana Islands', code: 'MP' },
+  { name: 'Puerto Rico', code: 'PR' },
+  { name: 'United States Minor Outlying Islands', code: 'UM' },
+  { name: 'U.S. Virgin Islands', code: 'VI' },
+  { name: 'Virgin Islands', code: 'VI' }
+];
+
 const ShippingForm = ({ form, setForm, isValid, setIsValid }) => {
   const [saveDetails, setSaveDetails] = useState(false);
 
@@ -675,12 +736,26 @@ const ShippingForm = ({ form, setForm, isValid, setIsValid }) => {
           value={form.city}
           onChange={e => setForm(f => ({ ...f, city: toTitleCase(e.target.value) }))}
         />
-        <input
-          className="bg-gray-800 text-white rounded px-4 py-2 col-span-2"
-          placeholder="State/Province/Region*"
-          value={form.state}
-          onChange={e => setForm(f => ({ ...f, state: toTitleCase(e.target.value) }))}
-        />
+        {/* US state dropdown if country is United States, else text input */}
+        {form.country === 'United States' ? (
+          <select
+            className="bg-gray-800 text-white rounded px-4 py-2 col-span-2"
+            value={form.state}
+            onChange={e => setForm(f => ({ ...f, state: e.target.value }))}
+          >
+            <option value="">State*</option>
+            {US_STATES.map(s => (
+              <option key={s.code} value={s.code}>{s.name}</option>
+            ))}
+          </select>
+        ) : (
+          <input
+            className="bg-gray-800 text-white rounded px-4 py-2 col-span-2"
+            placeholder="State/Province/Region*"
+            value={form.state}
+            onChange={e => setForm(f => ({ ...f, state: toTitleCase(e.target.value) }))}
+          />
+        )}
         <input
           className="bg-gray-800 text-white rounded px-4 py-2 col-span-2"
           placeholder="Postal/ZIP Code*"
