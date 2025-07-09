@@ -37,11 +37,19 @@ function runScript(script) {
       stdio: 'inherit',
       env: process.env
     });
+    // Set a 5-minute timeout (300,000 ms)
+    const timeout = setTimeout(() => {
+      console.error(`Timeout: ${script} took longer than 5 minutes. Killing process.`);
+      syncProcess.kill('SIGKILL');
+      reject(new Error(`Timeout: ${script} took too long`));
+    }, 300000);
     syncProcess.on('error', (error) => {
+      clearTimeout(timeout);
       console.error(`Error running ${script}: ${error.message}`);
       reject(error);
     });
     syncProcess.on('close', (code) => {
+      clearTimeout(timeout);
       console.log(`${script} exited with code ${code}`);
       resolve();
     });
@@ -50,6 +58,7 @@ function runScript(script) {
 
 // Function to run all scripts sequentially
 async function runAllSyncs() {
+  console.log(`\n[CRON RUN] ${new Date().toISOString()}`); // <-- Add this line for timestamp
   for (const script of syncScripts) {
     try {
       await runScript(script);
