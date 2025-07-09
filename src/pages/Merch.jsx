@@ -534,7 +534,7 @@ const CartSidebar = ({ isOpen, onClose, items, onUpdateQuantity, onRemoveItem, o
               className={`w-full bg-purple-600 text-white py-3 px-6 rounded-full hover:bg-purple-700 transition-colors ${!shippingFormIsValid ? 'opacity-50 cursor-not-allowed' : ''}`}
               disabled={!shippingFormIsValid}
             >
-              Checkout with USDC
+              Checkout with SOL
             </button>
           </div>
         )}
@@ -984,7 +984,7 @@ const Merch = () => {
 
       // Send transaction
       const signature = await sendTransaction(transaction, connection);
-      console.log('USDC payment signature:', signature);
+      console.log('SOL payment signature:', signature);
       setLastTransactionSignature(signature);
 
       // Wait for confirmation with timeout and retry logic
@@ -1146,7 +1146,7 @@ const Merch = () => {
                 BUXDAO Shop
               </h1>
               <p className="text-gray-300 text-lg mt-2">
-                All merchandise can be purchased using USDC, prices are inclusive of posting and packaging.
+                All merchandise can be purchased using SOL, prices are inclusive of posting and packaging.
               </p>
             </div>
             <button 
