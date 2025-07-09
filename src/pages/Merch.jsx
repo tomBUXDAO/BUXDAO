@@ -994,9 +994,9 @@ const Merch = () => {
       
       while (attempts < maxAttempts) {
         try {
-          // Use a shorter timeout for each attempt
+          // Use a longer timeout for each attempt
           const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Transaction confirmation timeout')), 15000)
+            setTimeout(() => reject(new Error('Transaction confirmation timeout')), 30000)
           );
           
           const confirmationPromise = connection.confirmTransaction(signature, 'confirmed');
@@ -1026,7 +1026,10 @@ const Merch = () => {
             } else if (txStatus && txStatus.err) {
               throw new Error(`Transaction failed: ${JSON.stringify(txStatus.err)}`);
             } else {
-              throw new Error(`Transaction confirmation failed after ${maxAttempts} attempts. Please check your wallet for the transaction status.`);
+              setTransactionStatus('pending');
+              setLastTransactionSignature(signature);
+              alert(`Transaction confirmation is taking longer than expected. You can check the status on Solscan: https://solscan.io/tx/${signature}`);
+              throw new Error(`Transaction confirmation failed after ${maxAttempts} attempts. Please check your wallet and Solscan for the transaction status.`);
             }
           }
           

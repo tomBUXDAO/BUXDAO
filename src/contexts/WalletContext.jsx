@@ -12,8 +12,8 @@ export const WalletContextProvider = ({ children }) => {
   // The network can be set to 'devnet', 'testnet', or 'mainnet-beta'.
   const network = WalletAdapterNetwork.MainnetBeta;
 
-  // You can also provide a custom RPC endpoint.
-  const endpoint = useMemo(() => process.env.SOLANA_RPC_URL || clusterApiUrl(network), [network]);
+  // Get endpoint from env or fallback
+  const endpoint = import.meta.env.VITE_SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
 
   // Get wallet adapters
   const wallets = useMemo(
