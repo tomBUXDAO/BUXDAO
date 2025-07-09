@@ -378,11 +378,15 @@ router.post('/order/pay', async (req, res) => {
   try {
     const { printful_order_id, txSignature, wallet_address, cart, shippingInfo } = req.body;
     if (!printful_order_id || !txSignature || !wallet_address) {
+      console.error('Missing required fields:', { printful_order_id, txSignature, wallet_address });
       return res.status(400).json({ error: 'Missing required fields' });
     }
     // Validate SOL payment (check txSignature for SOL transfer to project wallet)
     const tx = await connection.getParsedTransaction(txSignature, { commitment: 'confirmed' });
-    if (!tx) return res.status(400).json({ error: 'Transaction not found' });
+    if (!tx) {
+      console.error('Transaction not found:', txSignature);
+      return res.status(400).json({ error: 'Transaction not found' });
+    }
     // Find SOL transfer to project wallet
     const solTransfer = tx.transaction.message.instructions.find(inst => {
       return (
@@ -392,14 +396,21 @@ router.post('/order/pay', async (req, res) => {
         inst.parsed.info.source === wallet_address
       );
     });
-    if (!solTransfer) return res.status(400).json({ error: 'SOL payment to project wallet not found' });
+    if (!solTransfer) {
+      console.error('SOL payment to project wallet not found:', { txSignature, wallet_address, PROJECT_WALLET });
+      return res.status(400).json({ error: 'SOL payment to project wallet not found' });
+    }
     // Update order in DB to processing
     await client.query('BEGIN');
     const updateOrder = await client.query(
-      `UPDATE orders SET status = 'processing', tx_signature = $1 WHERE printful_order_id = $2 AND wallet_address = $3 RETURNING *`,
+      `UPDATE orders SET status = 'processing', tx_signature = $1, updated_at = NOW() WHERE printful_order_id = $2 AND wallet_address = $3 RETURNING *`,
       [txSignature, printful_order_id, wallet_address]
     );
     await client.query('COMMIT');
+    if (updateOrder.rows.length === 0) {
+      console.error('No order found to update for printful_order_id and wallet_address:', { printful_order_id, wallet_address });
+      return res.status(400).json({ error: 'Order not found for this payment' });
+    }
     res.json({ success: true, order: updateOrder.rows[0] });
   } catch (err) {
     await client.query('ROLLBACK');
