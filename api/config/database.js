@@ -28,22 +28,22 @@ console.log('Initializing database connection pool...', {
   ssl: process.env.NODE_ENV === 'production'
 });
 
-// Create the pool with improved configuration
+// Create the pool with improved configuration for serverless environment
 const pool = new Pool({
   connectionString,
-  ssl: {
+  ssl: process.env.NODE_ENV === 'production' ? {
     rejectUnauthorized: false
-  },
-  max: 20, // Maximum number of clients in the pool
-  min: 4,  // Minimum number of idle clients to maintain
-  idleTimeoutMillis: 60000, // Close idle clients after 1 minute
-  connectionTimeoutMillis: 10000, // Return an error after 10 seconds if connection could not be established
-  maxUses: 7500, // Number of times a client can be used before being destroyed
+  } : false,
+  max: 10, // Reduced for serverless - maximum number of clients in the pool
+  min: 0,  // Start with no idle clients for serverless
+  idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
+  connectionTimeoutMillis: 5000, // Return an error after 5 seconds if connection could not be established
+  maxUses: 1000, // Number of times a client can be used before being destroyed
   keepAlive: true, // Keep connections alive
-  keepAliveInitialDelayMillis: 10000, // Delay before starting keep-alive probes
-  statement_timeout: 30000, // 30 seconds
-  idle_in_transaction_session_timeout: 30000, // 30 seconds
-  query_timeout: 30000 // 30 seconds
+  keepAliveInitialDelayMillis: 5000, // Delay before starting keep-alive probes
+  statement_timeout: 10000, // 10 seconds
+  idle_in_transaction_session_timeout: 10000, // 10 seconds
+  query_timeout: 10000 // 10 seconds
 });
 
 // Add pool error handler with reconnection logic
@@ -64,11 +64,11 @@ pool.on('connect', client => {
   
   // Set session configuration
   client.query(`
-    SET statement_timeout = 30000;
-    SET idle_in_transaction_session_timeout = 30000;
-    SET lock_timeout = 10000;
-    SET tcp_keepalives_idle = 60;
-    SET tcp_keepalives_interval = 10;
+    SET statement_timeout = 10000;
+    SET idle_in_transaction_session_timeout = 10000;
+    SET lock_timeout = 5000;
+    SET tcp_keepalives_idle = 30;
+    SET tcp_keepalives_interval = 5;
     SET tcp_keepalives_count = 3;
   `).catch(err => {
     console.error('Error configuring client session:', err);
@@ -82,26 +82,22 @@ pool.on('acquire', client => {
 
 // Add pool remove handler with reconnection attempt
 pool.on('remove', client => {
-  console.log('Client removed from pool, checking pool health...');
-  
-  // Check pool health and log status
-  pool.query('SELECT 1')
-    .then(() => {
-      console.log('Pool health check successful');
-    })
-    .catch(async err => {
-      console.error('Pool health check failed:', err);
-      
-      // Try to add a new client to the pool
-      try {
-        const client = await pool.connect();
-        console.log('Successfully added new client to pool');
-        client.release();
-      } catch (error) {
-        console.error('Failed to add new client to pool:', error);
-      }
-    });
+  console.log('Client removed from pool');
 });
+
+// Health check function
+async function healthCheck() {
+  try {
+    const client = await pool.connect();
+    await client.query('SELECT 1');
+    client.release();
+    console.log('Pool health check successful');
+    return true;
+  } catch (error) {
+    console.error('Pool health check failed:', error);
+    return false;
+  }
+}
 
 // Configure a single client for serverless environment
 let client = null;
@@ -136,8 +132,8 @@ async function getClient() {
         await client.query(`
           SET statement_timeout = 10000;
           SET idle_in_transaction_session_timeout = 10000;
-          SET tcp_keepalives_idle = 60;
-          SET tcp_keepalives_interval = 10;
+          SET tcp_keepalives_idle = 30;
+          SET tcp_keepalives_interval = 5;
           SET tcp_keepalives_count = 3;
         `);
         
@@ -180,4 +176,4 @@ async function getClient() {
 }
 
 // Export both pool and getClient
-export { pool, getClient };
+export { pool, getClient, healthCheck };

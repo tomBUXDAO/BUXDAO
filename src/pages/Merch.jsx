@@ -3,7 +3,6 @@ import { ShoppingBagIcon, AdjustmentsHorizontalIcon, XMarkIcon } from '@heroicon
 import countryData from '../utils/countryData'; // We'll create this file for country/dial code info
 import { useWallet, useConnection } from '@solana/wallet-adapter-react';
 import { PublicKey, Transaction, SystemProgram } from '@solana/web3.js';
-import { getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import ToggleSwitch from '../components/ToggleSwitch';
 
 const CATEGORIES = {
@@ -103,6 +102,25 @@ const ProductModal = ({ product: initialProduct, onClose, onAddToCart }) => {
   const [product, setProduct] = useState(initialProduct);
 
   useEffect(() => {
+    // Check if we already have variants from the main product fetch
+    if (product.sync_variants && product.sync_variants.length > 0) {
+      console.log('Using existing variants for product:', product.id);
+      setVariants(product.sync_variants);
+      setProduct(prevProduct => ({
+        ...prevProduct,
+        description: product.description || prevProduct.description
+      }));
+      // Set default color and variant
+      if (product.sync_variants.length > 0) {
+        const defaultVariant = product.sync_variants[0];
+        setSelectedColor(defaultVariant.color);
+        setSelectedVariant(defaultVariant);
+      }
+      setLoading(false);
+      return;
+    }
+
+    // Only fetch if we don't have variants
     const fetchVariants = async () => {
       try {
         const response = await fetch(`${API_URL}/printful/products/${product.id}`, {
@@ -144,7 +162,7 @@ const ProductModal = ({ product: initialProduct, onClose, onAddToCart }) => {
       }
     };
     fetchVariants();
-  }, [product.id]);
+  }, [product.id, product.sync_variants]);
 
   // Update selected variant and preselect size if only one size for color
   useEffect(() => {
@@ -525,25 +543,26 @@ const CartSidebar = ({ isOpen, onClose, items, onUpdateQuantity, onRemoveItem, o
   );
 };
 
-const USDC_MINT = new PublicKey('EPjFWdd5AufqSSqeM2q8VsJb6AfxkTz4uD1F6P8Q9b7');
 const PROJECT_WALLET = new PublicKey('FYfLzXckAf2JZoMYBz2W4fpF9vejqpA6UFV17d1A7C75');
+
+
+
+// Helper function to check transaction status
+async function checkTransactionStatus(connection, signature) {
+  try {
+    const status = await connection.getSignatureStatus(signature);
+    return status.value;
+  } catch (error) {
+    console.error('Error checking transaction status:', error);
+    return null;
+  }
+}
 
 // Helper: Capitalise first letter of each word
 function toTitleCase(str) {
   return str.replace(/\w\S*/g, (txt) =>
     txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase()
   );
-}
-
-// Helper to encode a u64 as 8-byte little-endian Uint8Array
-function encodeU64LE(num) {
-  const buf = new Uint8Array(8);
-  let n = BigInt(num);
-  for (let i = 0; i < 8; i++) {
-    buf[i] = Number(n & 0xffn);
-    n >>= 8n;
-  }
-  return buf;
 }
 
 const ShippingForm = ({ form, setForm, isValid, setIsValid }) => {
@@ -697,6 +716,7 @@ const Merch = () => {
   const [cartSidebarTab, setCartSidebarTab] = useState('cart');
   const { publicKey, signTransaction, sendTransaction, connected } = useWallet();
   const { connection } = useConnection();
+  const [productsLoaded, setProductsLoaded] = useState(false); // Flag to prevent duplicate loading
   const [shippingForm, setShippingForm] = useState({
     firstName: '',
     lastName: '',
@@ -713,6 +733,8 @@ const Merch = () => {
   // New state for transaction summary modal
   const [showTxSummary, setShowTxSummary] = useState(false);
   const [pendingCheckout, setPendingCheckout] = useState(null); // {items, total, shippingInfo}
+  const [transactionStatus, setTransactionStatus] = useState(null); // 'pending', 'confirmed', 'failed'
+  const [lastTransactionSignature, setLastTransactionSignature] = useState(null);
 
   // Toggle front/back view for a specific product
   const toggleBackView = (productId) => {
@@ -723,6 +745,11 @@ const Merch = () => {
   };
 
   useEffect(() => {
+    // Prevent duplicate loading
+    if (productsLoaded) {
+      return;
+    }
+    
     let isMounted = true;
     const fetchProducts = async () => {
       try {
@@ -825,12 +852,14 @@ const Merch = () => {
         if (isMounted) {
           setProducts(productsWithPrices);
           setLoading(false);
+          setProductsLoaded(true); // Mark as loaded to prevent duplicates
         }
       } catch (err) {
         console.error('Error fetching products:', err);
         if (isMounted) {
           setError(err.message);
           setLoading(false);
+          setProductsLoaded(true); // Mark as loaded even on error to prevent retries
         }
       }
     };
@@ -840,7 +869,7 @@ const Merch = () => {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [productsLoaded]);
 
   const categorizeProduct = (product) => {
     const name = product.name.toLowerCase();
@@ -896,52 +925,115 @@ const Merch = () => {
   };
 
   // Modified checkout handler to show summary first
-  const handleCheckout = (items, total, shippingInfo) => {
-    setPendingCheckout({ items, total, shippingInfo });
-    setShowTxSummary(true);
+  const handleCheckout = async (items, total, shippingInfo) => {
+    try {
+      // Fetch SOL price for the summary
+      const solPriceResponse = await fetch('/api/sol-price');
+      if (!solPriceResponse.ok) {
+        throw new Error('Failed to fetch SOL price');
+      }
+      const { solPrice } = await solPriceResponse.json();
+      
+      if (!solPrice || isNaN(solPrice)) {
+        throw new Error('Invalid SOL price received');
+      }
+
+      const solAmount = total / solPrice;
+      
+      setPendingCheckout({ items, total, shippingInfo, solAmount, solPrice });
+      setShowTxSummary(true);
+    } catch (error) {
+      console.error('Error fetching SOL price for checkout:', error);
+      alert('Failed to fetch current SOL price. Please try again.');
+    }
   };
 
   // Actual payment logic, only called after user confirms
   const handleConfirmPayment = async () => {
     setShowTxSummary(false);
+    setTransactionStatus('pending');
+    
     if (!publicKey || !connected) {
       alert('Please connect your wallet first.');
+      setTransactionStatus(null);
       return;
     }
     const { items, total, shippingInfo } = pendingCheckout;
+    
     try {
-      // Calculate total price in USDC (6 decimals)
-      const usdcAmount = total;
-      const usdcAmountRaw = Math.round(usdcAmount * 1e6); // USDC has 6 decimals
+      // Use the SOL amount calculated during checkout
+      const { solAmount } = pendingCheckout;
+      
+      if (!solAmount || isNaN(solAmount)) {
+        throw new Error('Invalid SOL amount');
+      }
+      
+      // Convert to lamports (SOL has 9 decimals)
+      const solAmountLamports = Math.round(solAmount * 1e9);
 
-      // Get associated token addresses
-      const userUsdcAddress = await getAssociatedTokenAddress(USDC_MINT, publicKey);
-      const projectUsdcAddress = await getAssociatedTokenAddress(USDC_MINT, PROJECT_WALLET);
+      // Create SOL transfer instruction
+      const transferIx = SystemProgram.transfer({
+        fromPubkey: publicKey,
+        toPubkey: PROJECT_WALLET,
+        lamports: solAmountLamports
+      });
 
-      // Create raw SPL Token transfer instruction for cleaner Phantom display
-      const transferIx = {
-        programId: TOKEN_PROGRAM_ID,
-        keys: [
-          { pubkey: userUsdcAddress, isSigner: false, isWritable: true }, // source
-          { pubkey: projectUsdcAddress, isSigner: false, isWritable: true }, // destination
-          { pubkey: publicKey, isSigner: true, isWritable: false }, // owner
-        ],
-        data: Buffer.from([
-          3, // Transfer instruction (3 = transfer)
-          ...encodeU64LE(usdcAmountRaw)
-        ])
-      };
-
-      // Create transaction with just the transfer instruction
+      // Create transaction with SOL transfer
       const transaction = new Transaction();
       transaction.add(transferIx);
 
       // Send transaction
       const signature = await sendTransaction(transaction, connection);
       console.log('USDC payment signature:', signature);
+      setLastTransactionSignature(signature);
 
-      // Wait for confirmation
-      await connection.confirmTransaction(signature, 'confirmed');
+      // Wait for confirmation with timeout and retry logic
+      let confirmationResult = null;
+      let attempts = 0;
+      const maxAttempts = 3;
+      
+      while (attempts < maxAttempts) {
+        try {
+          // Use a shorter timeout for each attempt
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Transaction confirmation timeout')), 15000)
+          );
+          
+          const confirmationPromise = connection.confirmTransaction(signature, 'confirmed');
+          
+          confirmationResult = await Promise.race([confirmationPromise, timeoutPromise]);
+          
+          if (confirmationResult.value?.err) {
+            throw new Error(`Transaction failed: ${JSON.stringify(confirmationResult.value.err)}`);
+          }
+          
+          console.log('Transaction confirmed successfully:', confirmationResult);
+          break;
+          
+        } catch (confirmError) {
+          attempts++;
+          console.log(`Confirmation attempt ${attempts} failed:`, confirmError.message);
+          
+          if (attempts >= maxAttempts) {
+            // Check transaction status as a fallback
+            console.log('Checking transaction status as fallback...');
+            const txStatus = await checkTransactionStatus(connection, signature);
+            
+            if (txStatus && txStatus.confirmationStatus === 'confirmed' && !txStatus.err) {
+              console.log('Transaction was successful despite confirmation timeout');
+              confirmationResult = { value: txStatus };
+              break;
+            } else if (txStatus && txStatus.err) {
+              throw new Error(`Transaction failed: ${JSON.stringify(txStatus.err)}`);
+            } else {
+              throw new Error(`Transaction confirmation failed after ${maxAttempts} attempts. Please check your wallet for the transaction status.`);
+            }
+          }
+          
+          // Wait before retrying
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+      }
 
       // Create order in backend with real tx signature
       const orderResponse = await fetch('/api/printful/order', {
@@ -961,17 +1053,31 @@ const Merch = () => {
       if (!orderResponse.ok) {
         const errorData = await orderResponse.json();
         console.error('Order creation failed:', errorData);
+        setTransactionStatus('failed');
         alert('Order creation failed: ' + (errorData.error || 'Unknown error'));
         return;
       } else {
         const orderData = await orderResponse.json();
         console.log('Order created successfully:', orderData);
-        alert(`Order created successfully! Order ID: ${orderData.order_id}`);
+        setTransactionStatus('confirmed');
+        // Don't show alert here, let the user see the success modal
       }
-      setThankYou(true);
     } catch (orderError) {
       console.error('Failed to create order:', orderError);
-      alert('Failed to create order: ' + orderError.message);
+      setTransactionStatus('failed');
+      
+      // Provide more helpful error messages
+      let errorMessage = 'Failed to create order: ' + orderError.message;
+      
+      if (orderError.message.includes('timeout')) {
+        errorMessage = 'Transaction is taking longer than expected. Please check your wallet to see if the transaction was successful. If it was, your order will be processed automatically.';
+      } else if (orderError.message.includes('insufficient funds')) {
+        errorMessage = 'Insufficient SOL balance. Please ensure you have enough SOL to complete the purchase.';
+      } else if (orderError.message.includes('user rejected')) {
+        errorMessage = 'Transaction was cancelled by the user.';
+      }
+      
+      alert(errorMessage);
     }
   };
 
@@ -1198,7 +1304,8 @@ const Merch = () => {
             </button>
             <h2 className="text-2xl font-bold text-white mb-4">Confirm Payment</h2>
             <div className="text-gray-300 mb-2">You are about to pay:</div>
-            <div className="text-3xl font-bold text-purple-400 mb-4">{pendingCheckout.total.toFixed(2)} USDC</div>
+            <div className="text-3xl font-bold text-purple-400 mb-4">{pendingCheckout.solAmount.toFixed(4)} SOL</div>
+            <div className="text-gray-400 text-sm mb-2">≈ ${pendingCheckout.total.toFixed(2)} USD</div>
             <div className="text-gray-400 mb-2">To:</div>
             <div className="text-xs text-white mb-4 break-all">{PROJECT_WALLET.toString()}</div>
             <button
@@ -1213,6 +1320,85 @@ const Merch = () => {
             >
               Cancel
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Transaction status modal */}
+      {transactionStatus && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+          <div className="bg-gray-900 rounded-lg p-8 max-w-md w-full text-center relative">
+            <div className="mb-4">
+              {transactionStatus === 'pending' && (
+                <div className="animate-spin w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+              )}
+              {transactionStatus === 'confirmed' && (
+                <div className="w-8 h-8 bg-green-500 rounded-full mx-auto mb-4 flex items-center justify-center">
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+              )}
+              {transactionStatus === 'failed' && (
+                <div className="w-8 h-8 bg-red-500 rounded-full mx-auto mb-4 flex items-center justify-center">
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </div>
+              )}
+            </div>
+            <h3 className="text-xl font-bold text-white mb-2">
+              {transactionStatus === 'pending' && 'Processing Transaction...'}
+              {transactionStatus === 'confirmed' && 'Transaction Confirmed!'}
+              {transactionStatus === 'failed' && 'Transaction Failed'}
+            </h3>
+            <p className="text-gray-300 text-sm mb-4">
+              {transactionStatus === 'pending' && 'Please wait while we confirm your payment. This may take up to 30 seconds.'}
+              {transactionStatus === 'confirmed' && 'Your payment has been confirmed and your order is being processed.'}
+              {transactionStatus === 'failed' && 'There was an issue with your transaction. Please try again.'}
+            </p>
+            
+            {/* Transaction signature display */}
+            {lastTransactionSignature && (
+              <div className="mb-4 p-3 bg-gray-800 rounded text-xs">
+                <div className="text-gray-400 mb-1">Transaction ID:</div>
+                <div className="text-white break-all font-mono">{lastTransactionSignature}</div>
+                {transactionStatus === 'confirmed' && (
+                  <a
+                    href={`https://solscan.io/tx/${lastTransactionSignature}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-purple-400 hover:text-purple-300 text-xs mt-2 inline-block"
+                  >
+                    View on Solscan →
+                  </a>
+                )}
+              </div>
+            )}
+            
+            {transactionStatus === 'confirmed' && (
+              <button
+                className="w-full bg-purple-600 text-white py-3 px-6 rounded-full hover:bg-purple-700 transition-colors"
+                onClick={() => {
+                  setTransactionStatus(null);
+                  setLastTransactionSignature(null);
+                  setThankYou(true);
+                }}
+              >
+                Continue
+              </button>
+            )}
+            {transactionStatus === 'failed' && (
+              <button
+                className="w-full bg-gray-700 text-white py-3 px-6 rounded-full hover:bg-gray-600 transition-colors"
+                onClick={() => {
+                  setTransactionStatus(null);
+                  setLastTransactionSignature(null);
+                }}
+              >
+                Close
+              </button>
+            )}
           </div>
         </div>
       )}

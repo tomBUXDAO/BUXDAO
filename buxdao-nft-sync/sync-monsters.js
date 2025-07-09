@@ -301,11 +301,24 @@ async function determineOwnershipChange(mintAddress, oldOwner, newOwner) {
 // Helper to get display name from user_roles
 async function getDiscordNameForWallet(client, wallet) {
   if (!wallet) return null;
-  const { rows } = await client.query(
-    'SELECT discord_name FROM user_roles WHERE wallet_address = $1 LIMIT 1',
+  
+  // First get the discord_id from user_wallets
+  const { rows: walletRows } = await client.query(
+    'SELECT discord_id FROM user_wallets WHERE wallet_address = $1 LIMIT 1',
     [wallet]
   );
-  return rows[0]?.discord_name || null;
+  
+  if (walletRows.length === 0) return null;
+  
+  const discordId = walletRows[0].discord_id;
+  
+  // Then get the discord_name from user_roles
+  const { rows: roleRows } = await client.query(
+    'SELECT discord_name FROM user_roles WHERE discord_id = $1 LIMIT 1',
+    [discordId]
+  );
+  
+  return roleRows[0]?.discord_name || null;
 }
 
 // Function to handle ownership changes

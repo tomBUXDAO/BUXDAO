@@ -1,6 +1,5 @@
 const { Connection, PublicKey } = require('@solana/web3.js');
 const { TOKEN_PROGRAM_ID } = require('@solana/spl-token');
-const { pool } = require('./config/database.js');
 
 // Configuration
 const RPC_ENDPOINT = process.env.QUICKNODE_RPC_URL;
@@ -65,6 +64,9 @@ module.exports = async (req, res) => {
 
   let client;
   try {
+    // Dynamically import the database module
+    const { pool } = await import('./config/database.js');
+    
     // Load the token mint address from environment
     const mintAddress = process.env.BUX_TOKEN_MINT_ADDRESS;
     if (!mintAddress) {

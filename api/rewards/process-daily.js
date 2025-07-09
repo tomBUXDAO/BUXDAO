@@ -1,9 +1,11 @@
-import express from 'express';
 import { pool } from '../config/database.js';
 
-const router = express.Router();
+export default async function handler(req, res) {
+  // Only allow POST requests
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
 
-router.post('/', async (req, res) => {
   // Verify secret token for cron or admin auth for manual trigger
   const secretToken = req.headers['x-secret-token'];
   const isAdmin = req.session?.user?.roles?.includes('admin');
@@ -62,6 +64,4 @@ router.post('/', async (req, res) => {
     console.error('Error processing daily rewards:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
-});
-
-export default router; 
+} 

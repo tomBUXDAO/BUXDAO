@@ -98,6 +98,7 @@ import rewardsEventsRouter from './api/rewards/events.js';
 import nftLookupRouter from './api/nft-lookup.js';
 import rankLookupRouter from './api/nft-lookup/rank.js';
 import printfulOrderRouter from './api/printful/order.js';
+import { getSolPrice } from './api/utils/solPrice.js';
 
 const app = express();
 
@@ -327,6 +328,25 @@ app.use('/api/user', (req, res, next) => {
 // Printful API configuration
 const PRINTFUL_API_KEY = process.env.PRINTFUL_API_KEY;
 const PRINTFUL_API_URL = 'https://api.printful.com';
+
+// SOL Price endpoint
+app.get('/api/sol-price', async (req, res) => {
+  try {
+    const solPrice = await getSolPrice();
+    
+    if (solPrice === null || isNaN(solPrice)) {
+      return res.status(500).json({ error: 'Failed to fetch SOL price' });
+    }
+
+    return res.status(200).json({ 
+      solPrice,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error fetching SOL price:', error);
+    return res.status(500).json({ error: 'Failed to fetch SOL price' });
+  }
+});
 
 // Printful API endpoints
 app.get('/api/printful/products', async (req, res) => {

@@ -11,13 +11,8 @@ import authHandler from './auth/index.js';
 import collectionCountsHandler from './collection-counts/index.js';
 import nftLookupHandler from './nft-lookup.js';
 import userHandler from './user/index.js';
-
-const pool = new Pool({
-  connectionString: process.env.POSTGRES_URL,
-  ssl: {
-    rejectUnauthorized: false
-  }
-});
+import rewardsHandler from './rewards/process-daily.js';
+import { pool, healthCheck } from './config/database.js';
 
 export default async function handler(req, res) {
   // Set CORS headers
@@ -38,6 +33,29 @@ export default async function handler(req, res) {
   console.log('Request method:', req.method);
   console.log('Environment:', process.env.NODE_ENV);
   console.log('Database URL exists:', !!process.env.POSTGRES_URL);
+
+
+
+  // Handle health check endpoint
+  if (req.url === '/api/health' && req.method === 'GET') {
+    try {
+      const dbHealthy = await healthCheck();
+      return res.status(200).json({
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        database: dbHealthy ? 'connected' : 'disconnected',
+        environment: process.env.NODE_ENV
+      });
+    } catch (error) {
+      console.error('Health check failed:', error);
+      return res.status(500).json({
+        status: 'error',
+        timestamp: new Date().toISOString(),
+        database: 'error',
+        error: error.message
+      });
+    }
+  }
 
   // Handle NFT lookup endpoint
   if (req.url === '/api/nft-lookup' && req.method === 'POST') {
@@ -64,6 +82,13 @@ export default async function handler(req, res) {
     // Adjust req.url to be relative to the user handler if needed
     req.url = req.url.substring('/api/user'.length);
     return userHandler(req, res);
+  }
+
+  // Handle rewards endpoints
+  if (req.url.startsWith('/api/rewards/')) {
+    // Adjust req.url to be relative to the rewards handler
+    req.url = req.url.substring('/api/rewards'.length);
+    return rewardsHandler(req, res);
   }
 
   if (req.method === 'GET') {

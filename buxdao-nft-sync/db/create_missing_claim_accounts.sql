@@ -1,4 +1,4 @@
--- First, ensure we have daily rewards entries for today
+-- Safely insert/update daily_rewards for all users using collection_counts_aggregated
 INSERT INTO daily_rewards (
     discord_id,
     calculation_time,
@@ -48,12 +48,11 @@ SELECT
     false,
     ur.discord_name
 FROM user_roles ur
-LEFT JOIN collection_counts cc ON ur.wallet_address = cc.wallet_address
-LEFT JOIN daily_rewards dr ON ur.discord_id = dr.discord_id 
-    AND dr.reward_period_start = date_trunc('day', CURRENT_TIMESTAMP)
+LEFT JOIN collection_counts_aggregated cc ON ur.discord_id = cc.discord_id
+LEFT JOIN daily_rewards dr ON ur.discord_id = dr.discord_id
 WHERE ur.discord_id IS NOT NULL 
 AND dr.discord_id IS NULL
-ON CONFLICT (discord_id, reward_period_start) 
+ON CONFLICT (discord_id) 
 DO UPDATE SET
     calculation_time = EXCLUDED.calculation_time,
     celeb_catz_count = EXCLUDED.celeb_catz_count,
@@ -72,17 +71,14 @@ DO UPDATE SET
     total_daily_reward = EXCLUDED.total_daily_reward,
     discord_name = EXCLUDED.discord_name;
 
--- Now insert missing claim accounts
-INSERT INTO claim_accounts (discord_id, wallet_address, unclaimed_amount, total_claimed, last_claim_time)
+-- Now insert missing claim accounts (discord_id only)
+INSERT INTO claim_accounts (discord_id, unclaimed_amount, total_claimed, last_claim_time)
 SELECT 
     ur.discord_id,
-    ur.wallet_address,
     0, -- Start with 0 unclaimed amount
     0, -- Start with 0 total claimed
     NOW() -- Set last claim time to now
 FROM user_roles ur
 LEFT JOIN claim_accounts ca ON ur.discord_id = ca.discord_id
 WHERE ur.discord_id IS NOT NULL 
-AND ca.discord_id IS NULL
-AND ur.wallet_address IS NOT NULL
-ON CONFLICT (discord_id) DO NOTHING; 
+AND ca.discord_id IS NULL;
