@@ -274,9 +274,28 @@ router.post('/order', async (req, res) => {
   const client = await pool.connect();
   
   try {
-    const { shippingInfo, cart, txSignature, email, wallet_address } = req.body;
-    if (!shippingInfo || !cart || !txSignature || !email || !wallet_address) {
+    const { shippingInfo, cart, txSignature, email, wallet_address, skipPayment } = req.body;
+    if (!shippingInfo || !cart || !email || !wallet_address) {
       return res.status(400).json({ error: 'Missing required fields' });
+    }
+    // If skipPayment is true, do not check for payment, just place Printful order
+    let printfulOrder = null;
+    if (skipPayment) {
+      try {
+        printfulOrder = await createPrintfulOrder(shippingInfo, cart);
+      } catch (printfulError) {
+        console.error('Printful order creation failed:', printfulError);
+        return res.status(500).json({ error: 'Failed to create Printful order' });
+      }
+      // Store order in DB as pending_payment
+      await client.query('BEGIN');
+      const dbOrder = await client.query(
+        `INSERT INTO orders (wallet_address, cart, shipping_info, status, printful_order_id)
+         VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+        [wallet_address, JSON.stringify(cart), JSON.stringify(shippingInfo), 'pending_payment', printfulOrder.id]
+      );
+      await client.query('COMMIT');
+      return res.json({ success: true, printful_order_id: printfulOrder.id, order_id: dbOrder.rows[0].id });
     }
 
     // Check if this is a test transaction
@@ -310,7 +329,6 @@ router.post('/order', async (req, res) => {
     }
 
     // Create Printful order
-    let printfulOrder = null;
     try {
       printfulOrder = await createPrintfulOrder(shippingInfo, cart);
     } catch (printfulError) {
@@ -348,6 +366,44 @@ router.post('/order', async (req, res) => {
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('Order processing error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  } finally {
+    client.release();
+  }
+});
+
+// POST /api/printful/order/pay
+router.post('/order/pay', async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const { printful_order_id, txSignature, wallet_address, cart, shippingInfo } = req.body;
+    if (!printful_order_id || !txSignature || !wallet_address) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+    // Validate SOL payment (check txSignature for SOL transfer to project wallet)
+    const tx = await connection.getParsedTransaction(txSignature, { commitment: 'confirmed' });
+    if (!tx) return res.status(400).json({ error: 'Transaction not found' });
+    // Find SOL transfer to project wallet
+    const solTransfer = tx.transaction.message.instructions.find(inst => {
+      return (
+        inst.parsed &&
+        inst.parsed.type === 'transfer' &&
+        inst.parsed.info.destination === PROJECT_WALLET &&
+        inst.parsed.info.source === wallet_address
+      );
+    });
+    if (!solTransfer) return res.status(400).json({ error: 'SOL payment to project wallet not found' });
+    // Update order in DB to processing
+    await client.query('BEGIN');
+    const updateOrder = await client.query(
+      `UPDATE orders SET status = 'processing', tx_signature = $1 WHERE printful_order_id = $2 AND wallet_address = $3 RETURNING *`,
+      [txSignature, printful_order_id, wallet_address]
+    );
+    await client.query('COMMIT');
+    res.json({ success: true, order: updateOrder.rows[0] });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Order payment finalization error:', err);
     res.status(500).json({ error: 'Internal server error' });
   } finally {
     client.release();

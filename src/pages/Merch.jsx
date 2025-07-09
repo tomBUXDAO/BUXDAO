@@ -735,6 +735,10 @@ const Merch = () => {
   const [pendingCheckout, setPendingCheckout] = useState(null); // {items, total, shippingInfo}
   const [transactionStatus, setTransactionStatus] = useState(null); // 'pending', 'confirmed', 'failed'
   const [lastTransactionSignature, setLastTransactionSignature] = useState(null);
+  // --- Add state for Printful order ID and status ---
+  const [pendingPrintfulOrderId, setPendingPrintfulOrderId] = useState(null);
+  const [pendingPrintfulOrder, setPendingPrintfulOrder] = useState(null);
+  const [printfulOrderError, setPrintfulOrderError] = useState(null);
 
   // Toggle front/back view for a specific product
   const toggleBackView = (productId) => {
@@ -927,67 +931,77 @@ const Merch = () => {
   // Modified checkout handler to show summary first
   const handleCheckout = async (items, total, shippingInfo) => {
     try {
+      // Place Printful order first (no payment yet)
+      const printfulOrderResponse = await fetch('/api/printful/order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          shippingInfo,
+          cart: items,
+          email: shippingInfo.email,
+          wallet_address: publicKey ? publicKey.toString() : '',
+          skipPayment: true // new flag for backend to skip payment check
+        })
+      });
+      if (!printfulOrderResponse.ok) {
+        const errorData = await printfulOrderResponse.json();
+        setPrintfulOrderError(errorData.error || 'Failed to place Printful order');
+        alert('Printful order failed: ' + (errorData.error || 'Unknown error'));
+        return;
+      }
+      const printfulOrderData = await printfulOrderResponse.json();
+      setPendingPrintfulOrderId(printfulOrderData.printful_order_id);
+      setPendingPrintfulOrder(printfulOrderData);
+      setPrintfulOrderError(null);
       // Fetch SOL price for the summary
       const solPriceResponse = await fetch('/api/sol-price');
       if (!solPriceResponse.ok) {
         throw new Error('Failed to fetch SOL price');
       }
       const { solPrice } = await solPriceResponse.json();
-      
       if (!solPrice || isNaN(solPrice)) {
         throw new Error('Invalid SOL price received');
       }
-
       const solAmount = total / solPrice;
-      
       setPendingCheckout({ items, total, shippingInfo, solAmount, solPrice });
       setShowTxSummary(true);
     } catch (error) {
-      console.error('Error fetching SOL price for checkout:', error);
-      alert('Failed to fetch current SOL price. Please try again.');
+      console.error('Error in checkout:', error);
+      setPrintfulOrderError(error.message);
+      alert('Checkout failed: ' + error.message);
     }
   };
 
-  // Actual payment logic, only called after user confirms
+  // --- Update handleConfirmPayment to finalize order after payment ---
   const handleConfirmPayment = async () => {
     setShowTxSummary(false);
     setTransactionStatus('pending');
-    
     if (!publicKey || !connected) {
       alert('Please connect your wallet first.');
       setTransactionStatus(null);
       return;
     }
     const { items, total, shippingInfo } = pendingCheckout;
-    
     try {
-      // Use the SOL amount calculated during checkout
       const { solAmount } = pendingCheckout;
-      
       if (!solAmount || isNaN(solAmount)) {
         throw new Error('Invalid SOL amount');
       }
-      
       // Convert to lamports (SOL has 9 decimals)
       const solAmountLamports = Math.round(solAmount * 1e9);
-
       // Create SOL transfer instruction
       const transferIx = SystemProgram.transfer({
         fromPubkey: publicKey,
         toPubkey: PROJECT_WALLET,
         lamports: solAmountLamports
       });
-
       // Create transaction with SOL transfer
       const transaction = new Transaction();
       transaction.add(transferIx);
-
       // Send transaction
       const signature = await sendTransaction(transaction, connection);
-      console.log('SOL payment signature:', signature);
       setLastTransactionSignature(signature);
-
-      // Wait for confirmation with timeout and retry logic
+      // Wait for confirmation with timeout and retry logic (same as before)
       let confirmationResult = null;
       let attempts = 0;
       const maxAttempts = 3;
@@ -1038,49 +1052,31 @@ const Merch = () => {
         }
       }
 
-      // Create order in backend with real tx signature
-      const orderResponse = await fetch('/api/printful/order', {
+      // After confirmation, call backend to finalize/mark order as paid
+      const finalizeResponse = await fetch('/api/printful/order/pay', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          shippingInfo,
-          cart: items,
+          printful_order_id: pendingPrintfulOrderId,
           txSignature: signature,
-          email: shippingInfo.email,
-          wallet_address: publicKey.toString()
-        }),
+          wallet_address: publicKey.toString(),
+          cart: items,
+          shippingInfo
+        })
       });
-
-      if (!orderResponse.ok) {
-        const errorData = await orderResponse.json();
-        console.error('Order creation failed:', errorData);
+      if (!finalizeResponse.ok) {
+        const errorData = await finalizeResponse.json();
         setTransactionStatus('failed');
-        alert('Order creation failed: ' + (errorData.error || 'Unknown error'));
+        alert('Order finalization failed: ' + (errorData.error || 'Unknown error'));
         return;
-      } else {
-        const orderData = await orderResponse.json();
-        console.log('Order created successfully:', orderData);
-        setTransactionStatus('confirmed');
-        // Don't show alert here, let the user see the success modal
       }
+      const finalizeData = await finalizeResponse.json();
+      setTransactionStatus('confirmed');
+      setThankYou(true);
     } catch (orderError) {
-      console.error('Failed to create order:', orderError);
+      console.error('Failed to finalize order:', orderError);
       setTransactionStatus('failed');
-      
-      // Provide more helpful error messages
-      let errorMessage = 'Failed to create order: ' + orderError.message;
-      
-      if (orderError.message.includes('timeout')) {
-        errorMessage = 'Transaction is taking longer than expected. Please check your wallet to see if the transaction was successful. If it was, your order will be processed automatically.';
-      } else if (orderError.message.includes('insufficient funds')) {
-        errorMessage = 'Insufficient SOL balance. Please ensure you have enough SOL to complete the purchase.';
-      } else if (orderError.message.includes('user rejected')) {
-        errorMessage = 'Transaction was cancelled by the user.';
-      }
-      
-      alert(errorMessage);
+      alert('Failed to finalize order: ' + orderError.message);
     }
   };
 
