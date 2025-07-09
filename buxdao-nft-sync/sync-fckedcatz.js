@@ -757,7 +757,7 @@ async function syncFckedCatz() {
   };
   
   try {
-    console.log('\nStarting AI BITBOTS NFT ownership sync...');
+    console.log('\nStarting FCKED CATZ NFT ownership sync...');
     
     // Fetch all NFTs in the collection
     console.log(`Fetching NFTs for ${COLLECTION.name}...`);

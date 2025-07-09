@@ -722,7 +722,7 @@ function formatDiscordMessage(data) {
 }
 
 // Main sync function
-async function syncAIBitBots() {
+async function syncCandyBots() {
   if (TEST_MODE) {
     console.log('\n=== RUNNING IN TEST MODE - NO DATABASE CHANGES WILL BE MADE ===\n');
   }
@@ -757,7 +757,7 @@ async function syncAIBitBots() {
   };
   
   try {
-    console.log('\nStarting AI BITBOTS NFT ownership sync...');
+    console.log('\nStarting CANDY BOTS NFT ownership sync...');
     
     // Fetch all NFTs in the collection
     console.log(`Fetching NFTs for ${COLLECTION.name}...`);
@@ -1042,7 +1042,7 @@ async function syncAIBitBots() {
 
 // Run the sync if called directly
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  syncAIBitBots()
+  syncCandyBots()
     .then(() => process.exit(0))
     .catch(error => {
       console.error('Fatal error:', error);
@@ -1050,4 +1050,4 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     });
 }
 
-export default syncAIBitBots;
+export default syncCandyBots;
