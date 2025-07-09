@@ -37,12 +37,13 @@ function runScript(script) {
       stdio: 'inherit',
       env: process.env
     });
-    // Set a 5-minute timeout (300,000 ms)
+    // Set timeout: 20 min for sync-roles.js, 5 min for others
+    const timeoutMs = script === 'sync-roles.js' ? 20 * 60 * 1000 : 5 * 60 * 1000;
     const timeout = setTimeout(() => {
-      console.error(`Timeout: ${script} took longer than 5 minutes. Killing process.`);
+      console.error(`Timeout: ${script} took longer than ${timeoutMs / 60000} minutes. Killing process.`);
       syncProcess.kill('SIGKILL');
       reject(new Error(`Timeout: ${script} took too long`));
-    }, 300000);
+    }, timeoutMs);
     syncProcess.on('error', (error) => {
       clearTimeout(timeout);
       console.error(`Error running ${script}: ${error.message}`);
