@@ -131,7 +131,6 @@ export async function handleProfile({ targetDiscordId, targetUsername, issuerId,
         embeds: [{
           title: `BUXDAO Profile - ${dbUsername}`,
           color: 0x4CAF50,
-          description: `Profile information for **${dbUsername}**`,
           fields: [
             {
               name: '💰 Unclaimed Balance',
