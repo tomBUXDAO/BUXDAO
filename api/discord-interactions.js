@@ -95,6 +95,7 @@ async function verifyDiscordRequest(body, signature, timestamp, clientPublicKey)
 }
 
 import { handleAddClaim } from './discord/interactions/commands/addclaim.js';
+import { handleProfile } from './discord/interactions/commands/profile.js';
 
 export default async function handler(request, response) {
   try {
@@ -324,6 +325,44 @@ export default async function handler(request, response) {
             return response.status(200).json(result);
           } catch (error) {
             console.error('[addclaim] Error:', error);
+            return response.status(200).json({
+              type: 4,
+              data: {
+                embeds: [{
+                  title: 'Error',
+                  description: error.message || 'An error occurred processing the command',
+                  color: 0xFF0000
+                }]
+              }
+            });
+          }
+        }
+
+        // Handle profile command
+        if (command.name === 'profile') {
+          // Extract options
+          const userOption = command.options?.find(opt => opt.name === 'user');
+          const issuerId = interaction.member?.user?.id || interaction.user?.id;
+          
+          // Determine target user - if no user specified, use the command issuer
+          let targetDiscordId, targetUsername;
+          if (userOption) {
+            targetDiscordId = userOption.value;
+            targetUsername = userOption.user?.username || userOption.user?.global_name || userOption.user?.name || 'Unknown';
+          } else {
+            targetDiscordId = issuerId;
+            targetUsername = interaction.member?.user?.username || interaction.member?.user?.global_name || interaction.user?.username || interaction.user?.global_name || 'Unknown';
+          }
+          
+          // Define admin Discord IDs
+          const adminIds = (process.env.DISCORD_ADMIN_IDS || '').split(',').map(id => id.trim()).filter(Boolean);
+          
+          try {
+            const result = await handleProfile({ targetDiscordId, targetUsername, issuerId, adminIds });
+            console.log('[profile] Command result:', result);
+            return response.status(200).json(result);
+          } catch (error) {
+            console.error('[profile] Error:', error);
             return response.status(200).json({
               type: 4,
               data: {

@@ -57,6 +57,19 @@ const commands = [
         required: true
       }
     ]
+  },
+  {
+    name: 'profile',
+    description: 'View your BUXDAO profile information',
+    type: 1, // CHAT_INPUT
+    options: [
+      {
+        type: 6, // USER
+        name: 'user',
+        description: 'User to view profile for (admin only)',
+        required: false
+      }
+    ]
   }
 ];
 

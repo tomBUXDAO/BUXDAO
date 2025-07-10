@@ -749,12 +749,12 @@ const ShippingForm = ({ form, setForm, isValid, setIsValid }) => {
             ))}
           </select>
         ) : (
-          <input
-            className="bg-gray-800 text-white rounded px-4 py-2 col-span-2"
-            placeholder="State/Province/Region*"
-            value={form.state}
-            onChange={e => setForm(f => ({ ...f, state: toTitleCase(e.target.value) }))}
-          />
+        <input
+          className="bg-gray-800 text-white rounded px-4 py-2 col-span-2"
+          placeholder="State/Province/Region*"
+          value={form.state}
+          onChange={e => setForm(f => ({ ...f, state: toTitleCase(e.target.value) }))}
+        />
         )}
         <input
           className="bg-gray-800 text-white rounded px-4 py-2 col-span-2"
