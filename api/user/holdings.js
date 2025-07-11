@@ -13,44 +13,37 @@ export default async function handler(req, res) {
     const client = await pool.connect();
 
     try {
-      // Get user's aggregated NFT holdings by collection across all wallets
-      const holdingsQuery = `
-        SELECT 
-          n.collection,
-          COUNT(*) as count
-        FROM nft_metadata n
-        WHERE n.owner_discord_id = $1
-        GROUP BY n.collection
+      // Get user's aggregated NFT holdings from collection_counts_aggregated
+      const countsQuery = `
+        SELECT * FROM collection_counts_aggregated WHERE discord_id = $1
       `;
-      
-      const holdingsResult = await client.query(holdingsQuery, [req.session.user.discord_id]);
-      
-      // Get user's roles
-      const rolesQuery = `
-        SELECT r.id, r.name, r.discord_role_id
-        FROM roles r
-        JOIN user_roles ur ON (
-          (r.type = 'holder' AND ur.is_holder = true) OR
-          (r.type = 'whale' AND ur.is_whale = true) OR
-          (r.type = 'token' AND ur.has_token = true)
-        )
-        WHERE ur.discord_id = $1
-      `;
-      
-      const rolesResult = await client.query(rolesQuery, [req.session.user.discord_id]);
+      const countsResult = await client.query(countsQuery, [req.session.user.discord_id]);
+      const row = countsResult.rows[0];
 
-      // Calculate total NFTs
-      const totalCount = holdingsResult.rows.reduce((sum, row) => sum + parseInt(row.count), 0);
+      // If no row, return zeros
+      if (!row) {
+        return res.json({
+          collections: [],
+          totalCount: 0
+        });
+      }
+
+      // Map DB columns to frontend collection keys
+      const collections = [
+        { name: 'Celeb Catz', count: Number(row.celeb_catz_count) || 0 },
+        { name: '3D Monsters', count: Number(row.money_monsters_3d_count) || 0 },
+        { name: 'Fcked Catz', count: Number(row.fcked_catz_count) || 0 },
+        { name: 'Money Monsters', count: Number(row.money_monsters_count) || 0 },
+        { name: 'A.I. BitBots', count: Number(row.aibitbots_count) || 0 },
+        { name: 'A.I. Collabs', count: Number(row.ai_collabs_count) || 0 }
+      ];
+
+      const totalCount = Number(row.total_count) || 0;
 
       res.json({
-        collections: holdingsResult.rows.map(row => ({
-          name: row.collection,
-          count: parseInt(row.count)
-        })),
-        roles: rolesResult.rows,
+        collections,
         totalCount
       });
-
     } finally {
       client.release();
     }

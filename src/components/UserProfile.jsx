@@ -166,21 +166,15 @@ const UserProfile = ({ tokenValue, solPrice }) => {
           const collectionData = await collectionCountsResponse.json();
           console.log('Collection counts:', collectionData);
 
-          // Map collection counts to the expected format and sum individual collabs
+          // Map collection counts to the expected format
           const collectionCounts = {
             'celeb_catz_count': collectionData.celebcatz_count || 0,
             'money_monsters_3d_count': collectionData.mm3d_count || 0,
             'fcked_catz_count': collectionData.fckedcatz_count || 0,
             'money_monsters_count': collectionData.mm_count || 0,
             'aibitbots_count': collectionData.aibb_count || 0,
-            // Sum individual AI Collab counts, forcing all to numbers
-            'ai_collabs_count':
-              Number(collectionData.shxbb_count || 0) +
-              Number(collectionData.ausqrl_count || 0) +
-              Number(collectionData.aelxaibb_count || 0) +
-              Number(collectionData.airb_count || 0) +
-              Number(collectionData.clb_count || 0) +
-              Number(collectionData.ddbot_count || 0),
+            // Use the backend's calculated ai_collabs_count directly
+            'ai_collabs_count': collectionData.ai_collabs_count || 0,
             'money_monsters_top_10': collectionData.money_monsters_top_10 || 0,
             'money_monsters_3d_top_10': collectionData.money_monsters_3d_top_10 || 0,
             'branded_catz_count': collectionData.branded_catz_count || 0,
@@ -196,7 +190,7 @@ const UserProfile = ({ tokenValue, solPrice }) => {
             collections: collectionCounts,
             // Calculate total count by summing up individual collection counts
             totalCount: Object.values(collectionCounts).reduce((sum, count) => sum + count, 0),
-            balance: collectionData.balance || 0,
+            balance: claimData.balance || 0,
             unclaimed_rewards: claimData.unclaimed_amount || 0
           }));
         }
