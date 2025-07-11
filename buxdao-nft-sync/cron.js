@@ -74,9 +74,9 @@ async function runAllSyncs() {
 console.log('Running initial sync...');
 runAllSyncs();
 
-// Schedule to run every 15 minutes
+// Schedule to run every 30 minutes
 console.log('Setting up cron schedule...');
-cron.schedule('*/15 * * * *', () => {
+cron.schedule('*/30 * * * *', () => {
   console.log(`\n[CRON RUN] ${new Date().toISOString()} (spawning independent sync run)`);
   // Spawn a new detached process for each scheduled run
   const child = spawn('node', [__filename, '--worker'], {
@@ -103,5 +103,5 @@ process.on('SIGINT', () => {
   process.exit(0);
 });
 
-console.log('NFT sync scheduled to run every 15 minutes');
-console.log('Next sync will run at:', new Date(Date.now() + 15 * 60 * 1000).toISOString()); 
+console.log('NFT sync scheduled to run every 30 minutes');
+console.log('Next sync will run at:', new Date(Date.now() + 30 * 60 * 1000).toISOString()); 
