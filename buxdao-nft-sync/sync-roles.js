@@ -48,9 +48,10 @@ async function updateAllRoles() {
     console.log(`Found ${result.rows.length} users to sync with Discord`);
 
     // Sync each user's roles with Discord
-    for (const row of result.rows) {
+    for (let i = 0; i < result.rows.length; i++) {
+      const row = result.rows[i];
       try {
-        console.log(`Syncing roles for Discord user ${row.discord_id}...`);
+        console.log(`Syncing roles for Discord user ${row.discord_id} (${i + 1} of ${result.rows.length})...`);
         const success = await syncUserRoles(row.discord_id, process.env.DISCORD_GUILD_ID);
         if (success) {
           console.log(`Successfully synced roles for ${row.discord_id}`);
@@ -63,6 +64,7 @@ async function updateAllRoles() {
     }
 
     console.log('Role sync completed');
+    console.log('All Discord role syncs completed!');
   } catch (error) {
     console.error('Error updating roles:', error);
     throw error;
