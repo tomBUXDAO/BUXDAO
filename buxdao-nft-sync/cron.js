@@ -88,4 +88,4 @@ process.on('SIGTERM', () => {
 process.on('SIGINT', () => {
   console.log('Received SIGINT. Cleaning up...');
   process.exit(0);
-}); 
+});
