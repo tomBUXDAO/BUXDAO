@@ -2,7 +2,8 @@
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
-import { Pool } from 'pg';
+import pkg from 'pg';
+const { Pool } = pkg;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -16,7 +17,6 @@ import fs from 'fs/promises';
 import path from 'path';
 import axios from 'axios';
 import { sendActivityNotification } from './api/integrations/discord/notifications.js';
-import pkg from 'pg';
 
 // Log environment check
 console.log('Environment check:', {
