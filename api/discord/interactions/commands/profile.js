@@ -46,9 +46,9 @@ export async function handleProfile({ targetDiscordId, targetUsername, issuerId,
       [targetDiscordId]
     );
 
-    // Get daily reward yield from most recent daily_rewards entry
+    // Get daily reward yield from daily_rewards entry (1 entry per user now)
     const dailyRewardResult = await client.query(
-      'SELECT total_daily_reward FROM daily_rewards WHERE discord_id = $1 ORDER BY calculation_time DESC LIMIT 1',
+      'SELECT total_daily_reward FROM daily_rewards WHERE discord_id = $1',
       [targetDiscordId]
     );
 
