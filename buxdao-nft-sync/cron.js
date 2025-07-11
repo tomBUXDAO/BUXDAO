@@ -14,19 +14,19 @@ console.log('Starting NFT sync scheduler...');
 
 // List of all sync scripts to run sequentially
 const syncScripts = [
-  'ensure-claim-accounts.js',
-  'sync-holders.js',
-  'sync-celebcatz.js',
-  'sync-fckedcatz.js',
-  'sync-monsters.js',
-  'sync-mm3d.js',
-  'sync-aibitbots.js',
-  'sync-aelxaibb.js',
-  'sync-airb.js',
-  'sync-ausqrl.js',
-  'sync-ddbot.js',
-  'sync-clb.js',
-  'sync-roles.js'
+  'buxdao-nft-sync/ensure-claim-accounts.js',
+  'buxdao-nft-sync/sync-holders.js',
+  'buxdao-nft-sync/sync-celebcatz.js',
+  'buxdao-nft-sync/sync-fckedcatz.js',
+  'buxdao-nft-sync/sync-monsters.js',
+  'buxdao-nft-sync/sync-mm3d.js',
+  'buxdao-nft-sync/sync-aibitbots.js',
+  'buxdao-nft-sync/sync-aelxaibb.js',
+  'buxdao-nft-sync/sync-airb.js',
+  'buxdao-nft-sync/sync-ausqrl.js',
+  'buxdao-nft-sync/sync-ddbot.js',
+  'buxdao-nft-sync/sync-clb.js',
+  'buxdao-nft-sync/sync-roles.js'
 ];
 
 // Function to run a single script and return a Promise
@@ -38,7 +38,7 @@ function runScript(script) {
       env: process.env
     });
     // Set timeout: 20 min for sync-roles.js, 5 min for others
-    const timeoutMs = script === 'sync-roles.js' ? 20 * 60 * 1000 : 5 * 60 * 1000;
+    const timeoutMs = script === 'buxdao-nft-sync/sync-roles.js' ? 20 * 60 * 1000 : 5 * 60 * 1000;
     const timeout = setTimeout(() => {
       console.error(`Timeout: ${script} took longer than ${timeoutMs / 60000} minutes. Killing process.`);
       syncProcess.kill('SIGKILL');
