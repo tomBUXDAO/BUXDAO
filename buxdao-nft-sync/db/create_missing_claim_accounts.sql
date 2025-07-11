@@ -37,7 +37,7 @@ SELECT
     (COALESCE(cc.branded_catz_count, 0) * 5),
     false
 FROM user_roles ur
-LEFT JOIN collection_counts_aggregated cc ON ur.discord_id = cc.discord_id
+LEFT JOIN collection_counts cc ON ur.discord_id = cc.discord_id
 LEFT JOIN daily_rewards dr ON ur.discord_id = dr.discord_id
 WHERE ur.discord_id IS NOT NULL 
 AND dr.discord_id IS NULL
