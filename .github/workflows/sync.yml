@@ -22,3 +22,4 @@ jobs:
           HELIUS_API_KEY: ${{ secrets.HELIUS_API_KEY }}
           QUICKNODE_RPC_URL: ${{ secrets.QUICKNODE_RPC_URL }}
           DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }} 
+          BUX_TOKEN_MINT_ADDRESS: ${{ secrets.BUX_TOKEN_MINT_ADDRESS }} 
