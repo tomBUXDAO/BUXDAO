@@ -40,6 +40,7 @@
     "framer-motion": "^12.11.0",
     "helmet": "^8.0.0",
     "node-cache": "^5.1.2",
+    "node-cron": "^4.2.1",
     "node-fetch": "^3.3.2",
     "path-browserify": "^1.0.1",
     "pg": "^8.13.1",
