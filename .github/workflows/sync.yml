@@ -20,4 +20,5 @@ jobs:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
           DISCORD_ACTIVITY_CHANNEL_ID: ${{ secrets.DISCORD_ACTIVITY_CHANNEL_ID }}
           HELIUS_API_KEY: ${{ secrets.HELIUS_API_KEY }}
-          # Add any other required env vars here 
+          QUICKNODE_RPC_URL: ${{ secrets.QUICKNODE_RPC_URL }}
+          DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }} 
