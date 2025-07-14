@@ -17,3 +17,22 @@ solana-release-x86_64-apple-darwin.tar.bz2
 solana-release/bin/solana-test-validator
 solana-release/bin/solana-validator
 solana-release/bin/solang
+
+# Binary files
+*.so
+*.tar.bz2
+*.tar.gz
+*.zip
+
+# Backup files
+*.timestamp-*.mjs
+*.backup
+*.bak
+
+# Log files
+current_holders.json
+logs/*.json
+
+# Temporary migration files
+*_migration_*.sql
+backfill_*.sql
