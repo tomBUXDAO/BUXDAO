@@ -135,7 +135,7 @@ export async function handleCollections({ collectionSymbol }) {
         embeds: [{
           title: `${COLLECTION_DISPLAY_NAMES[collectionSymbol] || collectionSymbol} Collection Stats`,
           color: 0x4CAF50,
-          image: imageUrl ? { url: imageUrl } : undefined,
+          thumbnail: imageUrl ? { url: imageUrl } : undefined,
           fields: [
             { name: 'Total NFTs', value: totalSupply.toString(), inline: true },
             { name: 'Listed', value: listedCount.toString(), inline: true },

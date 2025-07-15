@@ -36,9 +36,9 @@ export async function handleMyNFTs({ targetDiscordId, targetUsername, issuerId, 
         COALESCE(money_monsters_count, 0) as mm_count,
         COALESCE(aibitbots_count, 0) as aibb_count,
         COALESCE(ai_collabs_count, 0) as ai_collabs_count,
+        COALESCE(branded_catz_count, 0) as branded_catz_count,
         COALESCE(money_monsters_top_10, 0) as money_monsters_top_10,
         COALESCE(money_monsters_3d_top_10, 0) as money_monsters_3d_top_10,
-        COALESCE(branded_catz_count, 0) as branded_catz_count,
         COALESCE(total_count, 0) as total_count
       FROM collection_counts 
       WHERE discord_id = $1
@@ -58,26 +58,38 @@ export async function handleMyNFTs({ targetDiscordId, targetUsername, issuerId, 
         }
       };
     }
-    // Format collection counts
-    const fields = [
-      { name: 'Celeb Catz', value: row.celebcatz_count.toString(), inline: true },
-      { name: '3D Monsters', value: row.mm3d_count.toString(), inline: true },
+    // Fetch the user's avatar URL from Discord
+    let avatarUrl;
+    try {
+      const { getUserAvatarUrl } = await import('../../../discord/utils.js');
+      avatarUrl = await getUserAvatarUrl(targetDiscordId);
+    } catch (e) {
+      avatarUrl = undefined;
+    }
+    // Format fields: 5 main collections left, rest right
+    const leftFields = [
+      { name: 'Celebrity Catz', value: row.celebcatz_count.toString(), inline: true },
+      { name: 'Money Monsters 3D', value: row.mm3d_count.toString(), inline: true },
       { name: 'Fcked Catz', value: row.fckedcatz_count.toString(), inline: true },
       { name: 'Money Monsters', value: row.mm_count.toString(), inline: true },
-      { name: 'A.I. BitBots', value: row.aibb_count.toString(), inline: true },
+      { name: 'A.I. BitBots', value: row.aibb_count.toString(), inline: true }
+    ];
+    const rightFields = [
       { name: 'A.I. Collabs', value: row.ai_collabs_count.toString(), inline: true },
       { name: 'Branded Catz', value: row.branded_catz_count.toString(), inline: true },
       { name: 'Top 10 MM', value: row.money_monsters_top_10.toString(), inline: true },
-      { name: 'Top 10 MM3D', value: row.money_monsters_3d_top_10.toString(), inline: true },
-      { name: 'Total', value: row.total_count.toString(), inline: false }
+      { name: 'Top 10 MM3D', value: row.money_monsters_3d_top_10.toString(), inline: true }
     ];
+    // Total at the bottom
+    const totalField = { name: 'Total', value: row.total_count.toString(), inline: false };
     return {
       type: 4,
       data: {
         embeds: [{
           title: `NFT Holdings - ${targetUsername}`,
           color: 0x4CAF50,
-          fields,
+          thumbnail: avatarUrl ? { url: avatarUrl } : undefined,
+          fields: [...leftFields, ...rightFields, totalField],
           footer: { text: 'BUXDAO - Putting Community First' },
           timestamp: new Date().toISOString()
         }],
