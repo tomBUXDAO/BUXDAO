@@ -16,19 +16,19 @@ export async function handleHelp() {
             },
             {
               name: '👤 /profile [user]',
-              value: 'View your BUXDAO profile. Admins can view any user.'
+              value: 'View your BUXDAO profile.'
             },
             {
               name: '💰 /mybux [user]',
-              value: 'View your BUX token balance and cashout value. Admins can view any user.'
+              value: 'View your BUX token balance and cashout value.'
             },
             {
               name: '🐾 /mynfts [user]',
-              value: 'View your NFT collection counts. Admins can view any user.'
+              value: 'View your NFT collection counts.'
             },
             {
               name: '📊 /collections <collection>',
-              value: 'View stats for a BUXDAO collection. Choose from dropdown.'
+              value: 'View stats for a BUXDAO collection.'
             },
             {
               name: '🎁 /addclaim <user> <amount>',
