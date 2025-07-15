@@ -16,16 +16,7 @@ console.log('Starting NFT sync scheduler...');
 const syncScripts = [
   'buxdao-nft-sync/ensure-claim-accounts.js',
   'buxdao-nft-sync/sync-holders.js',
-  'buxdao-nft-sync/sync-celebcatz.js',
-  'buxdao-nft-sync/sync-fckedcatz.js',
-  'buxdao-nft-sync/sync-monsters.js',
-  'buxdao-nft-sync/sync-mm3d.js',
-  'buxdao-nft-sync/sync-aibitbots.js',
-  'buxdao-nft-sync/sync-aelxaibb.js',
-  'buxdao-nft-sync/sync-airb.js',
-  'buxdao-nft-sync/sync-ausqrl.js',
-  'buxdao-nft-sync/sync-ddbot.js',
-  'buxdao-nft-sync/sync-clb.js',
+  'buxdao-nft-sync/sync-collections.js', // new generic collections sync
   'buxdao-nft-sync/sync-roles.js'
 ];
 

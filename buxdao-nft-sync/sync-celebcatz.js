@@ -134,15 +134,16 @@ async function fetchCollectionNFTs(connection) {
 // Add test mode flag
 const TEST_MODE = process.env.TEST_MODE === 'true';
 
-// Function to determine the type of ownership change
+// Improved function to determine ownership change type by always fetching transaction details
 async function determineOwnershipChange(mintAddress, oldOwner, newOwner) {
   try {
-    // Normalize wallet addresses for comparison
-    const normalizedOldOwner = oldOwner.toLowerCase();
-    const normalizedNewOwner = newOwner.toLowerCase();
+    console.log(`\nAnalyzing ownership change for ${mintAddress}:`);
+    console.log(`- Old owner: ${oldOwner}`);
+    console.log(`- New owner: ${newOwner}`);
     
     // Check if the NFT was burned (no owner)
     if (!newOwner) {
+      console.log(`\n🔥 NFT Burned: ${mintAddress}`);
       return { 
         type: 'burned',
         details: {
@@ -152,135 +153,23 @@ async function determineOwnershipChange(mintAddress, oldOwner, newOwner) {
       };
     }
     
-    // Check if the NFT is listed on Magic Eden or Tensor
-    const isListed = normalizedNewOwner === '1bwutmtvypwdtmw9abtk4ssr8no61spgavw1x6ndix' || 
-                    normalizedNewOwner === '4zdnggatfsw1cqghqkiwyrsxaagxrsrrnnuunxzjxue';
+    // Always fetch recent transaction history for this NFT
+    console.log(`Fetching transaction history for ${mintAddress}...`);
     
-    if (isListed) {
-      console.log(`\nFetching transaction history for ${mintAddress} to get list price...`);
-      
-      // Fetch transaction history to get list price
-      const response = await fetch(
-        `https://api.helius.xyz/v0/addresses/${mintAddress}/transactions?api-key=${process.env.HELIUS_API_KEY}`
-      );
-      
-      if (!response.ok) {
-        console.error(`Failed to fetch transaction history: ${response.statusText}`);
-        throw new Error(`Failed to fetch transaction history: ${response.statusText}`);
-      }
-      
-      const transactions = await response.json();
-      console.log(`Found ${transactions.length} transactions`);
-      
-      // Find the most recent listing transaction
-      const listingTx = transactions.find(tx => {
-        // Log transaction details for debugging
-        console.log('Checking transaction:', {
-          type: tx.type,
-          hasEvents: !!tx.events,
-          events: tx.events?.map(e => e.type)
-        });
-        
-        // Check for NFT_LISTING event or TSWAP program
-        return tx.type === 'NFT_LISTING' || 
-               (tx.events?.some(event => event.type === 'NFT_LISTING')) ||
-               (tx.events?.some(event => event.programId === 'TSWAPaqyCSx2KABk68Shruf4rp7CxcNi8hAsbdwmHbN'));
-      });
-      
-      if (listingTx) {
-        console.log('Found listing transaction:', listingTx);
-        
-        // Extract list price from listing transaction
-        let listPrice = null;
-        let marketplace = normalizedNewOwner === '1bwutmtvypwdtmw9abtk4ssr8no61spgavw1x6ndix' ? 'Magic Eden' : 'Tensor';
-        
-        // Try to get price from events first
-        if (listingTx.events) {
-          const listingEvent = listingTx.events.find(event => event.type === 'NFT_LISTING');
-          if (listingEvent) {
-            listPrice = listingEvent.amount / 1e9; // Convert lamports to SOL
-            marketplace = listingEvent.source || marketplace;
-            console.log('Found list price from events:', listPrice, 'SOL');
-          }
-        }
-        
-        // If no price in events, try to get from transaction description
-        if (!listPrice && listingTx.description) {
-          const priceMatch = listingTx.description.match(/(\d+\.?\d*)\s*SOL/);
-          if (priceMatch) {
-            listPrice = parseFloat(priceMatch[1]);
-            console.log('Found list price from description:', listPrice, 'SOL');
-          }
-        }
-        
-        // If still no price, try to get from balance changes
-        if (!listPrice && listingTx.tokenTransfers) {
-          const transfer = listingTx.tokenTransfers.find(t => t.mint === mintAddress);
-          if (transfer && transfer.amount) {
-            listPrice = transfer.amount / 1e9;
-            console.log('Found list price from token transfer:', listPrice, 'SOL');
-          }
-        }
-
-        // For Tensor listings, try to decode the program data
-        if (!listPrice && marketplace === 'Tensor' && listingTx.events) {
-          const tensorEvent = listingTx.events.find(event => 
-            event.programId === 'TSWAPaqyCSx2KABk68Shruf4rp7CxcNi8hAsbdwmHbN'
-          );
-          
-          if (tensorEvent && tensorEvent.data) {
-            try {
-              // Decode base64 data
-              const decodedData = Buffer.from(tensorEvent.data, 'base64');
-              // Price is in bytes 16-23
-              const priceBytes = decodedData.slice(16, 24);
-              const priceLamports = priceBytes.readBigUInt64LE();
-              listPrice = Number(priceLamports) / 1e9;
-              console.log('Found list price from Tensor data:', listPrice, 'SOL');
-            } catch (error) {
-              console.error('Error decoding Tensor listing data:', error);
-            }
-          }
-        }
-
-        // Validate the price
-        if (listPrice && listPrice > 0 && listPrice < 1000000) { // Reasonable price range
-          return {
-            type: 'listed',
-            details: {
-              marketplace: marketplace,
-              lister: oldOwner,
-              timestamp: new Date().toISOString(),
-              price: listPrice
-            }
-          };
-        } else {
-          console.log('No valid list price found in transaction');
-        }
-      } else {
-        console.log('No listing transaction found');
-      }
+    const response = await fetch(
+      `https://api.helius.xyz/v0/addresses/${mintAddress}/transactions?api-key=${process.env.HELIUS_API_KEY}`
+    );
+    
+    if (!response.ok) {
+      console.error(`Failed to fetch transaction history: ${response.statusText}`);
+      return { type: 'unknown' };
     }
     
-    // Check if the NFT was delisted
-    if ((normalizedOldOwner === '1bwutmtvypwdtmw9abtk4ssr8no61spgavw1x6ndix' || 
-         normalizedOldOwner === '4zdnggatfsw1cqghqkiwyrsxaagxrsrrnnuunxzjxue') && 
-        normalizedNewOwner !== '1bwutmtvypwdtmw9abtk4ssr8no61spgavw1x6ndix' &&
-        normalizedNewOwner !== '4zdnggatfsw1cqghqkiwyrsxaagxrsrrnnuunxzjxue') {
-      return { 
-        type: 'delisted',
-        details: {
-          marketplace: normalizedOldOwner === '1bwutmtvypwdtmw9abtk4ssr8no61spgavw1x6ndix' ? 'Magic Eden' : 'Tensor',
-          owner: newOwner, // Use new owner (not escrow)
-          timestamp: new Date().toISOString()
-        }
-      };
-    }
+    const transactions = await response.json();
+    console.log(`Found ${transactions.length} transactions`);
     
-    // If neither wallet is an escrow, it's a transfer
-    if (normalizedOldOwner !== normalizedNewOwner && 
-        normalizedNewOwner !== '1bwutmtvypwdtmw9abtk4ssr8no61spgavw1x6ndix' &&
-        normalizedNewOwner !== '4zdnggatfsw1cqghqkiwyrsxaagxrsrrnnuunxzjxue') {
+    if (transactions.length === 0) {
+      console.log('No transactions found - treating as transfer');
       return { 
         type: 'transfer',
         details: {
@@ -291,7 +180,195 @@ async function determineOwnershipChange(mintAddress, oldOwner, newOwner) {
       };
     }
     
-    return { type: 'unknown' };
+    // Look for the most recent transaction that involves this ownership change
+    // We'll look at the last 5 transactions to find the relevant one
+    const recentTransactions = transactions.slice(0, 5);
+    
+    for (const tx of recentTransactions) {
+      console.log(`\nAnalyzing transaction: ${tx.signature}`);
+      console.log(`- Type: ${tx.type}`);
+      console.log(`- Description: ${tx.description}`);
+      
+      // Check if this transaction involves our ownership change
+      let involvesOwnershipChange = false;
+      let transactionType = null;
+      let price = null;
+      let marketplace = null;
+      let buyer = null;
+      let seller = null;
+      
+      // Check NFT events
+      if (tx.events?.nft) {
+        const nftEvent = tx.events.nft;
+        console.log(`- NFT Event:`, nftEvent);
+        
+        if (nftEvent.type === 'NFT_SALE' || nftEvent.type === 'NFT_BID') {
+          transactionType = 'sale';
+          price = nftEvent.amount ? nftEvent.amount / 1e9 : null;
+          marketplace = nftEvent.source === 'MAGIC_EDEN' ? 'Magic Eden' : 
+                       nftEvent.source === 'TENSOR' ? 'Tensor' : 
+                       nftEvent.source || 'Unknown';
+          buyer = nftEvent.buyer || newOwner;
+          seller = nftEvent.seller || oldOwner;
+          involvesOwnershipChange = true;
+          
+        } else if (nftEvent.type === 'NFT_LISTING') {
+          transactionType = 'listing';
+          price = nftEvent.amount ? nftEvent.amount / 1e9 : null;
+          marketplace = nftEvent.source === 'MAGIC_EDEN' ? 'Magic Eden' : 
+                       nftEvent.source === 'TENSOR' ? 'Tensor' : 
+                       nftEvent.source || 'Unknown';
+          seller = nftEvent.seller || oldOwner;
+          involvesOwnershipChange = true;
+          
+        } else if (nftEvent.type === 'NFT_CANCEL_LISTING') {
+          transactionType = 'delist';
+          marketplace = nftEvent.source === 'MAGIC_EDEN' ? 'Magic Eden' : 
+                       nftEvent.source === 'TENSOR' ? 'Tensor' : 
+                       nftEvent.source || 'Unknown';
+          seller = nftEvent.seller || oldOwner;
+          involvesOwnershipChange = true;
+        }
+      }
+      
+      // Check for collection offers and other transaction types
+      if (!involvesOwnershipChange && tx.description) {
+        const description = tx.description.toLowerCase();
+        console.log(`- Checking description: ${description}`);
+        
+        // Collection offer accepted
+        if (description.includes('collection offer') || description.includes('bid accepted')) {
+          transactionType = 'sale';
+          // Try to extract price from description
+          const priceMatch = tx.description.match(/(\d+\.?\d*)\s*sol/i);
+          if (priceMatch) {
+            price = parseFloat(priceMatch[1]);
+          }
+          marketplace = 'Collection Offer';
+          buyer = newOwner;
+          seller = oldOwner;
+          involvesOwnershipChange = true;
+          
+        // Direct sale
+        } else if (description.includes('sold') || description.includes('purchase')) {
+          transactionType = 'sale';
+          const priceMatch = tx.description.match(/(\d+\.?\d*)\s*sol/i);
+          if (priceMatch) {
+            price = parseFloat(priceMatch[1]);
+          }
+          marketplace = 'Direct Sale';
+          buyer = newOwner;
+          seller = oldOwner;
+          involvesOwnershipChange = true;
+          
+        // Transfer
+        } else if (description.includes('transfer') || description.includes('sent')) {
+          transactionType = 'transfer';
+          involvesOwnershipChange = true;
+        }
+      }
+      
+      // Check token transfers for price information
+      if (involvesOwnershipChange && !price && tx.tokenTransfers) {
+        const transfer = tx.tokenTransfers.find(t => t.mint === mintAddress);
+        if (transfer && transfer.amount) {
+          price = transfer.amount / 1e9;
+          console.log(`- Found price from token transfer: ${price} SOL`);
+        }
+      }
+      
+      // If we found a relevant transaction, return the result
+      if (involvesOwnershipChange) {
+        console.log(`\n✅ Detected transaction type: ${transactionType}`);
+        
+        switch (transactionType) {
+          case 'sale':
+            return {
+              type: 'sold',
+              details: {
+                marketplace: marketplace,
+                seller: seller,
+                buyer: buyer,
+                price: price,
+                timestamp: new Date().toISOString()
+              }
+            };
+            
+          case 'listing':
+            return {
+              type: 'listed',
+              details: {
+                marketplace: marketplace,
+                lister: seller,
+                price: price,
+                timestamp: new Date().toISOString()
+              }
+            };
+            
+          case 'delist':
+            return {
+              type: 'delisted',
+              details: {
+                marketplace: marketplace,
+                owner: seller,
+                timestamp: new Date().toISOString()
+              }
+            };
+            
+          case 'transfer':
+          default:
+            return {
+              type: 'transfer',
+              details: {
+                from: oldOwner,
+                to: newOwner,
+                timestamp: new Date().toISOString()
+              }
+            };
+        }
+      }
+    }
+    
+    // If no specific transaction type was detected, check if it's a marketplace transfer
+    const normalizedOldOwner = oldOwner.toLowerCase();
+    const normalizedNewOwner = newOwner.toLowerCase();
+    
+    // Check if moving to/from marketplace escrows
+    if (normalizedNewOwner === '1bwutmtvypwdtmw9abtk4ssr8no61spgavw1x6ndix' || 
+        normalizedNewOwner === '4zdnggatfsw1cqghqkiwyrsxaagxrsrrnnuunxzjxue') {
+      return {
+        type: 'listed',
+        details: {
+          marketplace: normalizedNewOwner === '1bwutmtvypwdtmw9abtk4ssr8no61spgavw1x6ndix' ? 'Magic Eden' : 'Tensor',
+          lister: oldOwner,
+          timestamp: new Date().toISOString()
+        }
+      };
+    }
+    
+    if (normalizedOldOwner === '1bwutmtvypwdtmw9abtk4ssr8no61spgavw1x6ndix' || 
+        normalizedOldOwner === '4zdnggatfsw1cqghqkiwyrsxaagxrsrrnnuunxzjxue') {
+      return {
+        type: 'delisted',
+        details: {
+          marketplace: normalizedOldOwner === '1bwutmtvypwdtmw9abtk4ssr8no61spgavw1x6ndix' ? 'Magic Eden' : 'Tensor',
+          owner: newOwner,
+          timestamp: new Date().toISOString()
+        }
+      };
+    }
+    
+    // Default to transfer if no specific type detected
+    console.log(`\n⚠️ No specific transaction type detected - treating as transfer`);
+    return {
+      type: 'transfer',
+      details: {
+        from: oldOwner,
+        to: newOwner,
+        timestamp: new Date().toISOString()
+      }
+    };
+    
   } catch (error) {
     console.error('Error determining ownership change:', error);
     return { type: 'unknown' };
@@ -521,6 +598,37 @@ async function handleOwnershipChange(client, nft, dbNFT, change) {
         WHERE mint_address = $3`,
         [nft.ownership.owner, newOwnerDiscord, nft.id]
       );
+    } else if (change.type === 'burned') {
+      // Handle burn event
+      console.log(`\n🔥 NFT Burned: ${nft.id}`);
+      
+      // Get Discord name for the previous owner
+      const previousOwnerDiscord = await getDiscordNameForWallet(client, dbNFT.owner_wallet);
+      
+      // Format and send burn notification
+      const message = formatDiscordMessage({
+        type: 'burned',
+        nft: {
+          mint_address: nft.id,
+          name: nft.content.metadata.name,
+          symbol: COLLECTION.name,
+          owner_wallet: dbNFT.owner_wallet,
+          original_lister: dbNFT.original_lister,
+          rarity_rank: dbNFT.rarity_rank,
+          image_url: nft.content.links.image,
+          owner_discord_id: previousOwnerDiscord
+        }
+      });
+      
+      await sendActivityNotification(message);
+      
+      // Delete the NFT from database since it's burned
+      await client.query(
+        `DELETE FROM nft_metadata WHERE mint_address = $1`,
+        [nft.id]
+      );
+      
+      return; // Exit early since NFT is deleted
     }
 
     // Fetch the latest NFT row from the database
@@ -865,92 +973,37 @@ async function syncCelebCatz() {
         continue;
       }
       
-      // Check for ownership changes
+      // Check for ownership changes - use improved transaction analysis for ALL changes
       if (dbNFT.owner_wallet !== nft.ownership.owner) {
-        const isNewOwnerEscrow = ESCROW_WALLETS.has(nft.ownership.owner);
-        // Listing: NFT was not listed, now in escrow
-        if (!dbNFT.is_listed && isNewOwnerEscrow) {
-          summary.ownershipChanges.listings++;
-          if (TEST_MODE) {
-            console.log(`\nTest Mode: Forced Listing Detected:`, {
-              mint: nft.id,
-              name: nft.content.metadata.name,
-              previous_owner: dbNFT.owner_wallet,
-              new_owner: nft.ownership.owner
-            });
-          } else {
-            await handleOwnershipChange(client, nft, dbNFT, {
-              type: 'listed',
-              details: {
-                marketplace: getMarketplaceName(nft.ownership.owner),
-                lister: dbNFT.owner_wallet,
-                timestamp: new Date().toISOString()
-              }
-            });
-          }
-        } else if (dbNFT.is_listed && !isNewOwnerEscrow) {
-          if (nft.ownership.owner === dbNFT.original_lister) {
-            // Delist event
-            summary.ownershipChanges.delists++;
-            if (TEST_MODE) {
-              console.log(`\nTest Mode: Forced Delist Detected:`, {
-                mint: nft.id,
-                name: nft.content.metadata.name,
-                previous_owner: dbNFT.owner_wallet,
-                new_owner: nft.ownership.owner
-              });
-            } else {
-              await handleOwnershipChange(client, nft, dbNFT, {
-                type: 'delisted',
-                details: {
-                  marketplace: dbNFT.marketplace,
-                  owner: nft.ownership.owner,
-                  timestamp: new Date().toISOString()
-                }
-              });
-            }
-          } else {
-            // Sale event
-            summary.ownershipChanges.sales++;
-            if (TEST_MODE) {
-              console.log(`\nTest Mode: Forced Sale Detected:`, {
-                mint: nft.id,
-                name: nft.content.metadata.name,
-                previous_owner: dbNFT.owner_wallet,
-                new_owner: nft.ownership.owner
-              });
-            } else {
-              await handleOwnershipChange(client, nft, dbNFT, {
-                type: 'sold',
-                details: {
-                  marketplace: dbNFT.marketplace,
-                  seller: dbNFT.original_lister,
-                  buyer: nft.ownership.owner,
-                  timestamp: new Date().toISOString()
-                }
-              });
-            }
-          }
-        } else {
-          const change = await determineOwnershipChange(
-            nft.id,
-            dbNFT.owner_wallet,
-            nft.ownership.owner
-          );
-          // Update summary with ownership changes
+        console.log(`\n🔍 Ownership change detected for ${nft.id}:`);
+        console.log(`- Previous owner: ${dbNFT.owner_wallet}`);
+        console.log(`- New owner: ${nft.ownership.owner}`);
+        
+        // Use the improved determineOwnershipChange function for ALL ownership changes
+        const change = await determineOwnershipChange(
+          nft.id,
+          dbNFT.owner_wallet,
+          nft.ownership.owner
+        );
+        
+        // Update summary with ownership changes
+        if (summary.ownershipChanges[change.type] !== undefined) {
           summary.ownershipChanges[change.type]++;
-          if (TEST_MODE) {
-            console.log(`\nTest Mode: Ownership Change Detected:`, {
-              mint: nft.id,
-              name: nft.content.metadata.name,
-              type: change.type,
-              previous_owner: dbNFT.owner_wallet,
-              new_owner: nft.ownership.owner,
-              details: change.details
-            });
-          } else {
-            await handleOwnershipChange(client, nft, dbNFT, change);
-          }
+        } else {
+          console.log(`⚠️ Unknown change type: ${change.type}`);
+        }
+        
+        if (TEST_MODE) {
+          console.log(`\nTest Mode: Ownership Change Detected:`, {
+            mint: nft.id,
+            name: nft.content.metadata.name,
+            type: change.type,
+            previous_owner: dbNFT.owner_wallet,
+            new_owner: nft.ownership.owner,
+            details: change.details
+          });
+        } else {
+          await handleOwnershipChange(client, nft, dbNFT, change);
         }
       } else if (TEST_MODE) {
         console.log(`\nTest Mode: No Change for NFT:`, {
@@ -989,7 +1042,11 @@ async function syncCelebCatz() {
             if (nftStatus.result?.burnt === true) {
               summary.ownershipChanges.burns++;
               
-              await sendActivityNotification({
+              // Get Discord name for the previous owner
+              const previousOwnerDiscord = await getDiscordNameForWallet(client, dbNFT.owner_wallet);
+              
+              // Format the burn notification properly
+              const message = formatDiscordMessage({
                 type: 'burned',
                 nft: {
                   mint_address: dbNFT.mint_address,
@@ -998,9 +1055,12 @@ async function syncCelebCatz() {
                   owner_wallet: dbNFT.owner_wallet,
                   original_lister: dbNFT.original_lister,
                   rarity_rank: dbNFT.rarity_rank,
-                  image_url: dbNFT.image_url
+                  image_url: dbNFT.image_url,
+                  owner_discord_id: previousOwnerDiscord
                 }
               });
+              
+              await sendActivityNotification(message);
               
               await client.query(
                 `DELETE FROM nft_metadata WHERE mint_address = $1`,
