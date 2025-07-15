@@ -8,33 +8,38 @@ export async function handleHelp() {
           title: 'BUXDAO Bot Commands',
           color: 0x4CAF50,
           description: 'Here are all available commands and their options:',
+          thumbnail: { url: 'https://cdn-icons-png.flaticon.com/512/1828/1828817.png' }, // info icon
           fields: [
             {
-              name: '/profile [user]',
+              name: 'ℹ️ /help',
+              value: 'Show this help message.'
+            },
+            {
+              name: '👤 /profile [user]',
               value: 'View your BUXDAO profile. Admins can view any user.'
             },
             {
-              name: '/mybux [user]',
+              name: '💰 /mybux [user]',
               value: 'View your BUX token balance and cashout value. Admins can view any user.'
             },
             {
-              name: '/mynfts [user]',
+              name: '🐾 /mynfts [user]',
               value: 'View your NFT collection counts. Admins can view any user.'
             },
             {
-              name: '/collections <collection>',
+              name: '📊 /collections <collection>',
               value: 'View stats for a BUXDAO collection. Choose from dropdown.'
             },
             {
-              name: '/addclaim <user> <amount>',
+              name: '🎁 /addclaim <user> <amount>',
               value: 'Admin: Award BUX tokens to a user.'
             },
             {
-              name: '/nft <collection> <id>',
+              name: '🔍 /nft <collection> <id>',
               value: 'Look up NFT details by collection and token ID.'
             },
             {
-              name: '/rank <collection> <rank>',
+              name: '🏆 /rank <collection> <rank>',
               value: 'Look up NFT by rarity rank in a collection.'
             }
           ],
