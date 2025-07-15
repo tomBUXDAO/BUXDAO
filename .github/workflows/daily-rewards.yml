@@ -1,0 +1,56 @@
+name: Daily Rewards Processing
+
+on:
+  schedule:
+    # Run at 00:00 UTC every day
+    - cron: '0 0 * * *'
+  workflow_dispatch: # Allow manual triggering
+
+jobs:
+  process-daily-rewards:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: buxdao-nft-sync/package-lock.json
+        
+    - name: Install dependencies
+      working-directory: buxdao-nft-sync
+      run: npm ci
+      
+    - name: Process Daily Rewards
+      working-directory: buxdao-nft-sync
+      env:
+        POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
+        HELIUS_API_KEY: ${{ secrets.HELIUS_API_KEY }}
+        DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+        DISCORD_CLIENT_ID: ${{ secrets.DISCORD_CLIENT_ID }}
+        DISCORD_CLIENT_SECRET: ${{ secrets.DISCORD_CLIENT_SECRET }}
+      run: node process-daily-rewards.js
+      
+    - name: Notify on failure
+      if: failure()
+      uses: 8398a7/action-slack@v3
+      with:
+        status: failure
+        webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+        text: 'Daily rewards processing failed! Check the GitHub Actions logs.'
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        
+    - name: Notify on success
+      if: success()
+      uses: 8398a7/action-slack@v3
+      with:
+        status: success
+        webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+        text: 'Daily rewards processing completed successfully!'
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }} 
