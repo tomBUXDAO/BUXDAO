@@ -6,16 +6,16 @@ import fetch from 'node-fetch';
 const DISCORD_API = 'https://discord.com/api/v10';
 
 const collectionsConfig = [
-  { name: 'FCKEDCATZ', address: 'EPeeeDr21EPJ4GJgjuRJ8SHD4A2d59erMaTtWaTT2hqm' },
-  { name: 'MM', address: '3EyhWtevHSkXg4cGsCurLLJ1NEc3rR3fWrYBx5CVLn7R' },
-  { name: 'AIBB', address: '41swUeWc8Hm87T7ahtndUWfDTLRWndWYFpuE4UKp79Vq' },
-  { name: 'MM3D', address: 'HLD74kSbBLf4aYnGkZ4dYSoh9cZvS4exAB9t7pPDDPvE' },
-  { name: 'CelebCatz', address: 'H6c8gJqMk2ktfKriGGLB14RKPAz2otz1iPv2AAegetXD' },
-  { name: 'AELxAIBB', address: 'EiWQMsSysgAKofe8EVtVSjeCxv1DXJJ4BCiH3gbYF4K7' },
-  { name: 'AIRB', address: '4obz5pRAjZyV2zE4dbpSfhtagQcWt6W3UdJ6FqsCGnLE' },
-  { name: 'AUSQRL', address: 'GLN64oj3rQq4qy93P9YV5xF8U2veiFcGbGaTTZQhPoj5' },
-  { name: 'DDBOT', address: 'A5FjnNDwXprq7rRmoHn7fhimcDsmMdn579WX9MqBem9Y' },
-  { name: 'CLB', address: 'CLPKnYaB5JdCBMBJJ32W1qXoYC3kShxT3sxPLuVVFgD7' }
+  { name: 'FCKEDCATZ', address: 'EPeeeDr21EPJ4GJgjuRJ8SHD4A2d59erMaTtWaTT2hqm', display: 'Fcked Catz' },
+  { name: 'MM', address: '3EyhWtevHSkXg4cGsCurLLJ1NEc3rR3fWrYBx5CVLn7R', display: 'Money Monsters' },
+  { name: 'AIBB', address: '41swUeWc8Hm87T7ahtndUWfDTLRWndWYFpuE4UKp79Vq', display: 'A.I. BitBots' },
+  { name: 'MM3D', address: 'HLD74kSbBLf4aYnGkZ4dYSoh9cZvS4exAB9t7pPDDPvE', display: 'Money Monsters 3D' },
+  { name: 'CelebCatz', address: 'H6c8gJqMk2ktfKriGGLB14RKPAz2otz1iPv2AAegetXD', display: 'Celebrity Catz' },
+  { name: 'AELxAIBB', address: 'EiWQMsSysgAKofe8EVtVSjeCxv1DXJJ4BCiH3gbYF4K7', display: 'A.I. Energy Apes' },
+  { name: 'AIRB', address: '4obz5pRAjZyV2zE4dbpSfhtagQcWt6W3UdJ6FqsCGnLE', display: 'Rejected Bots' },
+  { name: 'AUSQRL', address: 'GLN64oj3rQq4qy93P9YV5xF8U2veiFcGbGaTTZQhPoj5', display: 'A.I. Secret Squirrels' },
+  { name: 'DDBOT', address: 'A5FjnNDwXprq7rRmoHn7fhimcDsmMdn579WX9MqBem9Y', display: 'Doodle Bots' },
+  { name: 'CLB', address: 'CLPKnYaB5JdCBMBJJ32W1qXoYC3kShxT3sxPLuVVFgD7', display: 'Candy Bots' }
 ];
 
 // Create commands array with both NFT and rank commands
@@ -120,7 +120,7 @@ const commands = [
         name: 'collection',
         description: 'Select a collection',
         required: true,
-        choices: collectionsConfig.map(c => ({ name: c.name, value: c.name }))
+        choices: collectionsConfig.map(c => ({ name: c.display, value: c.name }))
       }
     ]
   },

@@ -34,6 +34,21 @@ const magicEdenSymbolMap = {
   'CLB': 'candybots'
 };
 
+// Map collection symbol to display name
+const COLLECTION_DISPLAY_NAMES = {
+  'FCKEDCATZ': 'Fcked Catz',
+  'MM': 'Money Monsters',
+  'AIBB': 'A.I. BitBots',
+  'MM3D': 'Money Monsters 3D',
+  'CelebCatz': 'Celebrity Catz',
+  'AELxAIBB': 'A.I. Energy Apes',
+  'AIRB': 'Rejected Bots',
+  'AUSQRL': 'A.I. Secret Squirrels',
+  'DDBOT': 'Doodle Bots',
+  'CLB': 'Candy Bots',
+  'SHxBB': 'A.I. Warriors'
+};
+
 // Map collection symbol to thumbnail image (relative to public/)
 const COLLECTION_THUMBNAILS = {
   'FCKEDCATZ': '/gifs/catz.gif',
@@ -103,19 +118,28 @@ export async function handleCollections({ collectionSymbol }) {
     // Daily reward yield
     const dailyReward = REWARD_RATES[collectionSymbol] || 0;
     // Thumbnail
-    const thumbnailUrl = COLLECTION_THUMBNAILS[collectionSymbol] ? `https://buxdao.com${COLLECTION_THUMBNAILS[collectionSymbol]}` : undefined;
+    const imageUrl = COLLECTION_THUMBNAILS[collectionSymbol] ? `https://buxdao.com${COLLECTION_THUMBNAILS[collectionSymbol]}` : undefined;
+    // Format floor price (Magic Eden returns in lamports, so divide by 1e9 for SOL)
+    let formattedFloorPrice = floorPrice;
+    if (floorPrice > 1e6) {
+      formattedFloorPrice = (floorPrice / 1e9).toFixed(2);
+    } else if (floorPrice > 0) {
+      formattedFloorPrice = floorPrice.toFixed(2);
+    } else {
+      formattedFloorPrice = '0';
+    }
     // Build embed
     return {
       type: 4,
       data: {
         embeds: [{
-          title: `${collectionSymbol} Collection Stats`,
+          title: `${COLLECTION_DISPLAY_NAMES[collectionSymbol] || collectionSymbol} Collection Stats`,
           color: 0x4CAF50,
-          thumbnail: thumbnailUrl ? { url: thumbnailUrl } : undefined,
+          image: imageUrl ? { url: imageUrl } : undefined,
           fields: [
             { name: 'Total NFTs', value: totalSupply.toString(), inline: true },
             { name: 'Listed', value: listedCount.toString(), inline: true },
-            { name: 'Floor Price', value: `${floorPrice} SOL`, inline: true },
+            { name: 'Floor Price', value: `${formattedFloorPrice} SOL`, inline: true },
             { name: '% Listed', value: `${percentListed}%`, inline: true },
             { name: 'Daily Reward', value: `${dailyReward} BUX/NFT/day`, inline: true },
             { name: 'Magic Eden', value: `[View on ME](${ME_URL(meSymbol || collectionSymbol)})`, inline: false },
