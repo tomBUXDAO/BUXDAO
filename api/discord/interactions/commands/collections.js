@@ -142,6 +142,19 @@ export async function handleCollections({ collectionSymbol }) {
     if (solPrice && !isNaN(solPrice)) {
       floorPriceUsd = ` ($${(parseFloat(formattedFloorPrice) * solPrice).toFixed(2)})`;
     }
+    // Fetch Magic Eden collection image
+    let meImageUrl = undefined;
+    if (meSymbol) {
+      try {
+        const meInfoRes = await fetch(`https://api-mainnet.magiceden.dev/v2/collections/${meSymbol}`);
+        if (meInfoRes.ok) {
+          const meInfo = await meInfoRes.json();
+          if (meInfo && meInfo.image) {
+            meImageUrl = meInfo.image;
+          }
+        }
+      } catch (e) {}
+    }
     // Format fields in two columns: left (main stats), right (bonus stats)
     const leftFields = [
       { name: 'Total NFTs', value: totalSupply.toString(), inline: true },
@@ -166,7 +179,8 @@ export async function handleCollections({ collectionSymbol }) {
         embeds: [{
           title: `${COLLECTION_DISPLAY_NAMES[collectionSymbol] || collectionSymbol} Collection Stats`,
           color: 0x4CAF50,
-          thumbnail: thumbnailUrl ? { url: thumbnailUrl } : undefined,
+          // Remove thumbnail, use image instead
+          image: meImageUrl ? { url: meImageUrl } : undefined,
           fields: [...leftFields, ...rightFields, ...linkFields],
           footer: { text: 'BUXDAO - Collection Stats' },
           timestamp: new Date().toISOString()
