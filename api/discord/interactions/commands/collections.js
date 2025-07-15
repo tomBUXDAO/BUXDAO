@@ -34,6 +34,21 @@ const magicEdenSymbolMap = {
   'CLB': 'candybots'
 };
 
+// Map collection symbol to thumbnail image (relative to public/)
+const COLLECTION_THUMBNAILS = {
+  'FCKEDCATZ': '/gifs/catz.gif',
+  'MM': '/gifs/mm.gif',
+  'AIBB': '/gifs/bitbot.gif',
+  'MM3D': '/gifs/mm3d.gif',
+  'CelebCatz': '/gifs/celebs.gif',
+  'AELxAIBB': '/collab-images/ai-apes.jpg',
+  'AIRB': '/collab-images/rejected-bots.jpg',
+  'AUSQRL': '/collab-images/ai-squirrels.jpg',
+  'DDBOT': '/collab-images/doodlebots.jpg',
+  'CLB': '/collab-images/candybots.jpg',
+  'SHxBB': '/collab-images/ai-warriors.jpg'
+};
+
 /**
  * Handler for the /collections command
  * @param {Object} options - Command options
@@ -87,6 +102,8 @@ export async function handleCollections({ collectionSymbol }) {
     const percentListed = totalSupply > 0 ? ((listedCount / totalSupply) * 100).toFixed(2) : '0.00';
     // Daily reward yield
     const dailyReward = REWARD_RATES[collectionSymbol] || 0;
+    // Thumbnail
+    const thumbnailUrl = COLLECTION_THUMBNAILS[collectionSymbol] ? `https://buxdao.com${COLLECTION_THUMBNAILS[collectionSymbol]}` : undefined;
     // Build embed
     return {
       type: 4,
@@ -94,6 +111,7 @@ export async function handleCollections({ collectionSymbol }) {
         embeds: [{
           title: `${collectionSymbol} Collection Stats`,
           color: 0x4CAF50,
+          thumbnail: thumbnailUrl ? { url: thumbnailUrl } : undefined,
           fields: [
             { name: 'Total NFTs', value: totalSupply.toString(), inline: true },
             { name: 'Listed', value: listedCount.toString(), inline: true },
