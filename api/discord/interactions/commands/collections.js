@@ -113,6 +113,15 @@ export async function handleCollections({ collectionSymbol }) {
         }
       } catch (e) {}
     }
+    // Fetch SOL price for USD conversion
+    let solPrice = 0;
+    try {
+      const metricsRes = await fetch('https://buxdao.com/api/token-metrics');
+      const metrics = await metricsRes.json();
+      solPrice = metrics.solPrice || 0;
+    } catch (e) {
+      solPrice = 0;
+    }
     // Calculate % listed
     const percentListed = totalSupply > 0 ? ((listedCount / totalSupply) * 100).toFixed(2) : '0.00';
     // Daily reward yield
@@ -128,20 +137,27 @@ export async function handleCollections({ collectionSymbol }) {
     } else {
       formattedFloorPrice = '0';
     }
+    // Add USD value in brackets if possible
+    let floorPriceUsd = '';
+    if (solPrice && !isNaN(solPrice)) {
+      floorPriceUsd = ` ($${(parseFloat(formattedFloorPrice) * solPrice).toFixed(2)})`;
+    }
     // Format fields in two columns: left (main stats), right (bonus stats)
     const leftFields = [
       { name: 'Total NFTs', value: totalSupply.toString(), inline: true },
       { name: 'Listed', value: listedCount.toString(), inline: true },
-      { name: 'Floor Price', value: `${formattedFloorPrice} SOL`, inline: true }
+      { name: 'Floor Price', value: `${formattedFloorPrice} SOL${floorPriceUsd}`, inline: true }
     ];
     const rightFields = [
       { name: '% Listed', value: `${percentListed}%`, inline: true },
       { name: 'Daily Reward', value: `${dailyReward} BUX/NFT/day`, inline: true }
     ];
-    // Links at the bottom
+    // Links at the bottom (show full URLs)
+    const meUrl = ME_URL(meSymbol || collectionSymbol);
+    const tensorUrl = TENSOR_URL(meSymbol || collectionSymbol);
     const linkFields = [
-      { name: 'Magic Eden', value: `[View on ME](${ME_URL(meSymbol || collectionSymbol)})`, inline: false },
-      { name: 'Tensor', value: `[View on Tensor](${TENSOR_URL(meSymbol || collectionSymbol)})`, inline: false }
+      { name: 'Magic Eden', value: meUrl, inline: false },
+      { name: 'Tensor', value: tensorUrl, inline: false }
     ];
     // Build embed
     return {
