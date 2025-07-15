@@ -123,6 +123,12 @@ const commands = [
         choices: collectionsConfig.map(c => ({ name: c.name, value: c.name }))
       }
     ]
+  },
+  {
+    name: 'help',
+    description: 'Show a list of all available commands and options',
+    type: 1, // CHAT_INPUT
+    options: []
   }
 ];
 

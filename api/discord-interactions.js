@@ -96,6 +96,10 @@ async function verifyDiscordRequest(body, signature, timestamp, clientPublicKey)
 
 import { handleAddClaim } from './discord/interactions/commands/addclaim.js';
 import { handleProfile } from './discord/interactions/commands/profile.js';
+import { handleMyBux } from './discord/interactions/commands/mybux.js';
+import { handleMyNFTs } from './discord/interactions/commands/mynfts.js';
+import { handleCollections } from './discord/interactions/commands/collections.js';
+import { handleHelp } from './discord/interactions/commands/help.js';
 
 export default async function handler(request, response) {
   try {
@@ -363,6 +367,115 @@ export default async function handler(request, response) {
             return response.status(200).json(result);
           } catch (error) {
             console.error('[profile] Error:', error);
+            return response.status(200).json({
+              type: 4,
+              data: {
+                embeds: [{
+                  title: 'Error',
+                  description: error.message || 'An error occurred processing the command',
+                  color: 0xFF0000
+                }]
+              }
+            });
+          }
+        }
+
+        // Handle mybux command
+        if (command.name === 'mybux') {
+          const userOption = command.options?.find(opt => opt.name === 'user');
+          const issuerId = interaction.member?.user?.id || interaction.user?.id;
+          let targetDiscordId, targetUsername;
+          if (userOption) {
+            targetDiscordId = userOption.value;
+            targetUsername = userOption.user?.username || userOption.user?.global_name || userOption.user?.name || 'Unknown';
+          } else {
+            targetDiscordId = issuerId;
+            targetUsername = interaction.member?.user?.username || interaction.member?.user?.global_name || interaction.user?.username || interaction.user?.global_name || 'Unknown';
+          }
+          const adminIds = (process.env.DISCORD_ADMIN_IDS || '').split(',').map(id => id.trim()).filter(Boolean);
+          try {
+            const result = await handleMyBux({ targetDiscordId, targetUsername, issuerId, adminIds });
+            return response.status(200).json(result);
+          } catch (error) {
+            return response.status(200).json({
+              type: 4,
+              data: {
+                embeds: [{
+                  title: 'Error',
+                  description: error.message || 'An error occurred processing the command',
+                  color: 0xFF0000
+                }]
+              }
+            });
+          }
+        }
+        // Handle mynfts command
+        if (command.name === 'mynfts') {
+          const userOption = command.options?.find(opt => opt.name === 'user');
+          const issuerId = interaction.member?.user?.id || interaction.user?.id;
+          let targetDiscordId, targetUsername;
+          if (userOption) {
+            targetDiscordId = userOption.value;
+            targetUsername = userOption.user?.username || userOption.user?.global_name || userOption.user?.name || 'Unknown';
+          } else {
+            targetDiscordId = issuerId;
+            targetUsername = interaction.member?.user?.username || interaction.member?.user?.global_name || interaction.user?.username || interaction.user?.global_name || 'Unknown';
+          }
+          const adminIds = (process.env.DISCORD_ADMIN_IDS || '').split(',').map(id => id.trim()).filter(Boolean);
+          try {
+            const result = await handleMyNFTs({ targetDiscordId, targetUsername, issuerId, adminIds });
+            return response.status(200).json(result);
+          } catch (error) {
+            return response.status(200).json({
+              type: 4,
+              data: {
+                embeds: [{
+                  title: 'Error',
+                  description: error.message || 'An error occurred processing the command',
+                  color: 0xFF0000
+                }]
+              }
+            });
+          }
+        }
+        // Handle collections command
+        if (command.name === 'collections') {
+          const collectionOption = command.options?.find(opt => opt.name === 'collection');
+          if (!collectionOption) {
+            return response.status(200).json({
+              type: 4,
+              data: {
+                embeds: [{
+                  title: 'Error',
+                  description: 'No collection selected',
+                  color: 0xFF0000
+                }]
+              }
+            });
+          }
+          try {
+            const result = await handleCollections({ collectionSymbol: collectionOption.value });
+            return response.status(200).json(result);
+          } catch (error) {
+            return response.status(200).json({
+              type: 4,
+              data: {
+                embeds: [{
+                  title: 'Error',
+                  description: error.message || 'An error occurred processing the command',
+                  color: 0xFF0000
+                }]
+              }
+            });
+          }
+        }
+
+        // Handle help command
+        if (command.name === 'help') {
+          try {
+            const result = await handleHelp();
+            return response.status(200).json(result);
+          } catch (error) {
             return response.status(200).json({
               type: 4,
               data: {
