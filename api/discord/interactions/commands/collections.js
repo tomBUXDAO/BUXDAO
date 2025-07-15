@@ -118,7 +118,7 @@ export async function handleCollections({ collectionSymbol }) {
     // Daily reward yield
     const dailyReward = REWARD_RATES[collectionSymbol] || 0;
     // Thumbnail
-    const imageUrl = COLLECTION_THUMBNAILS[collectionSymbol] ? `https://buxdao.com${COLLECTION_THUMBNAILS[collectionSymbol]}` : undefined;
+    const thumbnailUrl = COLLECTION_THUMBNAILS[collectionSymbol] ? `https://buxdao.com${COLLECTION_THUMBNAILS[collectionSymbol]}` : undefined;
     // Format floor price (Magic Eden returns in lamports, so divide by 1e9 for SOL)
     let formattedFloorPrice = floorPrice;
     if (floorPrice > 1e6) {
@@ -128,6 +128,21 @@ export async function handleCollections({ collectionSymbol }) {
     } else {
       formattedFloorPrice = '0';
     }
+    // Format fields in two columns: left (main stats), right (bonus stats)
+    const leftFields = [
+      { name: 'Total NFTs', value: totalSupply.toString(), inline: true },
+      { name: 'Listed', value: listedCount.toString(), inline: true },
+      { name: 'Floor Price', value: `${formattedFloorPrice} SOL`, inline: true }
+    ];
+    const rightFields = [
+      { name: '% Listed', value: `${percentListed}%`, inline: true },
+      { name: 'Daily Reward', value: `${dailyReward} BUX/NFT/day`, inline: true }
+    ];
+    // Links at the bottom
+    const linkFields = [
+      { name: 'Magic Eden', value: `[View on ME](${ME_URL(meSymbol || collectionSymbol)})`, inline: false },
+      { name: 'Tensor', value: `[View on Tensor](${TENSOR_URL(meSymbol || collectionSymbol)})`, inline: false }
+    ];
     // Build embed
     return {
       type: 4,
@@ -135,16 +150,8 @@ export async function handleCollections({ collectionSymbol }) {
         embeds: [{
           title: `${COLLECTION_DISPLAY_NAMES[collectionSymbol] || collectionSymbol} Collection Stats`,
           color: 0x4CAF50,
-          thumbnail: imageUrl ? { url: imageUrl } : undefined,
-          fields: [
-            { name: 'Total NFTs', value: totalSupply.toString(), inline: true },
-            { name: 'Listed', value: listedCount.toString(), inline: true },
-            { name: 'Floor Price', value: `${formattedFloorPrice} SOL`, inline: true },
-            { name: '% Listed', value: `${percentListed}%`, inline: true },
-            { name: 'Daily Reward', value: `${dailyReward} BUX/NFT/day`, inline: true },
-            { name: 'Magic Eden', value: `[View on ME](${ME_URL(meSymbol || collectionSymbol)})`, inline: false },
-            { name: 'Tensor', value: `[View on Tensor](${TENSOR_URL(meSymbol || collectionSymbol)})`, inline: false }
-          ],
+          thumbnail: thumbnailUrl ? { url: thumbnailUrl } : undefined,
+          fields: [...leftFields, ...rightFields, ...linkFields],
           footer: { text: 'BUXDAO - Collection Stats' },
           timestamp: new Date().toISOString()
         }],
