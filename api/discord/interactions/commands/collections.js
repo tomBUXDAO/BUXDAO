@@ -155,6 +155,10 @@ export async function handleCollections({ collectionSymbol }) {
         }
       } catch (e) {}
     }
+    // Fallback to local image if Magic Eden image is unavailable
+    if (!meImageUrl && COLLECTION_THUMBNAILS[collectionSymbol]) {
+      meImageUrl = `https://buxdao.com${COLLECTION_THUMBNAILS[collectionSymbol]}`;
+    }
     // Format fields in two columns: left (main stats), right (bonus stats)
     const leftFields = [
       { name: 'Total NFTs', value: totalSupply.toString(), inline: true },
@@ -179,7 +183,6 @@ export async function handleCollections({ collectionSymbol }) {
         embeds: [{
           title: `${COLLECTION_DISPLAY_NAMES[collectionSymbol] || collectionSymbol} Collection Stats`,
           color: 0x4CAF50,
-          // Remove thumbnail, use image instead
           image: meImageUrl ? { url: meImageUrl } : undefined,
           fields: [...leftFields, ...rightFields, ...linkFields],
           footer: { text: 'BUXDAO - Collection Stats' },
