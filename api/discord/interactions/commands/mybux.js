@@ -1,5 +1,5 @@
 import { pool } from '../../../config/database.js';
-import { getSolPrice } from '../../../utils/solPrice.js';
+import fetch from 'node-fetch';
 
 /**
  * Handler for the /mybux command
@@ -56,12 +56,20 @@ export async function handleMyBux({ targetDiscordId, targetUsername, issuerId, a
     const buxBalance = parseInt(result.rows[0].balance) || 0;
     const unclaimed = parseInt(result.rows[0].unclaimed_amount) || 0;
     const totalBux = buxBalance + unclaimed;
-    // Fetch SOL price
-    const solPrice = await getSolPrice();
-    // 1 BUX = 0.01 SOL (example, adjust as needed)
-    const buxToSol = 0.01;
-    const solValue = totalBux * buxToSol;
-    const usdValue = solValue * solPrice;
+    // Fetch token metrics from API
+    let tokenValue = 0;
+    let tokenValueUsd = 0;
+    try {
+      const metricsRes = await fetch('https://buxdao.com/api/token-metrics');
+      const metrics = await metricsRes.json();
+      tokenValue = metrics.tokenValue || 0;
+      tokenValueUsd = metrics.tokenValueUsd || 0;
+    } catch (e) {
+      tokenValue = 0.01; // fallback
+      tokenValueUsd = 0;
+    }
+    const solValue = totalBux * tokenValue;
+    const usdValue = totalBux * tokenValueUsd;
     return {
       type: 4,
       data: {
