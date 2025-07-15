@@ -68,6 +68,14 @@ export async function handleMyBux({ targetDiscordId, targetUsername, issuerId, a
       tokenValue = 0.01; // fallback
       tokenValueUsd = 0;
     }
+    // Fetch the user's avatar URL from Discord
+    let avatarUrl;
+    try {
+      const { getUserAvatarUrl } = await import('../../../discord/utils.js');
+      avatarUrl = await getUserAvatarUrl(targetDiscordId);
+    } catch (e) {
+      avatarUrl = undefined;
+    }
     const solValue = totalBux * tokenValue;
     const usdValue = totalBux * tokenValueUsd;
     return {
@@ -76,11 +84,12 @@ export async function handleMyBux({ targetDiscordId, targetUsername, issuerId, a
         embeds: [{
           title: `BUX Balance - ${targetUsername}`,
           color: 0x4CAF50,
+          thumbnail: avatarUrl ? { url: avatarUrl } : undefined,
           fields: [
             { name: 'BUX Balance', value: `${buxBalance.toLocaleString()} BUX`, inline: true },
             { name: 'Unclaimed', value: `${unclaimed.toLocaleString()} BUX`, inline: true },
             { name: 'Total', value: `${totalBux.toLocaleString()} BUX`, inline: true },
-            { name: 'Cashout Value', value: `${solValue.toFixed(2)} SOL ($${usdValue.toFixed(2)})`, inline: false }
+            { name: 'Cashout Value', value: `${solValue.toFixed(2)} SOL ($${usdValue.toFixed(2)})`, inline: true }
           ],
           footer: { text: 'BUXDAO - Putting Community First' },
           timestamp: new Date().toISOString()
