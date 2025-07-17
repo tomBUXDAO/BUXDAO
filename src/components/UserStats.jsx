@@ -41,7 +41,13 @@ export default function UserStats() {
           });
           setError(null);
         } else {
-          setError('User not found in holders list');
+          setUserStats({
+            rank: '-',
+            bux: 0,
+            nfts: 0,
+            username: discordUser.discord_username || '-'
+          });
+          setError(null);
         }
       } catch (err) {
         setError(err.message);
@@ -79,9 +85,7 @@ export default function UserStats() {
   }
 
   if (error) {
-    return (
-      <div className="text-red-500 text-base bg-gradient-to-r from-black/40 to-transparent border border-white/20 rounded-lg py-4 pl-4 pr-8 max-w-2xl">{error}</div>
-    );
+    return null; // No error message, just show the summary with zeros if not found
   }
 
   return (
