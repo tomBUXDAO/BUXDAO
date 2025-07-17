@@ -522,6 +522,15 @@ const Bux = () => {
                                     <td className="py-3 px-6 text-right">{solValue.toFixed(2)} SOL</td> {/* Display parsed SOL value */}
                                     <td className="py-3 px-6 text-right">${usdValue}</td> {/* Display calculated USD value */}
                                   </>
+                                ) : (
+                                  <>
+                                    {/* Combined view - this should not be reached since we're using bux,nfts viewType above */}
+                                    <td className="py-3 px-6 text-purple-400">{renderHolderName(holder)}</td>
+                                    <td className="py-3 px-6 text-right">N/A</td>
+                                    <td className="py-3 px-6 text-right">N/A</td>
+                                    <td className="py-3 px-6 text-right">N/A</td>
+                                    <td className="py-3 px-6 text-right">N/A</td>
+                                  </>
                                 )}
                               </tr>
                             );
