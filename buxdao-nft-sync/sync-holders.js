@@ -68,7 +68,8 @@ async function main() {
     if (addresses.length > 0) {
       await client.query(
         `DELETE FROM bux_holders 
-         WHERE wallet_address NOT IN (${addresses.map((_, i) => `$${i + 1}`).join(',')})`,
+         WHERE wallet_address NOT IN (${addresses.map((_, i) => `$${i + 1}`).join(',')})
+           AND (owner_discord_id IS NULL OR owner_discord_id = '' OR owner_name IS NULL OR owner_name = '')`,
         addresses
       );
     }
