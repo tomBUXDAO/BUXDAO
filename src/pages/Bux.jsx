@@ -452,39 +452,20 @@ const Bux = () => {
                         </thead>
                         <tbody>
                           {topHolders.filter(validateHolderData).map((holder, index) => {
-                            // Ensure holder and holder.value exist before processing
-                            if (!holder || typeof holder.value !== 'string') {
+                            // For the new backend format, we don't have holder.value anymore
+                            // The new format has discord_id, discord_username, nfts, bux
+                            if (!holder || !holder.discord_id) {
                               console.warn('Skipping invalid holder data:', holder);
                               return null;
                             }
 
-                            // Parse SOL value from the backend's value string (e.g., "XX.XX SOL ($YY.YY)")
-                            const solMatch = holder.value.match(/^(\d+(\.\d+)?)/);
-                            const solValue = solMatch ? parseFloat(solMatch[1]) : NaN;
-
-                            // Calculate USD value using the parsed SOL value and frontend's solPrice
-                            const usdValue = tokenData.solPrice !== null && !isNaN(tokenData.solPrice) && !isNaN(solValue)
-                              ? (solValue * tokenData.solPrice).toFixed(2)
-                              : 'NaN'; // Use 'NaN' string if solPrice or solValue is invalid
-
-                            // Handle cases where parsing fails
-                            if (isNaN(solValue)) {
-                              console.warn('Invalid SOL value parsed from:', holder.value);
-                              // Fallback display if parsing fails
-                              return (
-                                <tr key={index} className={`text-gray-200 border-b border-gray-800 ${index % 2 === 0 ? 'bg-gray-800/50' : 'bg-transparent'}`}>
-                                  <td className="py-3 px-6 text-center font-semibold">
-                                    {/* Rank display logic */}
-                                    {index + 1} {/* Simplified rank for fallback */}
-                                  </td>
-                                  <td className="py-3 px-6 text-purple-400">{renderHolderName(holder)}</td>
-                                  <td className="py-3 px-6 text-right">{holder.bux || 'N/A'}</td>
-                                  <td className="py-3 px-6 text-right">{holder.nfts?.replace(' NFTs', '') || 'N/A'}</td>
-                                  <td className="py-3 px-6 text-right">Invalid Value</td> {/* Indicate parsing failed */}
-                                  <td className="py-3 px-6 text-right">$NaN</td>
-                                </tr>
-                              );
-                            }
+                            // For now, we'll show placeholder values for SOL/USD since the new backend doesn't provide value
+                            // TODO: Calculate value based on NFT count and current SOL price if needed
+                            const nftCount = parseInt(holder.nfts?.replace(/\s*NFTs?\s*$/, '') || '0');
+                            const estimatedSolValue = nftCount * 0.1; // Placeholder: assume 0.1 SOL per NFT
+                            const usdValue = tokenData.solPrice !== null && !isNaN(tokenData.solPrice)
+                              ? (estimatedSolValue * tokenData.solPrice).toFixed(2)
+                              : 'N/A';
 
                             return (
                               <tr key={index} className={`text-gray-200 border-b border-gray-800 ${index % 2 === 0 ? 'bg-gray-800/50' : 'bg-transparent'}`}>
@@ -506,26 +487,24 @@ const Bux = () => {
                                 )}
                                 {viewType === 'bux' ? (
                                   <>
-                                    {/* BUX Only view logic remains here, using holder.amount and calculating value */}
-                                    <td className="py-3 px-6 text-purple-400">{renderHolderName(holder)}</td>
-                                    <td className="py-3 px-6 text-right">{holder.amount}</td>
-                                    <td className="py-3 px-6 text-right">{holder.percentage}</td>
-                                    {/* Assuming BUX only view backend provides separate SOL/USD or we calculate */}
-                                     <td className="py-3 px-6 text-right">{parseFloat(holder.value.split(' ')[0]).toFixed(2)} SOL</td> {/* Parse SOL for BUX only */}
-                                     <td className="py-3 px-6 text-right">${tokenData.solPrice !== null && !isNaN(tokenData.solPrice) ? (parseFloat(holder.value.split(' ')[0]) * tokenData.solPrice).toFixed(2) : 'NaN'}</td> {/* Calculate USD for BUX only */}
+                                    {/* BUX Only view - using new format */}
+                                    <td className="py-3 px-6 text-purple-400">{holder.discord_username}</td>
+                                    <td className="py-3 px-6 text-right">{holder.bux}</td>
+                                    <td className="py-3 px-6 text-right">N/A</td> {/* Percentage not provided in new format */}
+                                    <td className="py-3 px-6 text-right">{estimatedSolValue.toFixed(2)} SOL</td>
+                                    <td className="py-3 px-6 text-right">${usdValue}</td>
                                   </>
                                 ) : viewType === 'nfts' ? (
                                   <>
-                                    <td className="py-3 px-6 text-purple-400">{renderHolderName(holder)}</td>
-                                    <td className="py-3 px-6 text-right">{holder.amount?.replace(' NFTs', '')}</td>
-                                    {/* Parse SOL value and calculate USD for NFTs Only view */}
-                                    <td className="py-3 px-6 text-right">{solValue.toFixed(2)} SOL</td> {/* Display parsed SOL value */}
-                                    <td className="py-3 px-6 text-right">${usdValue}</td> {/* Display calculated USD value */}
+                                    <td className="py-3 px-6 text-purple-400">{holder.discord_username}</td>
+                                    <td className="py-3 px-6 text-right">{holder.nfts?.replace(/\s*NFTs?\s*$/, '')}</td>
+                                    <td className="py-3 px-6 text-right">{estimatedSolValue.toFixed(2)} SOL</td>
+                                    <td className="py-3 px-6 text-right">${usdValue}</td>
                                   </>
                                 ) : (
                                   <>
                                     {/* Combined view - this should not be reached since we're using bux,nfts viewType above */}
-                                    <td className="py-3 px-6 text-purple-400">{renderHolderName(holder)}</td>
+                                    <td className="py-3 px-6 text-purple-400">{holder.discord_username}</td>
                                     <td className="py-3 px-6 text-right">N/A</td>
                                     <td className="py-3 px-6 text-right">N/A</td>
                                     <td className="py-3 px-6 text-right">N/A</td>
