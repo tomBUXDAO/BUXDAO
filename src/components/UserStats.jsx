@@ -101,21 +101,21 @@ export default function UserStats() {
           </div>
         </div>
       </div>
-      {/* Username column */}
-      <div className="flex flex-col items-center justify-center w-48">
+      {/* Username column (avatar + username inline) */}
+      <div className="flex items-center justify-center w-64">
         {discordUser?.discord_id && discordUser?.avatar && (
           <img 
             src={`https://cdn.discordapp.com/avatars/${discordUser.discord_id}/${discordUser.avatar}.png`}
             alt={userStats.username}
-            className="w-14 h-14 rounded-full mb-1"
+            className="w-14 h-14 rounded-full mr-3"
           />
         )}
         <span className="text-gray-200 text-lg font-bold">{userStats.username}</span>
       </div>
-      {/* Stats column */}
-      <div className="flex flex-col items-start justify-center w-40">
-        <ul className="list-none p-0 m-0 space-y-1">
-          <li className="text-fuchsia-400 font-bold text-lg">{userStats.nfts} NFTs</li>
+      {/* Stats column (right-justified) */}
+      <div className="flex flex-col items-end justify-center w-40 ml-auto">
+        <ul className="list-none p-0 m-0 space-y-1 text-right">
+          <li className="text-fuchsia-400 font-bold text-lg">{String(userStats.nfts).replace(/\s*NFTs?\s*$/, '')} NFTs</li>
           <li className="text-purple-400 font-bold text-lg">{userStats.bux} BUX</li>
         </ul>
       </div>
