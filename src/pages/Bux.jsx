@@ -88,6 +88,7 @@ const Bux = () => {
     }
 
     if (viewType === 'nfts') {
+      // Legacy/other view logic can remain for now
       const isValid = holder.address && 
                      holder.amount && 
                      holder.value &&
@@ -95,11 +96,11 @@ const Bux = () => {
                      holder.amount.includes('NFTs') &&
                      typeof holder.value === 'string' &&
                      holder.value.includes('SOL');
-      // Silence warnings for NFTs Only view
       return isValid;
     }
 
     if (viewType === 'bux') {
+      // Legacy/other view logic can remain for now
       const isValid = holder.address && 
                      holder.amount && 
                      holder.percentage &&
@@ -112,13 +113,8 @@ const Bux = () => {
       return isValid;
     }
 
-    // Combined view (bux,nfts)
-    const isValid = holder.address && 
-                   holder.bux && 
-                   holder.nfts &&
-                   holder.value &&
-                   typeof holder.value === 'string' &&
-                   holder.value.includes('SOL');
+    // Combined view (bux,nfts) - accept new backend format
+    const isValid = holder.discord_id && (holder.nfts !== undefined || holder.bux !== undefined);
     if (!isValid) {
       console.warn('Invalid combined holder data:', holder);
     }
@@ -492,6 +488,22 @@ const Bux = () => {
 
                             return (
                               <tr key={index} className={`text-gray-200 border-b border-gray-800 ${index % 2 === 0 ? 'bg-gray-800/50' : 'bg-transparent'}`}>
+                                {viewType === 'bux,nfts' && (
+                                  <>
+                                    <td className="py-3 px-6 text-center font-semibold">
+                                      {/* Rank display logic */}
+                                      {index === 0 && <span title="1st Place" className="text-yellow-500">🥇 {index + 1}</span>}
+                                      {index === 1 && <span title="2nd Place" className="text-gray-300">🥈 {index + 1}</span>}
+                                      {index === 2 && <span title="3rd Place" className="text-amber-600">🥉 {index + 1}</span>}
+                                      {index > 2 && index < 10 && <span title={`Top ${index + 1}`} className="text-yellow-500">⭐ {index + 1}</span>}
+                                      {index >= 10 && index < 25 && <span title={`Top ${index + 1}`} className="text-gray-300">⭐ {index + 1}</span>}
+                                      {index >= 25 && <span title={`Rank ${index + 1}`} className="text-amber-600">● {index + 1}</span>}
+                                    </td>
+                                    <td className="py-3 px-6 text-purple-400">{holder.discord_username}</td>
+                                    <td className="py-3 px-6 text-right">{holder.bux}</td>
+                                    <td className="py-3 px-6 text-right">{String(holder.nfts).replace(/\s*NFTs?\s*$/, '')} NFTs</td>
+                                  </>
+                                )}
                                 {viewType === 'bux' ? (
                                   <>
                                     {/* BUX Only view logic remains here, using holder.amount and calculating value */}
@@ -507,23 +519,6 @@ const Bux = () => {
                                     <td className="py-3 px-6 text-purple-400">{renderHolderName(holder)}</td>
                                     <td className="py-3 px-6 text-right">{holder.amount?.replace(' NFTs', '')}</td>
                                     {/* Parse SOL value and calculate USD for NFTs Only view */}
-                                    <td className="py-3 px-6 text-right">{solValue.toFixed(2)} SOL</td> {/* Display parsed SOL value */}
-                                    <td className="py-3 px-6 text-right">${usdValue}</td> {/* Display calculated USD value */}
-                                  </>
-                                ) : ( // Combined view (bux,nfts)
-                                  <>
-                                    <td className="py-3 px-6 text-center font-semibold">
-                                      {/* Rank display logic */}
-                                      {index === 0 && <span title="1st Place" className="text-yellow-500">🥇 1</span>}
-                                      {index === 1 && <span title="2nd Place" className="text-gray-300">🥈 2</span>}
-                                      {index === 2 && <span title="3rd Place" className="text-amber-600">🥉 3</span>}
-                                      {index > 2 && index < 10 && <span title={`Top ${index + 1}`} className="text-yellow-500">⭐ {index + 1}</span>}
-                                      {index >= 10 && index < 25 && <span title={`Top ${index + 1}`} className="text-gray-300">⭐ {index + 1}</span>}
-                                      {index >= 25 && <span title={`Rank ${index + 1}`} className="text-amber-600">● {index + 1}</span>}
-                                    </td>
-                                    <td className="py-3 px-6 text-purple-400">{renderHolderName(holder)}</td>
-                                    <td className="py-3 px-6 text-right">{holder.bux}</td>
-                                    <td className="py-3 px-6 text-right">{holder.nfts?.replace(' NFTs', '')}</td>
                                     <td className="py-3 px-6 text-right">{solValue.toFixed(2)} SOL</td> {/* Display parsed SOL value */}
                                     <td className="py-3 px-6 text-right">${usdValue}</td> {/* Display calculated USD value */}
                                   </>
