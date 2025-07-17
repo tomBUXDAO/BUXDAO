@@ -90,29 +90,34 @@ export default function UserStats() {
 
   return (
     <div className="flex items-center gap-8 bg-gradient-to-r from-black/40 to-transparent border border-white/20 rounded-lg py-4 pl-4 pr-8 max-w-2xl">
-      <div className="relative w-16 h-16">
-        <div className="absolute inset-0 flex items-center justify-center">
-          {getRankDisplay(userStats.rank)}
-        </div>
-        <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-black text-2xl font-bold">{userStats.rank}</span>
+      {/* Rank column */}
+      <div className="flex flex-col items-center justify-center w-20">
+        <div className="relative w-16 h-16">
+          <div className="absolute inset-0 flex items-center justify-center">
+            {getRankDisplay(userStats.rank)}
+          </div>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className="text-black text-2xl font-bold">{userStats.rank}</span>
+          </div>
         </div>
       </div>
-      <div className="flex flex-col gap-1 flex-1">
-        <div className="flex items-center gap-3">
-          {discordUser?.discord_id && discordUser?.avatar && (
-            <img 
-              src={`https://cdn.discordapp.com/avatars/${discordUser.discord_id}/${discordUser.avatar}.png`}
-              alt={userStats.username}
-              className="w-14 h-14 rounded-full"
-            />
-          )}
-          <span className="text-gray-200 text-lg font-bold">{userStats.username}</span>
-        </div>
-        <div className="flex gap-6 mt-2">
-          <span className="text-purple-400 font-bold text-lg">{userStats.bux} BUX</span>
-          <span className="text-fuchsia-400 font-bold text-lg">{userStats.nfts}</span>
-        </div>
+      {/* Username column */}
+      <div className="flex flex-col items-center justify-center w-48">
+        {discordUser?.discord_id && discordUser?.avatar && (
+          <img 
+            src={`https://cdn.discordapp.com/avatars/${discordUser.discord_id}/${discordUser.avatar}.png`}
+            alt={userStats.username}
+            className="w-14 h-14 rounded-full mb-1"
+          />
+        )}
+        <span className="text-gray-200 text-lg font-bold">{userStats.username}</span>
+      </div>
+      {/* Stats column */}
+      <div className="flex flex-col items-start justify-center w-40">
+        <ul className="list-none p-0 m-0 space-y-1">
+          <li className="text-fuchsia-400 font-bold text-lg">{userStats.nfts} NFTs</li>
+          <li className="text-purple-400 font-bold text-lg">{userStats.bux} BUX</li>
+        </ul>
       </div>
     </div>
   );
