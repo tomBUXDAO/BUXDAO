@@ -3,7 +3,7 @@ import { useUser } from '../contexts/UserContext';
 
 export default function UserStats() {
   const { discordUser } = useUser();
-  const [userStats, setUserStats] = useState({ rank: '-', bux: '-' });
+  const [userStats, setUserStats] = useState({ rank: '-', bux: '-', nfts: '-', username: '-' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -24,15 +24,20 @@ export default function UserStats() {
         }
 
         const data = await response.json();
+        // Try to match by discord_username or wallet address
         const userHolder = data.holders.find(holder => 
-          holder.address === discordUser.discord_username
+          holder.discord_username === discordUser.discord_username ||
+          holder.address === discordUser.discord_username ||
+          holder.address === discordUser.wallet_address
         );
 
         if (userHolder) {
           const rank = data.holders.indexOf(userHolder) + 1;
           setUserStats({
             rank: rank.toString(),
-            bux: userHolder.bux
+            bux: userHolder.bux,
+            nfts: userHolder.nfts,
+            username: userHolder.discord_username || discordUser.discord_username || userHolder.address
           });
           setError(null);
         } else {
@@ -46,7 +51,7 @@ export default function UserStats() {
     }
 
     fetchUserStats();
-  }, [discordUser?.discord_username]);
+  }, [discordUser?.discord_username, discordUser?.wallet_address]);
 
   const getRankDisplay = (rank) => {
     const rankNum = parseInt(rank);
@@ -80,7 +85,7 @@ export default function UserStats() {
   }
 
   return (
-    <div className="flex items-center gap-4 bg-gradient-to-r from-black/40 to-transparent border border-white/20 rounded-lg py-4 pl-4 pr-8 max-w-2xl">
+    <div className="flex items-center gap-8 bg-gradient-to-r from-black/40 to-transparent border border-white/20 rounded-lg py-4 pl-4 pr-8 max-w-2xl">
       <div className="relative w-16 h-16">
         <div className="absolute inset-0 flex items-center justify-center">
           {getRankDisplay(userStats.rank)}
@@ -89,18 +94,21 @@ export default function UserStats() {
           <span className="text-black text-2xl font-bold">{userStats.rank}</span>
         </div>
       </div>
-      <div className="flex flex-1 portrait:max-sm:flex-col portrait:max-sm:gap-2 portrait:max-sm:justify-center">
-        <div className="flex items-center portrait:max-sm:justify-center gap-3">
+      <div className="flex flex-col gap-1 flex-1">
+        <div className="flex items-center gap-3">
           {discordUser?.discord_id && discordUser?.avatar && (
             <img 
               src={`https://cdn.discordapp.com/avatars/${discordUser.discord_id}/${discordUser.avatar}.png`}
-              alt={discordUser.discord_username}
+              alt={userStats.username}
               className="w-14 h-14 rounded-full"
             />
           )}
-          <span className="text-gray-200 text-lg">{discordUser?.discord_username || '-'}</span>
+          <span className="text-gray-200 text-lg font-bold">{userStats.username}</span>
         </div>
-        <span className="text-purple-400 font-bold text-lg portrait:max-sm:mx-auto ml-auto self-center">{userStats.bux} BUX</span>
+        <div className="flex gap-6 mt-2">
+          <span className="text-purple-400 font-bold text-lg">{userStats.bux} BUX</span>
+          <span className="text-fuchsia-400 font-bold text-lg">{userStats.nfts}</span>
+        </div>
       </div>
     </div>
   );
