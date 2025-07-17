@@ -9,7 +9,7 @@ export default function UserStats() {
 
   useEffect(() => {
     async function fetchUserStats() {
-      if (!discordUser?.discord_username) return;
+      if (!discordUser?.discord_id) return;
 
       setLoading(true);
       try {
@@ -24,11 +24,9 @@ export default function UserStats() {
         }
 
         const data = await response.json();
-        // Try to match by discord_username or wallet address
+        // Match by discord_id (new backend format)
         const userHolder = data.holders.find(holder => 
-          holder.discord_username === discordUser.discord_username ||
-          holder.address === discordUser.discord_username ||
-          holder.address === discordUser.wallet_address
+          holder.discord_id === discordUser.discord_id
         );
 
         if (userHolder) {
@@ -37,7 +35,7 @@ export default function UserStats() {
             rank: rank.toString(),
             bux: userHolder.bux,
             nfts: userHolder.nfts,
-            username: userHolder.discord_username || discordUser.discord_username || userHolder.address
+            username: userHolder.discord_username || discordUser.discord_username || userHolder.discord_id
           });
           setError(null);
         } else {
@@ -57,8 +55,9 @@ export default function UserStats() {
     }
 
     fetchUserStats();
-  }, [discordUser?.discord_username, discordUser?.wallet_address]);
+  }, [discordUser?.discord_id, discordUser?.discord_username]);
 
+  // Only show number overlay for ranks 4 and above
   const getRankDisplay = (rank) => {
     const rankNum = parseInt(rank);
     if (rankNum === 1) return <span title="1st Place" className="text-yellow-500 text-6xl">🥇</span>;
@@ -96,9 +95,12 @@ export default function UserStats() {
           <div className="absolute inset-0 flex items-center justify-center">
             {getRankDisplay(userStats.rank)}
           </div>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-black text-2xl font-bold">{userStats.rank}</span>
-          </div>
+          {/* Only show number overlay for ranks 4 and above */}
+          {parseInt(userStats.rank) > 3 && !isNaN(parseInt(userStats.rank)) && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="text-black text-2xl font-bold">{userStats.rank}</span>
+            </div>
+          )}
         </div>
       </div>
       {/* Username column (avatar + username inline) */}
