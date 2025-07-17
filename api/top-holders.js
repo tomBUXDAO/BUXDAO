@@ -177,113 +177,28 @@ export default async function handler(req, res) {
     }
 
     if (type === 'bux,nfts') {
-      // Get BUX balances and total supply for token value calculation
-      const buxResult = await client.query(`
-        WITH total_supply AS (
-          SELECT SUM(balance) as total_supply,
-                 SUM(CASE WHEN is_exempt = FALSE THEN balance ELSE 0 END) as public_supply
-          FROM bux_holders
-        )
-        SELECT 
-          wallet_address,
-          owner_name as discord_name,
-          balance,
-          is_exempt,
-          (SELECT public_supply FROM total_supply) as public_supply
-        FROM bux_holders 
-        WHERE is_exempt = FALSE
+      // Aggregate by discord_id: get NFTs from collection_counts, BUX from bux_holders
+      const combinedResult = await client.query(`
+        SELECT
+          cc.discord_id,
+          cc.discord_name,
+          cc.total_count AS nfts,
+          COALESCE(SUM(bh.balance), 0) AS bux_balance
+        FROM collection_counts cc
+        LEFT JOIN bux_holders bh ON bh.owner_discord_id = cc.discord_id
+        GROUP BY cc.discord_id, cc.discord_name, cc.total_count
+        HAVING cc.total_count > 0 OR COALESCE(SUM(bh.balance), 0) > 0
       `);
-      
-      // Get LP balance for token value calculation
-      const lpWalletAddress = new PublicKey('3WNHW6sr1sQdbRjovhPrxgEJdWASZ43egGWMMNrhgoRR');
-      let lpBalance = 32.380991533 * LAMPORTS_PER_SOL; // Default value
 
-      try {
-        const connection = new Connection('https://api.mainnet-beta.solana.com');
-        const balance = await connection.getBalance(lpWalletAddress);
-        if (balance !== null) {
-          lpBalance = balance;
-        }
-      } catch (error) {
-        console.error('Error fetching LP balance:', error);
-      }
-
-      const lpBalanceInSol = (lpBalance / LAMPORTS_PER_SOL) + 20.2;
-      const publicSupply = Number(buxResult.rows[0]?.public_supply) || 1;
-      const tokenValueInSol = lpBalanceInSol / publicSupply;
-      
-      // Get all NFT holdings
-      const nftResult = await client.query(`
-        SELECT owner_wallet, symbol, COUNT(*) as count
-        FROM nft_metadata 
-        WHERE owner_wallet NOT IN ($1, $2)
-        AND owner_wallet IS NOT NULL 
-        AND owner_wallet != ''
-        GROUP BY owner_wallet, symbol
-      `, [PROJECT_WALLET, ME_ESCROW]);
-
-      // Combine holdings
-      const combinedHoldings = {};
-      
-      // Add BUX holdings
-      for (const holder of buxResult.rows) {
-        const wallet = holder.wallet_address;
-        const buxBalance = Number(holder.balance);
-        const buxValue = buxBalance * tokenValueInSol;
-        
-        if (!combinedHoldings[wallet]) {
-          combinedHoldings[wallet] = {
-            address: holder.discord_name || wallet.slice(0, 4) + '...' + wallet.slice(-4),
-            buxBalance: buxBalance,
-            nftCount: 0,
-            buxValue: buxValue,
-            nftValue: 0
-          };
-        }
-      }
-
-      // Add NFT holdings
-      for (const nft of nftResult.rows) {
-        const wallet = nft.owner_wallet;
-        if (!combinedHoldings[wallet]) {
-          combinedHoldings[wallet] = {
-            address: wallet.slice(0, 4) + '...' + wallet.slice(-4),
-            buxBalance: 0,
-            nftCount: 0,
-            buxValue: 0,
-            nftValue: 0
-          };
-        }
-        combinedHoldings[wallet].nftCount += Number(nft.count);
-        // Use the symbol directly from the database
-        const slug = COLLECTION_SLUGS[nft.symbol];
-        if (!slug) {
-          console.warn(`No Magic Eden slug mapping found for symbol: ${nft.symbol}`);
-          continue;
-        }
-
-        const floorPrice = floorPrices[slug] || 0;
-        if (process.env.NODE_ENV === 'development') {
-          if (!(slug in floorPrices)) {
-            console.warn(`No floor price found for slug: ${slug} (original: ${nft.symbol})`);
-          }
-        }
-        combinedHoldings[wallet].nftValue += Number(nft.count) * floorPrice;
-      }
-
-      // Format and sort combined holdings
-      const holders = Object.values(combinedHoldings)
-        .map(holder => ({
-          address: holder.address,
-          bux: holder.buxBalance.toLocaleString(),
-          nfts: `${holder.nftCount} NFTs`,
-          value: `${(holder.buxValue + holder.nftValue).toFixed(2)} SOL ($${solPrice !== null && !isNaN(solPrice) ? ((holder.buxValue + holder.nftValue) * solPrice).toFixed(2) : 'NaN'})`
+      // Format and sort holders
+      const holders = combinedResult.rows
+        .map(row => ({
+          discord_id: row.discord_id,
+          discord_username: row.discord_name,
+          nfts: `${row.nfts} NFTs`,
+          bux: Number(row.bux_balance).toLocaleString()
         }))
-        .sort((a, b) => {
-          const valueA = parseFloat(a.value.split(' ')[0]);
-          const valueB = parseFloat(b.value.split(' ')[0]);
-          return valueB - valueA;
-        });
+        .sort((a, b) => (parseFloat(b.bux.replace(/,/g, '')) + parseInt(b.nfts)) - (parseFloat(a.bux.replace(/,/g, '')) + parseInt(a.nfts)));
 
       res.setHeader('Cache-Control', 'public, s-maxage=60');
       return res.status(200).json({ holders });
