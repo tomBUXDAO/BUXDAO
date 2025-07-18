@@ -91,29 +91,29 @@ export default function UserStats() {
     <div className="flex items-center gap-8 bg-gradient-to-r from-black/40 to-transparent border border-white/20 rounded-lg py-4 pl-4 pr-8 max-w-2xl">
       {/* Rank column */}
       <div className="flex flex-col items-center justify-center w-20">
-        <div className="relative w-16 h-16">
-          <div className="absolute inset-0 flex items-center justify-center">
-            {getRankDisplay(userStats.rank)}
-          </div>
+      <div className="relative w-16 h-16">
+        <div className="absolute inset-0 flex items-center justify-center">
+          {getRankDisplay(userStats.rank)}
+        </div>
           {/* Only show number overlay for ranks 4 and above */}
           {parseInt(userStats.rank) > 3 && !isNaN(parseInt(userStats.rank)) && (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-black text-2xl font-bold">{userStats.rank}</span>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="text-black text-2xl font-bold">{userStats.rank}</span>
             </div>
           )}
         </div>
       </div>
       {/* Username column (avatar + username inline) */}
       <div className="flex items-center justify-center w-64">
-        {discordUser?.discord_id && discordUser?.avatar && (
-          <img 
-            src={`https://cdn.discordapp.com/avatars/${discordUser.discord_id}/${discordUser.avatar}.png`}
+          {discordUser?.discord_id && discordUser?.avatar && (
+            <img 
+              src={`https://cdn.discordapp.com/avatars/${discordUser.discord_id}/${discordUser.avatar}.png`}
             alt={userStats.username}
             className="w-14 h-14 rounded-full mr-3"
-          />
-        )}
+            />
+          )}
         <span className="text-gray-200 text-lg font-bold">{userStats.username}</span>
-      </div>
+        </div>
       {/* Stats column (right-justified) */}
       <div className="flex flex-col items-end justify-center w-40 ml-auto">
         <ul className="list-none p-0 m-0 space-y-1 text-right">
