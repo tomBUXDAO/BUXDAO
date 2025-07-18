@@ -323,7 +323,7 @@ export default async function handler(req, res) {
                   cc.discord_name as discord_username,
                   $3 as symbol,
                   cc.${countColumn} as amount,
-                  cc.${countColumn} as valid_count, // Assuming counts in collection_counts are valid
+                  cc.${countColumn} as valid_count,
                   cc.discord_name as discord_username
                 FROM collection_counts cc
                 WHERE cc.${countColumn} > 0
