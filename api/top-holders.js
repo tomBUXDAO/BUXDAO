@@ -229,10 +229,11 @@ export default async function handler(req, res) {
             discord_username: row.discord_name,
             nfts: `${row.nfts} NFTs`,
             bux: Number(row.bux_balance).toLocaleString(),
-            value: `${totalSolValue.toFixed(2)} SOL ($${usdValue.toFixed(2)})`
+            value: `${totalSolValue.toFixed(2)} SOL ($${usdValue.toFixed(2)})`,
+            totalValue: totalSolValue // Add this for sorting
           };
         })
-        .sort((a, b) => (parseFloat(b.bux.replace(/,/g, '')) + parseInt(b.nfts)) - (parseFloat(a.bux.replace(/,/g, '')) + parseInt(a.nfts)));
+        .sort((a, b) => b.totalValue - a.totalValue); // Sort by SOL value descending
 
       res.setHeader('Cache-Control', 'public, s-maxage=60');
       return res.status(200).json({ holders });
