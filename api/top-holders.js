@@ -550,16 +550,17 @@ export default async function handler(req, res) {
       const publicSupply = Number(result.rows[0]?.public_supply) || 1;
       const tokenValueInSol = lpBalanceInSol / publicSupply;
 
-      // Format BUX holders
+      // Format BUX holders - use new format to match frontend expectations
       const holders = result.rows.map(holder => {
         const holderBalance = Number(holder.amount);
         const valueInSol = holderBalance * tokenValueInSol;
         const valueInUsd = solPrice !== null && !isNaN(solPrice) ? valueInSol * solPrice : NaN;
 
         return {
-          address: holder.discord_name || holder.address.slice(0, 4) + '...' + holder.address.slice(-4),
-          amount: holderBalance.toLocaleString(),
-          percentage: holder.percentage + '%',
+          discord_id: holder.discord_id || holder.address, // Use address as fallback
+          discord_username: holder.discord_name || holder.address.slice(0, 4) + '...' + holder.address.slice(-4),
+          nfts: "0 NFTs", // BUX holders don't have NFTs in this view
+          bux: holderBalance.toLocaleString(),
           value: `${valueInSol.toFixed(2)} SOL ($${!isNaN(valueInUsd) ? valueInUsd.toFixed(2) : 'NaN'})`
         };
       });
