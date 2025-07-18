@@ -319,9 +319,10 @@ export default async function handler(req, res) {
             // We select the count for the specific collection and join with holders for discord info
             query = `
                 SELECT
-                  cc.discord_id as owner_id,
+                  cc.discord_id as id,
+                  cc.discord_name as discord_username,
                   $3 as symbol, // Pass the dbSymbol directly
-                  cc.${countColumn} as count,
+                  cc.${countColumn} as amount,
                   cc.${countColumn} as valid_count, // Assuming counts in collection_counts are valid
                   cc.discord_name as discord_username
                 FROM collection_counts cc
@@ -387,10 +388,10 @@ export default async function handler(req, res) {
         for (const row of nftResult.rows) {
           // If we queried collection_counts for a specific symbol, the row structure is simpler
           if (dbSymbol) {
-              const { owner_id, count, valid_count, discord_username } = row;
+              const { id, amount, valid_count, discord_username } = row;
                // Ensure count is a number
-               const numericCount = Number(count);
-               console.log('[DEBUG] Processing row (single collection):', { wallet: owner_id, count: numericCount, dbSymbol, row });
+               const numericCount = Number(amount);
+               console.log('[DEBUG] Processing row (single collection):', { wallet: id, count: numericCount, dbSymbol, row });
                if (isNaN(numericCount) || numericCount <= 0) continue;
 
                // Use the Magic Eden slug for floor price lookup
@@ -405,13 +406,13 @@ export default async function handler(req, res) {
                  }
                }
 
-               totals[owner_id] = {
+               totals[id] = {
                    nfts: numericCount,
                    value: numericCount * floorPrice,
                    discord_username: discord_username || null,
                    symbol: dbSymbol.toLowerCase() // Add symbol for dropdown
                };
-               console.log('[DEBUG] Processed holder (single collection):', { wallet: owner_id, count: numericCount, floorPrice, value: totals[owner_id].value });
+               console.log('[DEBUG] Processed holder (single collection):', { wallet: id, count: numericCount, floorPrice, value: totals[id].value });
 
           } else { // Original logic for 'all' collections
               const { owner_id, symbol, valid_count, discord_username, 
