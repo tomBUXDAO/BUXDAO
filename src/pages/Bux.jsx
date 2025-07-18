@@ -88,14 +88,17 @@ const Bux = () => {
     }
 
     if (viewType === 'nfts') {
-      // Legacy/other view logic can remain for now
-      const isValid = holder.address && 
-                     holder.amount && 
-                     holder.value &&
-                     typeof holder.amount === 'string' &&
-                     holder.amount.includes('NFTs') &&
-                     typeof holder.value === 'string' &&
-                     holder.value.includes('SOL');
+      // Accept new backend format for NFT holders
+      const isValid = (holder.address || holder.owner_id) &&
+                      holder.amount &&
+                      typeof holder.amount === 'string' &&
+                      holder.amount.includes('NFTs') &&
+                      holder.value &&
+                      typeof holder.value === 'string' &&
+                      holder.value.includes('SOL');
+      if (!isValid) {
+        console.warn('Invalid NFT holder data:', holder);
+      }
       return isValid;
     }
 
