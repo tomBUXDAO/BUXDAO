@@ -511,7 +511,7 @@ const Bux = () => {
                                   </>
                                 ) : viewType === 'nfts' ? (
                                   <>
-                                    <td className="py-3 px-6 text-purple-400">{holder.address}</td>
+                                    <td className="py-3 px-6 text-purple-400">{holder.discord_username || holder.address}</td>
                                     <td className="py-3 px-6 text-right">{holder.amount?.replace(/\s*NFTs?\s*$/, '')}</td>
                                     <td className="py-3 px-6 text-right">{solValue.toFixed(2)} SOL</td>
                                     <td className="py-3 px-6 text-right">${usdValue.toFixed(2)}</td>
