@@ -104,6 +104,7 @@ const Bux = () => {
       const isValid = holder.discord_id && 
                      holder.discord_username && 
                      holder.bux &&
+                     holder.percentage &&
                      holder.value &&
                      typeof holder.value === 'string' &&
                      holder.value.includes('SOL');
