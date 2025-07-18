@@ -504,7 +504,7 @@ const Bux = () => {
                                     {/* BUX Only view - using new format */}
                                     <td className="py-3 px-6 text-purple-400">{holder.discord_username}</td>
                                     <td className="py-3 px-6 text-right">{holder.bux}</td>
-                                    <td className="py-3 px-6 text-right">N/A</td> {/* Percentage not provided in new format */}
+                                    <td className="py-3 px-6 text-right">{holder.percentage}%</td>
                                     <td className="py-3 px-6 text-right">{solValue.toFixed(2)} SOL</td>
                                     <td className="py-3 px-6 text-right">${usdValue.toFixed(2)}</td>
                                   </>
