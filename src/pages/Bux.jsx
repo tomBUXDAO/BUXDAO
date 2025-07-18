@@ -456,7 +456,7 @@ const Bux = () => {
                           {topHolders.filter(validateHolderData).map((holder, index) => {
                             // For the new backend format, we don't have holder.value anymore
                             // The new format has discord_id, discord_username, nfts, bux
-                            if (!holder || !holder.discord_id) {
+                            if (!holder) {
                               console.warn('Skipping invalid holder data:', holder);
                               return null;
                             }
