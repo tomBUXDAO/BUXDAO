@@ -321,7 +321,7 @@ export default async function handler(req, res) {
                 SELECT
                   cc.discord_id as id,
                   cc.discord_name as discord_username,
-                  $3 as symbol, // Pass the dbSymbol directly
+                  $3 as symbol,
                   cc.${countColumn} as amount,
                   cc.${countColumn} as valid_count, // Assuming counts in collection_counts are valid
                   cc.discord_name as discord_username
