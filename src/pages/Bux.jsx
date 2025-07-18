@@ -481,7 +481,7 @@ const Bux = () => {
 
                             return (
                               <tr key={index} className={`text-gray-200 border-b border-gray-800 ${index % 2 === 0 ? 'bg-gray-800/50' : 'bg-transparent'}`}>
-                                {viewType === 'bux,nfts' && (
+                                {viewType === 'bux,nfts' ? (
                                   <>
                                     <td className="py-3 px-6 text-center font-semibold">
                                       {/* Rank display logic */}
@@ -498,8 +498,7 @@ const Bux = () => {
                                     <td className="py-3 px-6 text-right">{solValue.toFixed(2)} SOL</td>
                                     <td className="py-3 px-6 text-right">${usdValue.toFixed(2)}</td>
                                   </>
-                                )}
-                                {viewType === 'bux' ? (
+                                ) : viewType === 'bux' ? (
                                   <>
                                     {/* BUX Only view - using new format */}
                                     <td className="py-3 px-6 text-purple-400">{holder.discord_username}</td>
@@ -515,16 +514,7 @@ const Bux = () => {
                                     <td className="py-3 px-6 text-right">{solValue.toFixed(2)} SOL</td>
                                     <td className="py-3 px-6 text-right">${usdValue.toFixed(2)}</td>
                                   </>
-                                ) : (
-                                  <>
-                                    {/* Combined view - this should not be reached since we're using bux,nfts viewType above */}
-                                    <td className="py-3 px-6 text-purple-400">{holder.discord_username}</td>
-                                    <td className="py-3 px-6 text-right">N/A</td>
-                                    <td className="py-3 px-6 text-right">N/A</td>
-                                    <td className="py-3 px-6 text-right">N/A</td>
-                                    <td className="py-3 px-6 text-right">N/A</td>
-                                  </>
-                                )}
+                                ) : null}
                               </tr>
                             );
                           }).filter(Boolean)}
