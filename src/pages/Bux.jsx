@@ -88,12 +88,10 @@ const Bux = () => {
     }
 
     if (viewType === 'nfts') {
-      // Accept new backend format for NFT holders
-      const isValid = (holder.address || holder.owner_id) &&
-                      holder.amount &&
-                      typeof holder.amount === 'string' &&
-                      holder.amount.includes('NFTs') &&
-                      holder.value &&
+      // Accept both new backend formats for NFT holders
+      const isNFTsOnly = holder.address && holder.amount && holder.value;
+      const isCombined = holder.discord_id && holder.discord_username && holder.nfts && holder.value;
+      const isValid = (isNFTsOnly || isCombined) &&
                       typeof holder.value === 'string' &&
                       holder.value.includes('SOL');
       if (!isValid) {
