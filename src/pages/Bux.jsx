@@ -100,10 +100,10 @@ const Bux = () => {
     }
 
     if (viewType === 'bux') {
-      // Legacy/other view logic can remain for now
-      const isValid = holder.address && 
-                     holder.amount && 
-                     holder.percentage &&
+      // New backend format for BUX holders
+      const isValid = holder.discord_id && 
+                     holder.discord_username && 
+                     holder.bux &&
                      holder.value &&
                      typeof holder.value === 'string' &&
                      holder.value.includes('SOL');

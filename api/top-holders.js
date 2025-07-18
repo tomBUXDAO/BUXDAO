@@ -576,7 +576,7 @@ export default async function handler(req, res) {
           discord_username: holder.discord_name || holder.address.slice(0, 4) + '...' + holder.address.slice(-4),
           nfts: "0 NFTs", // BUX holders don't have NFTs in this view
           bux: holderBalance.toLocaleString(),
-          value: `${valueInSol.toFixed(2)} SOL ($${valueInUsd > 0 ? valueInUsd.toFixed(2) : '0.00'})`
+          value: `${valueInSol < 0.01 ? valueInSol.toFixed(6) : valueInSol.toFixed(2)} SOL ($${valueInUsd > 0 ? valueInUsd.toFixed(2) : '0.00'})`
         };
       });
 
