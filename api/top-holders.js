@@ -88,10 +88,13 @@ export default async function handler(req, res) {
     client = await pool.connect();
 
     // Get SOL price from cache or fetch if not available or expired
-    let solPrice = getSolPrice();
+    let solPrice = await getSolPrice();
+    
+    console.log('[DEBUG] SOL price fetched:', solPrice);
 
     // If solPrice is still null/undefined after attempting fetch/cache, something is wrong
     if (!solPrice) {
+      console.error('[DEBUG] SOL price is null/undefined, returning error');
       return res.status(500).json({
         error: 'SOL price not available for value calculation.',
         message: 'Could not fetch or retrieve SOL price.'
@@ -549,19 +552,31 @@ export default async function handler(req, res) {
       const lpBalanceInSol = (lpBalance / LAMPORTS_PER_SOL) + 20.2;
       const publicSupply = Number(result.rows[0]?.public_supply) || 1;
       const tokenValueInSol = lpBalanceInSol / publicSupply;
+      
+      console.log('[DEBUG] BUX calculation values:', {
+        lpBalanceInSol,
+        publicSupply,
+        tokenValueInSol,
+        solPrice
+      });
 
       // Format BUX holders - use new format to match frontend expectations
       const holders = result.rows.map(holder => {
         const holderBalance = Number(holder.amount);
         const valueInSol = holderBalance * tokenValueInSol;
-        const valueInUsd = solPrice !== null && !isNaN(solPrice) ? valueInSol * solPrice : NaN;
+        
+        // Ensure solPrice is valid for USD calculation
+        let valueInUsd = 0;
+        if (solPrice !== null && !isNaN(solPrice) && solPrice > 0) {
+          valueInUsd = valueInSol * solPrice;
+        }
 
         return {
           discord_id: holder.discord_id || holder.address, // Use address as fallback
           discord_username: holder.discord_name || holder.address.slice(0, 4) + '...' + holder.address.slice(-4),
           nfts: "0 NFTs", // BUX holders don't have NFTs in this view
           bux: holderBalance.toLocaleString(),
-          value: `${valueInSol.toFixed(2)} SOL ($${!isNaN(valueInUsd) ? valueInUsd.toFixed(2) : 'NaN'})`
+          value: `${valueInSol.toFixed(2)} SOL ($${valueInUsd > 0 ? valueInUsd.toFixed(2) : '0.00'})`
         };
       });
 
