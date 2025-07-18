@@ -334,7 +334,7 @@ export default async function handler(req, res) {
             // Use collection_counts for 'all' collections
             query = `
                 SELECT
-                  cc.wallet_address as owner_wallet,
+                  cc.discord_id as owner_id,
                   'all' as symbol,
                   cc.total_count as count,
                   cc.total_count as valid_count,
@@ -352,7 +352,7 @@ export default async function handler(req, res) {
                   cc.doodlebots_count
                 FROM collection_counts cc
                 WHERE cc.total_count > 0
-                AND cc.wallet_address NOT IN ($1, $2)
+                AND cc.discord_id NOT IN ($1, $2)
             `;
             queryParams = [PROJECT_WALLET, ME_ESCROW];
             console.log(`[DEBUG] Query for all collections:`, { query, queryParams });
@@ -414,13 +414,13 @@ export default async function handler(req, res) {
                console.log('[DEBUG] Processed holder (single collection):', { wallet: wallet_address, count: numericCount, floorPrice, value: totals[wallet_address].value });
 
           } else { // Original logic for 'all' collections
-              const { owner_wallet, symbol, valid_count, discord_username, 
+              const { owner_id, symbol, valid_count, discord_username, 
                       fcked_catz_count, money_monsters_count, aibitbots_count,
                       money_monsters_3d_count, celeb_catz_count, ai_warriors_count,
                       ai_secret_squirrels_count, ai_energy_apes_count,
                       rejected_bots_ryc_count, candybots_count, doodlebots_count } = row;
               
-              if (!owner_wallet || !symbol || valid_count === undefined) {
+              if (!owner_id || !symbol || valid_count === undefined) {
                 console.warn('Skipping invalid row:', row);
                 continue;
               }
@@ -442,7 +442,7 @@ export default async function handler(req, res) {
 
               const totalValue = Object.values(collectionValues).reduce((sum, value) => sum + value, 0);
 
-              totals[owner_wallet] = {
+              totals[owner_id] = {
                 nfts: Number(valid_count),
                 value: totalValue,
                 discord_username: discord_username || null,
@@ -450,7 +450,7 @@ export default async function handler(req, res) {
               };
 
               console.log('[DEBUG] Processed holder (all collections):', {
-                wallet: owner_wallet,
+                wallet: owner_id,
                 totalNFTs: valid_count,
                 collectionValues,
                 totalValue,
