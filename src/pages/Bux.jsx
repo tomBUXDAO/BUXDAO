@@ -460,7 +460,6 @@ const Bux = () => {
                             }
 
                             // Parse SOL and USD values from the backend's value string
-                            console.log('Full holder object:', holder);
                             let solValue = 0;
                             let usdValue = 0;
                             
@@ -479,8 +478,6 @@ const Bux = () => {
                                 }
                               }
                             }
-                            
-                            console.log('Final parsed values:', { solValue, usdValue, holderValue: holder.value });
 
                             return (
                               <tr key={index} className={`text-gray-200 border-b border-gray-800 ${index % 2 === 0 ? 'bg-gray-800/50' : 'bg-transparent'}`}>
