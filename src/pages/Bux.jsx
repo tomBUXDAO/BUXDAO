@@ -459,10 +459,28 @@ const Bux = () => {
                               return null;
                             }
 
-                            // Parse SOL and USD values from the backend's value string (e.g., "XX.XX SOL ($YY.YY)")
-                            const valueMatch = holder.value?.match(/^(\d+(\.\d+)?)\s+SOL\s+\(\$(\d+(\.\d+)?)\)/);
-                            const solValue = valueMatch ? parseFloat(valueMatch[1]) : 0;
-                            const usdValue = valueMatch ? parseFloat(valueMatch[3]) : 0;
+                            // Parse SOL and USD values from the backend's value string
+                            console.log('Full holder object:', holder);
+                            let solValue = 0;
+                            let usdValue = 0;
+                            
+                            if (holder.value) {
+                              // Try to parse the value string format: "XX.XX SOL ($YY.YY)"
+                              const valueMatch = holder.value.match(/^(\d+(\.\d+)?)\s+SOL\s+\(\$(\d+(\.\d+)?)\)/);
+                              if (valueMatch) {
+                                solValue = parseFloat(valueMatch[1]);
+                                usdValue = parseFloat(valueMatch[3]);
+                              } else {
+                                // If parsing fails, try to extract just the SOL value
+                                const solMatch = holder.value.match(/(\d+(\.\d+)?)\s*SOL/);
+                                if (solMatch) {
+                                  solValue = parseFloat(solMatch[1]);
+                                  usdValue = solValue * (tokenData.solPrice || 0);
+                                }
+                              }
+                            }
+                            
+                            console.log('Final parsed values:', { solValue, usdValue, holderValue: holder.value });
 
                             return (
                               <tr key={index} className={`text-gray-200 border-b border-gray-800 ${index % 2 === 0 ? 'bg-gray-800/50' : 'bg-transparent'}`}>
