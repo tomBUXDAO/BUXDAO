@@ -459,13 +459,10 @@ const Bux = () => {
                               return null;
                             }
 
-                            // For now, we'll show placeholder values for SOL/USD since the new backend doesn't provide value
-                            // TODO: Calculate value based on NFT count and current SOL price if needed
-                            const nftCount = parseInt(holder.nfts?.replace(/\s*NFTs?\s*$/, '') || '0');
-                            const estimatedSolValue = nftCount * 0.1; // Placeholder: assume 0.1 SOL per NFT
-                            const usdValue = tokenData.solPrice !== null && !isNaN(tokenData.solPrice)
-                              ? (estimatedSolValue * tokenData.solPrice).toFixed(2)
-                              : 'N/A';
+                            // Parse SOL and USD values from the backend's value string (e.g., "XX.XX SOL ($YY.YY)")
+                            const valueMatch = holder.value?.match(/^(\d+(\.\d+)?)\s+SOL\s+\(\$(\d+(\.\d+)?)\)/);
+                            const solValue = valueMatch ? parseFloat(valueMatch[1]) : 0;
+                            const usdValue = valueMatch ? parseFloat(valueMatch[3]) : 0;
 
                             return (
                               <tr key={index} className={`text-gray-200 border-b border-gray-800 ${index % 2 === 0 ? 'bg-gray-800/50' : 'bg-transparent'}`}>
@@ -483,6 +480,8 @@ const Bux = () => {
                                     <td className="py-3 px-6 text-purple-400">{holder.discord_username}</td>
                                     <td className="py-3 px-6 text-right">{holder.bux}</td>
                                     <td className="py-3 px-6 text-right">{String(holder.nfts).replace(/\s*NFTs?\s*$/, '')} NFTs</td>
+                                    <td className="py-3 px-6 text-right">{solValue.toFixed(2)} SOL</td>
+                                    <td className="py-3 px-6 text-right">${usdValue.toFixed(2)}</td>
                                   </>
                                 )}
                                 {viewType === 'bux' ? (
@@ -491,15 +490,15 @@ const Bux = () => {
                                     <td className="py-3 px-6 text-purple-400">{holder.discord_username}</td>
                                     <td className="py-3 px-6 text-right">{holder.bux}</td>
                                     <td className="py-3 px-6 text-right">N/A</td> {/* Percentage not provided in new format */}
-                                    <td className="py-3 px-6 text-right">{estimatedSolValue.toFixed(2)} SOL</td>
-                                    <td className="py-3 px-6 text-right">${usdValue}</td>
+                                    <td className="py-3 px-6 text-right">{solValue.toFixed(2)} SOL</td>
+                                    <td className="py-3 px-6 text-right">${usdValue.toFixed(2)}</td>
                                   </>
                                 ) : viewType === 'nfts' ? (
                                   <>
                                     <td className="py-3 px-6 text-purple-400">{holder.discord_username}</td>
                                     <td className="py-3 px-6 text-right">{holder.nfts?.replace(/\s*NFTs?\s*$/, '')}</td>
-                                    <td className="py-3 px-6 text-right">{estimatedSolValue.toFixed(2)} SOL</td>
-                                    <td className="py-3 px-6 text-right">${usdValue}</td>
+                                    <td className="py-3 px-6 text-right">{solValue.toFixed(2)} SOL</td>
+                                    <td className="py-3 px-6 text-right">${usdValue.toFixed(2)}</td>
                                   </>
                                 ) : (
                                   <>

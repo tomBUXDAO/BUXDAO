@@ -183,21 +183,55 @@ export default async function handler(req, res) {
           cc.discord_id,
           cc.discord_name,
           cc.total_count AS nfts,
-          COALESCE(SUM(bh.balance), 0) AS bux_balance
+          COALESCE(SUM(bh.balance), 0) AS bux_balance,
+          cc.fcked_catz_count,
+          cc.money_monsters_count,
+          cc.aibitbots_count,
+          cc.money_monsters_3d_count,
+          cc.celeb_catz_count,
+          cc.ai_warriors_count,
+          cc.ai_secret_squirrels_count,
+          cc.ai_energy_apes_count,
+          cc.rejected_bots_ryc_count,
+          cc.candybots_count,
+          cc.doodlebots_count
         FROM collection_counts cc
         LEFT JOIN bux_holders bh ON bh.owner_discord_id = cc.discord_id
-        GROUP BY cc.discord_id, cc.discord_name, cc.total_count
+        GROUP BY cc.discord_id, cc.discord_name, cc.total_count, 
+                 cc.fcked_catz_count, cc.money_monsters_count, cc.aibitbots_count,
+                 cc.money_monsters_3d_count, cc.celeb_catz_count, cc.ai_warriors_count,
+                 cc.ai_secret_squirrels_count, cc.ai_energy_apes_count,
+                 cc.rejected_bots_ryc_count, cc.candybots_count, cc.doodlebots_count
         HAVING cc.total_count > 0 OR COALESCE(SUM(bh.balance), 0) > 0
       `);
 
-      // Format and sort holders
+      // Calculate total value for each holder based on their NFT holdings
       const holders = combinedResult.rows
-        .map(row => ({
-          discord_id: row.discord_id,
-          discord_username: row.discord_name,
-          nfts: `${row.nfts} NFTs`,
-          bux: Number(row.bux_balance).toLocaleString()
-        }))
+        .map(row => {
+          // Calculate total SOL value based on NFT holdings and floor prices
+          const totalSolValue = 
+            (row.fcked_catz_count * (floorPrices['fcked_catz'] || 0)) +
+            (row.money_monsters_count * (floorPrices['money_monsters'] || 0)) +
+            (row.aibitbots_count * (floorPrices['ai_bitbots'] || 0)) +
+            (row.money_monsters_3d_count * (floorPrices['moneymonsters3d'] || 0)) +
+            (row.celeb_catz_count * (floorPrices['celebcatz'] || 0)) +
+            (row.ai_warriors_count * (floorPrices['ai_warriors'] || 0)) +
+            (row.ai_secret_squirrels_count * (floorPrices['ai_secret_squirrels'] || 0)) +
+            (row.ai_energy_apes_count * (floorPrices['ai_energy_apes'] || 0)) +
+            (row.rejected_bots_ryc_count * (floorPrices['rejected_bots_ryc'] || 0)) +
+            (row.candybots_count * (floorPrices['candybots'] || 0)) +
+            (row.doodlebots_count * (floorPrices['doodlebots'] || 0));
+
+          const usdValue = totalSolValue * solPrice;
+
+          return {
+            discord_id: row.discord_id,
+            discord_username: row.discord_name,
+            nfts: `${row.nfts} NFTs`,
+            bux: Number(row.bux_balance).toLocaleString(),
+            value: `${totalSolValue.toFixed(2)} SOL ($${usdValue.toFixed(2)})`
+          };
+        })
         .sort((a, b) => (parseFloat(b.bux.replace(/,/g, '')) + parseInt(b.nfts)) - (parseFloat(a.bux.replace(/,/g, '')) + parseInt(a.nfts)));
 
       res.setHeader('Cache-Control', 'public, s-maxage=60');
