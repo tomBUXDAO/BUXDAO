@@ -92,8 +92,8 @@ const Bux = () => {
       const isNFTsOnly = holder.address && holder.amount && holder.value;
       const isCombined = holder.discord_id && holder.discord_username && holder.nfts && holder.value;
       const isValid = (isNFTsOnly || isCombined) &&
-                      typeof holder.value === 'string' &&
-                      holder.value.includes('SOL');
+                     typeof holder.value === 'string' &&
+                     holder.value.includes('SOL');
       if (!isValid) {
         console.warn('Invalid NFT holder data:', holder);
       }

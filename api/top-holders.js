@@ -182,7 +182,7 @@ export default async function handler(req, res) {
     if (type === 'bux,nfts') {
       // Aggregate by discord_id: get NFTs from collection_counts, BUX from bux_holders
       const combinedResult = await client.query(`
-        SELECT
+        SELECT 
           cc.discord_id,
           cc.discord_name,
           cc.total_count AS nfts,
@@ -553,7 +553,7 @@ export default async function handler(req, res) {
       const lpBalanceInSol = (lpBalance / LAMPORTS_PER_SOL) + 20.2;
       const publicSupply = Number(result.rows[0]?.public_supply) || 1;
       const tokenValueInSol = lpBalanceInSol / publicSupply;
-      
+
       console.log('[DEBUG] BUX calculation values:', {
         lpBalanceInSol,
         publicSupply,
