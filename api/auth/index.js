@@ -121,7 +121,7 @@ async function handleCheck(req, res) {
     const client = await pool.connect();
     try {
       const result = await client.query(
-        'SELECT wallet_address FROM user_roles WHERE discord_id = $1',
+        'SELECT wallet_address FROM user_wallets WHERE discord_id = $1 ORDER BY is_primary DESC, last_used DESC LIMIT 1',
         [discordUser.discord_id]
       );
       
@@ -414,21 +414,15 @@ async function handleWallet(req, res) {
     try {
       await client.query('BEGIN');
       
-      console.log('[Wallet Debug] Updating user_roles for discord_id:', user.discord_id);
+      console.log('[Wallet Debug] Inserting into user_wallets for discord_id:', user.discord_id);
       
+      // Insert into user_wallets first, which will trigger creation of other entries
       const result = await client.query(
-        'UPDATE user_roles SET wallet_address = $1, last_updated = CURRENT_TIMESTAMP WHERE discord_id = $2 RETURNING *',
-        [wallet_address, user.discord_id]
+        'INSERT INTO user_wallets (discord_id, wallet_address, discord_name, is_primary) VALUES ($1, $2, $3, true) ON CONFLICT (discord_id, wallet_address) DO UPDATE SET last_used = CURRENT_TIMESTAMP RETURNING *',
+        [user.discord_id, wallet_address, user.discord_username]
       );
 
-      if (result.rowCount === 0) {
-        console.log('[Wallet Debug] No existing user_roles entry, creating new one');
-        // Insert if no update was made
-        await client.query(
-          'INSERT INTO user_roles (wallet_address, discord_id, discord_username) VALUES ($1, $2, $3)',
-          [wallet_address, user.discord_id, user.discord_username]
-        );
-      }
+      console.log('[Wallet Debug] user_wallets insert result:', result.rows[0]);
 
       await client.query('COMMIT');
       return res.status(200).json({ success: true });
