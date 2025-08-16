@@ -3,15 +3,15 @@ import crypto from 'crypto';
 
 const router = express.Router();
 
-const FRONTEND_URL = process.env.NODE_ENV === 'production' 
+const FRONTEND_URL = process.env.FRONTEND_URL || (process.env.NODE_ENV === 'production'
   ? 'https://buxdao.com'
-  : 'http://localhost:5173';
+  : 'http://localhost:5173');
 
-const REDIRECT_URI = process.env.DISCORD_REDIRECT_URI || (
-  process.env.NODE_ENV === 'production'
-    ? 'https://buxdao.com/api/auth/discord/callback'
-    : 'http://localhost:3001/api/auth/discord/callback'
-);
+const API_URL = process.env.API_URL || (process.env.NODE_ENV === 'production'
+  ? 'https://api.buxdao.com'
+  : 'http://localhost:3001');
+
+const REDIRECT_URI = process.env.DISCORD_REDIRECT_URI || `${API_URL}/api/auth/discord/callback`;
 
 router.get('/', async (req, res) => {
   try {

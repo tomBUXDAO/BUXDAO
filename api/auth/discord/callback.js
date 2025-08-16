@@ -2,8 +2,8 @@ import fetch from 'node-fetch';
 import { pool } from '../../../api/config/database.js';
 
 // Production URLs
-const FRONTEND_URL = process.env.NODE_ENV === 'production' ? 'https://buxdao.com' : 'http://localhost:5173';
-const API_URL = process.env.NODE_ENV === 'production' ? 'https://buxdao.com' : 'http://localhost:3001';
+const FRONTEND_URL = process.env.FRONTEND_URL || (process.env.NODE_ENV === 'production' ? 'https://buxdao.com' : 'http://localhost:5173');
+const API_URL = process.env.API_URL || (process.env.NODE_ENV === 'production' ? 'https://api.buxdao.com' : 'http://localhost:3001');
 const CALLBACK_URL = `${API_URL}/api/auth/discord/callback`;
 
 // Cookie settings
