@@ -4,6 +4,7 @@ import countryData from '../utils/countryData'; // We'll create this file for co
 import { useWallet, useConnection } from '@solana/wallet-adapter-react';
 import { PublicKey, Transaction, SystemProgram } from '@solana/web3.js';
 import ToggleSwitch from '../components/ToggleSwitch';
+import { API_BASE_URL } from '../config';
 
 const CATEGORIES = {
   all: 'All Products',
@@ -12,10 +13,8 @@ const CATEGORIES = {
   tshirts: 'T-Shirts'
 };
 
-// Get the API URL from environment variables, fallback to localhost if not set
-const API_URL = process.env.NODE_ENV === 'production'
-  ? 'https://buxdao.com/api'
-  : '/api';
+// Get the API URL from environment variables
+const API_URL = `${API_BASE_URL}/api`;
 
 const hasBackDesign = (productName) => {
   const name = productName.toLowerCase();
