@@ -30,7 +30,7 @@ const CelebUpgrades = () => {
         return;
       }
 
-      const response = await fetch(`${API_BASE_URL}/celebcatz/images`, {
+      const response = await fetch(`${API_BASE_URL}/api/celebcatz/images`, {
         headers: {
           'Accept': 'application/json'
         },
