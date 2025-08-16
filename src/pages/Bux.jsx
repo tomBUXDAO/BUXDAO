@@ -10,6 +10,7 @@ import {
   SparklesIcon
 } from '@heroicons/react/24/outline';
 import UserProfile from '../components/UserProfile';
+import { API_BASE_URL } from '../config';
 
 const Bux = () => {
   const [error, setError] = useState(null);
@@ -48,7 +49,7 @@ const Bux = () => {
   ];
 
   // Get the base URL for API calls
-  const baseUrl = import.meta.env.DEV ? 'http://localhost:3001' : 'https://buxdao.com';
+  const baseUrl = API_BASE_URL;
 
   // Helper to get collection id from holder (for 'all' collections API response)
   const getCollectionIdFromHolder = (holder) => {

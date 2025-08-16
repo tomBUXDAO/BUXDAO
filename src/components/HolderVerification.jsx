@@ -7,6 +7,7 @@ import { ArrowRightOnRectangleIcon, XMarkIcon } from '@heroicons/react/24/outlin
 import { useUser } from '../contexts/UserContext';
 import { WalletModalButton } from './WalletModalButton';
 import { toast } from 'react-hot-toast';
+import { API_BASE_URL } from '../config';
 
 // Helper function to generate random state
 function generateState() {
@@ -25,9 +26,7 @@ const HolderVerification = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const API_BASE = process.env.NODE_ENV === 'production' 
-    ? 'https://buxdao.com' 
-    : 'http://localhost:3001';
+  const API_BASE = API_BASE_URL;
 
   // Handle Discord OAuth callback
   useEffect(() => {
@@ -70,7 +69,7 @@ const HolderVerification = () => {
         .reduce((str, byte) => str + byte.toString(16).padStart(2, '0'), '');
       
       document.cookie = `discord_state=${state}; path=/; max-age=300; secure; samesite=lax`;
-      window.location.href = `/api/auth/discord?state=${state}`;
+      window.location.href = `${API_BASE}/api/auth/discord?state=${state}`;
     } catch (error) {
       setError('Failed to start Discord authentication');
     }
