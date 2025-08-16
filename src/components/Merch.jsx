@@ -1,7 +1,9 @@
+import { API_BASE_URL } from '../config';
+
 const fetchProducts = async () => {
   console.log('Fetching products...');
   try {
-    const response = await fetch('/api/printful/products');
+    const response = await fetch(`${API_BASE_URL}/api/printful/products`);
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }

@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { DiscordIcon } from './Icons';
+import { API_BASE_URL } from '../config';
 
 // Cache for storing fetched images
 const imageCache = {
@@ -14,7 +15,7 @@ const CelebUpgrades = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   // Get the base API URL based on environment
-  const API_BASE_URL = '/api';
+  // const API_BASE_URL = '/api';
 
   const fetchImages = useCallback(async () => {
     try {

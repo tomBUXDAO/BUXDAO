@@ -1007,7 +1007,7 @@ const Merch = () => {
   const handleCheckout = async (items, total, shippingInfo) => {
     try {
       // Place Printful order first (no payment yet)
-      const printfulOrderResponse = await fetch('/api/printful/order', {
+      const printfulOrderResponse = await fetch(`${API_BASE_URL}/api/printful/order`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1015,7 +1015,7 @@ const Merch = () => {
           cart: items,
           email: shippingInfo.email,
           wallet_address: publicKey ? publicKey.toString() : '',
-          skipPayment: true // new flag for backend to skip payment check
+          skipPayment: true
         })
       });
       if (!printfulOrderResponse.ok) {
@@ -1029,7 +1029,7 @@ const Merch = () => {
       setPendingPrintfulOrder(printfulOrderData);
       setPrintfulOrderError(null);
       // Fetch SOL price for the summary
-      const solPriceResponse = await fetch('/api/sol-price');
+      const solPriceResponse = await fetch(`${API_BASE_URL}/api/sol-price`);
       if (!solPriceResponse.ok) {
         throw new Error('Failed to fetch SOL price');
       }
@@ -1128,7 +1128,7 @@ const Merch = () => {
       }
 
       // After confirmation, call backend to finalize/mark order as paid
-      const finalizeResponse = await fetch('/api/printful/order/pay', {
+      const finalizeResponse = await fetch(`${API_BASE_URL}/api/printful/order/pay`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useUser } from '../contexts/UserContext';
+import { API_BASE_URL } from '../config';
 
 export default function UserStats() {
   const { discordUser } = useUser();
@@ -13,7 +14,7 @@ export default function UserStats() {
 
       setLoading(true);
       try {
-        const response = await fetch('/api/top-holders?type=bux,nfts', {
+        const response = await fetch(`${API_BASE_URL}/api/top-holders?type=bux,nfts`, {
           headers: {
             'Accept': 'application/json'
           }
