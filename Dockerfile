@@ -7,9 +7,9 @@ ENV NODE_ENV=production
 # Create app directory
 WORKDIR /app
 
-# Install only production deps and skip optional (avoids native builds like usb)
+# Install only production deps and skip optional/scripts (avoids native builds like usb)
 COPY package.json package-lock.json* ./
-RUN npm ci --omit=dev --omit=optional && npm cache clean --force
+RUN npm ci --omit=dev --omit=optional --ignore-scripts && npm cache clean --force
 
 # Copy backend only
 COPY server.js ./server.js
