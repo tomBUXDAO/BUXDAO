@@ -214,22 +214,39 @@ app.use((req, res, next) => {
 });
 
 // Discord Interactions endpoint (must be before body parsers to preserve raw body)
-app.post('/api/discord-interactions', express.raw({ type: 'application/json' }), async (req, res) => {
+app.post('/api/discord-interactions', express.raw({ type: '*/*' }), async (req, res) => {
   try {
     console.log('[Discord] Interaction hit:', {
       time: new Date().toISOString(),
       contentType: req.headers['content-type'],
-      userAgent: req.headers['user-agent']
+      userAgent: req.headers['user-agent'],
+      hasSig: !!req.headers['x-signature-ed25519'],
+      hasTs: !!req.headers['x-signature-timestamp']
     });
     const signature = req.headers['x-signature-ed25519'];
     const timestamp = req.headers['x-signature-timestamp'];
 
     // Use the exact raw body buffer for signature verification
-    const rawBody = req.body instanceof Buffer ? req.body : Buffer.from(JSON.stringify(req.body));
+    const rawBody = req.body instanceof Buffer ? req.body : Buffer.from(typeof req.body === 'string' ? req.body : JSON.stringify(req.body || {}));
     const strBody = rawBody.toString('utf8');
-    const interaction = JSON.parse(strBody);
 
-    // Verify the request is from Discord
+    // Parse interaction first
+    let interaction;
+    try {
+      interaction = JSON.parse(strBody);
+    } catch (e) {
+      console.error('[Discord] JSON parse error:', e.message);
+      return res.status(400).send('Bad Request');
+    }
+
+    console.log('[Discord] Raw length:', rawBody.length, 'Parsed type:', interaction?.type);
+
+    // Reply to PING before verification to allow endpoint validation
+    if (interaction?.type === 1) {
+      return res.json({ type: 1 });
+    }
+
+    // Verify the request is from Discord for all non-ping interactions
     const isValidRequest = verifyKey(
       rawBody,
       signature,
@@ -241,11 +258,6 @@ app.post('/api/discord-interactions', express.raw({ type: 'application/json' }),
 
     if (!isValidRequest) {
       return res.status(401).send('Invalid request signature');
-    }
-
-    // Handle ping
-    if (interaction.type === 1) {
-      return res.json({ type: 1 });
     }
 
     // Handle application commands
