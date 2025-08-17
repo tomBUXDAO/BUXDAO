@@ -56,18 +56,31 @@ export async function handleMyBux({ targetDiscordId, targetUsername, issuerId, a
     const buxBalance = parseInt(result.rows[0].balance) || 0;
     const unclaimed = parseInt(result.rows[0].unclaimed_amount) || 0;
     const totalBux = buxBalance + unclaimed;
-    // Fetch token metrics from API
+
+    // Fetch token metrics from API (prefer backend API domain to avoid proxy issues)
+    const baseUrl = process.env.API_BASE_URL || 'https://api.buxdao.com';
     let tokenValue = 0;
     let tokenValueUsd = 0;
+    let solPrice = 0;
     try {
-      const metricsRes = await fetch('https://buxdao.com/api/token-metrics');
-      const metrics = await metricsRes.json();
-      tokenValue = metrics.tokenValue || 0;
-      tokenValueUsd = metrics.tokenValueUsd || 0;
+      const metricsRes = await fetch(`${baseUrl}/api/token-metrics`, { headers: { Accept: 'application/json' } });
+      if (metricsRes.ok) {
+        const metrics = await metricsRes.json();
+        tokenValue = Number(metrics.tokenValue) || 0;
+        tokenValueUsd = Number(metrics.tokenValueUsd) || 0;
+        solPrice = Number(metrics.solPrice) || 0;
+      }
     } catch (e) {
-      tokenValue = 0.01; // fallback
-      tokenValueUsd = 0;
+      // ignore network error; will use safe fallback below
     }
+
+    // Safe fallback values if API didn't return valid numbers
+    if (!tokenValue || tokenValue <= 0) {
+      // Conservative default based on recent on-chain calc (~8e-6 SOL/BUX)
+      tokenValue = 0.000008; 
+      tokenValueUsd = solPrice ? tokenValue * solPrice : 0;
+    }
+
     // Fetch the user's avatar URL from Discord
     let avatarUrl;
     try {
@@ -76,8 +89,9 @@ export async function handleMyBux({ targetDiscordId, targetUsername, issuerId, a
     } catch (e) {
       avatarUrl = undefined;
     }
+
     const solValue = totalBux * tokenValue;
-    const usdValue = totalBux * tokenValueUsd;
+    const usdValue = totalBux * (tokenValueUsd || (solPrice ? tokenValue * solPrice : 0));
     return {
       type: 4,
       data: {
