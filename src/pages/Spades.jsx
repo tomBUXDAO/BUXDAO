@@ -45,7 +45,7 @@ const Spades = () => {
           <p className="text-2xl sm:text-3xl font-bold text-white mb-2">Get ready for BUX Spades, the ultimate spades platform.</p>
           <p className="text-md text-gray-300 max-w-2xl mx-auto">Play with friends, win coins in a fun and competitive online card game experience with unique and customisable game rules.</p>
         </div>
-        <p className="text-lg text-yellow-400 mt-6 mb-2 font-semibold text-center w-full">5mil FREE coins for new members</p>
+        
       </div>
 
       {/* Content: Screenshots and Features Grid */}
@@ -82,11 +82,12 @@ const Spades = () => {
           {/* Features List - Right Column */}
           <div>
             <div className="bg-gray-900 rounded-xl p-6 w-full shadow-lg border border-purple-700 h-full">
-              <h3 className="text-2xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 mb-5 text-left">Game Features</h3>
-              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-6 text-sm sm:text-base text-left">
+              <h3 className="text-3xl lg:text-4xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 mb-3 text-left">Game Features</h3>
+              <p className="text-yellow-400 font-semibold mb-5">5mil FREE coins for new members</p>
+              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-y-5 gap-x-8 text-base lg:text-lg text-left">
                 {features.map((feature) => (
                   <li key={feature.title} className="flex items-start text-gray-300">
-                    <feature.icon className="h-5 w-5 text-purple-400 mt-0.5 mr-3 flex-shrink-0" />
+                    <feature.icon className="h-6 w-6 text-purple-400 mt-0.5 mr-3 flex-shrink-0" />
                     <span>{feature.title}</span>
                   </li>
                 ))}
