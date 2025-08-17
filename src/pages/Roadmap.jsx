@@ -108,15 +108,9 @@ const Roadmap = () => {
                       />
                     )}
                     {feature.title === 'Spades' && (
-                      <video 
-                        className="w-full max-w-[250px] rounded-xl my-4"
-                        autoPlay
-                        loop
-                        muted
-                        playsInline
-                      >
-                        <source src="/BUXspades_web.mp4" type="video/mp4" />
-                      </video>
+                      <a href="/spades" className="inline-block">
+                        <img src="/lobby.png" alt="Spades lobby" className="w-full max-w-[250px] rounded-xl my-4" />
+                      </a>
                     )}
                   </div>
                   <p className="text-gray-300 mb-4">
@@ -141,15 +135,9 @@ const Roadmap = () => {
                   />
                 )}
                 {feature.title === 'Spades' && (
-                  <video 
-                    className="absolute bottom-4 right-4 w-[250px] rounded-xl"
-                    autoPlay
-                    loop
-                    muted
-                    playsInline
-                  >
-                    <source src="/BUXspades_web.mp4" type="video/mp4" />
-                  </video>
+                  <a href="/spades" className="absolute bottom-4 right-4">
+                    <img src="/game.table.png" alt="Spades table" className="w-[250px] rounded-xl" />
+                  </a>
                 )}
               </div>
             </div>

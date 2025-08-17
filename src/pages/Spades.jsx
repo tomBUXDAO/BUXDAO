@@ -37,8 +37,6 @@ const Spades = () => {
             </h1>
             <a
               href="https://www.bux-spades.pro/"
-              target="_blank"
-              rel="noopener noreferrer"
               className={`ml-2 sm:ml-4 px-3 py-1 sm:px-5 sm:py-2 bg-yellow-400 text-black font-bold text-[10px] sm:text-base rounded-full inline-flex items-center justify-center mt-0 transition-opacity duration-700 shrink-0 whitespace-nowrap ${showBadge ? 'opacity-100' : 'opacity-0'}`}
             >
               Play&nbsp;Now
