@@ -49,7 +49,7 @@ const Spades = () => {
       </div>
 
       {/* Content: Screenshots and Features Grid */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-10">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-stretch">
           {/* Screenshots Card (Left) */}
           <div className="h-full">
@@ -82,8 +82,8 @@ const Spades = () => {
           {/* Features List - Right Column */}
           <div>
             <div className="bg-gray-900 rounded-xl p-6 w-full shadow-lg border border-purple-700 h-full">
-              <h3 className="text-3xl lg:text-4xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 mb-3 text-left">Game Features</h3>
-              <p className="text-yellow-400 font-semibold mb-5">5mil FREE coins for new members</p>
+              <h3 className="text-3xl lg:text-4xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 mb-1 text-center">Game Features</h3>
+              <p className="text-yellow-400 font-semibold mb-5 text-center">5mil FREE coins for new members</p>
               <ul className="grid grid-cols-1 sm:grid-cols-2 gap-y-5 gap-x-8 text-base lg:text-lg text-left">
                 {features.map((feature) => (
                   <li key={feature.title} className="flex items-start text-gray-300">
