@@ -283,29 +283,45 @@ app.post('/api/discord-interactions', express.raw({ type: '*/*' }), async (req, 
       const command = interaction.data;
       const webhookUrl = `https://discord.com/api/v10/webhooks/${interaction.application_id}/${interaction.token}`;
 
-      // Helper to post follow-up message
-      const postWebhook = async (payload) => {
+      // Helper to deliver the result: edit original first, fallback to follow-up
+      const deliverResponse = async (payload) => {
+        const body = JSON.stringify(payload);
+        // Try editing the original deferred response
         try {
-          await fetch(webhookUrl, {
-            method: 'POST',
+          const editResp = await fetch(`${webhookUrl}/messages/@original`, {
+            method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+            body
           });
+          if (!editResp.ok) {
+            const text = await editResp.text().catch(() => '');
+            console.error('Discord edit original failed:', editResp.status, text);
+            // Fallback: create a follow-up message
+            const followResp = await fetch(webhookUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body
+            });
+            if (!followResp.ok) {
+              const ft = await followResp.text().catch(() => '');
+              console.error('Discord follow-up failed:', followResp.status, ft);
+            }
+          }
         } catch (err) {
-          console.error('Webhook post error:', err);
+          console.error('Discord deliver response error:', err);
         }
       };
 
       // Immediately acknowledge to prevent Discord timeouts
       res.json({ type: 5 });
 
-      // Process command asynchronously and send follow-up
+      // Process command asynchronously and send the result
       (async () => {
         try {
           // Handle help command
           if (command.name === 'help') {
             const result = await handleHelp();
-            return postWebhook(result.data || { content: 'OK' });
+            return deliverResponse(result.data || { content: 'OK' });
           }
 
           // Handle mynfts command
@@ -322,7 +338,7 @@ app.post('/api/discord-interactions', express.raw({ type: '*/*' }), async (req, 
             }
             const adminIds = (process.env.DISCORD_ADMIN_IDS || '').split(',').map(id => id.trim()).filter(Boolean);
             const result = await handleMyNFTs({ targetDiscordId, targetUsername, issuerId, adminIds });
-            return postWebhook(result.data || { content: 'OK' });
+            return deliverResponse(result.data || { content: 'OK' });
           }
 
           // Handle mybux command
@@ -339,7 +355,7 @@ app.post('/api/discord-interactions', express.raw({ type: '*/*' }), async (req, 
             }
             const adminIds = (process.env.DISCORD_ADMIN_IDS || '').split(',').map(id => id.trim()).filter(Boolean);
             const result = await handleMyBux({ targetDiscordId, targetUsername, issuerId, adminIds });
-            return postWebhook(result.data || { content: 'OK' });
+            return deliverResponse(result.data || { content: 'OK' });
           }
 
           // Handle profile command
@@ -356,17 +372,17 @@ app.post('/api/discord-interactions', express.raw({ type: '*/*' }), async (req, 
             }
             const adminIds = (process.env.DISCORD_ADMIN_IDS || '').split(',').map(id => id.trim()).filter(Boolean);
             const result = await handleProfile({ targetDiscordId, targetUsername, issuerId, adminIds });
-            return postWebhook(result.data || { content: 'OK' });
+            return deliverResponse(result.data || { content: 'OK' });
           }
 
           // Handle collections command
           if (command.name === 'collections') {
             const collectionOption = command.options?.find(opt => opt.name === 'collection');
             if (!collectionOption) {
-              return postWebhook({ content: 'No collection selected' });
+              return deliverResponse({ content: 'No collection selected' });
             }
             const result = await handleCollections({ collectionSymbol: collectionOption.value });
-            return postWebhook(result.data || { content: 'OK' });
+            return deliverResponse(result.data || { content: 'OK' });
           }
 
           // Handle addclaim command
@@ -374,7 +390,7 @@ app.post('/api/discord-interactions', express.raw({ type: '*/*' }), async (req, 
             const userOption = command.options?.find(opt => opt.name === 'user');
             const amountOption = command.options?.find(opt => opt.name === 'amount');
             if (!userOption || !amountOption) {
-              return postWebhook({ content: 'Missing user or amount' });
+              return deliverResponse({ content: 'Missing user or amount' });
             }
             const discordId = userOption.value;
             const username = userOption.user?.username || userOption.user?.global_name || userOption.user?.name || 'Unknown';
@@ -382,44 +398,44 @@ app.post('/api/discord-interactions', express.raw({ type: '*/*' }), async (req, 
             const issuerId = interaction.member?.user?.id || interaction.user?.id;
             const adminIds = (process.env.DISCORD_ADMIN_IDS || '').split(',').map(id => id.trim()).filter(Boolean);
             const result = await handleAddClaim({ discordId, username, amount, issuerId, adminIds });
-            return postWebhook(result.data || { content: 'OK' });
+            return deliverResponse(result.data || { content: 'OK' });
           }
 
           // Handle NFT command
           if (command.name === 'nft') {
             const subcommand = command.options?.[0];
             if (!subcommand) {
-              return postWebhook({ content: 'Please provide a collection and token ID' });
+              return deliverResponse({ content: 'Please provide a collection and token ID' });
             }
             const collection = subcommand.name;
             const tokenId = subcommand.options?.[0]?.value;
             if (!tokenId) {
-              return postWebhook({ content: 'Please provide a token ID' });
+              return deliverResponse({ content: 'Please provide a token ID' });
             }
             const result = await handleNFTLookup(`${collection}.${tokenId}`);
-            return postWebhook(result.data || { content: 'OK' });
+            return deliverResponse(result.data || { content: 'OK' });
           }
 
           // Handle rank command
           if (command.name === 'rank') {
             const subcommand = command.options?.[0];
             if (!subcommand) {
-              return postWebhook({ content: 'Please provide a collection and rank number' });
+              return deliverResponse({ content: 'Please provide a collection and rank number' });
             }
             const collection = subcommand.name;
             const rank = subcommand.options?.[0]?.value;
             if (!rank) {
-              return postWebhook({ content: 'Please provide a rank number' });
+              return deliverResponse({ content: 'Please provide a rank number' });
             }
             const result = await handleRankLookup(`${collection}.${rank}`);
-            return postWebhook(result.data || { content: 'OK' });
+            return deliverResponse(result.data || { content: 'OK' });
           }
 
           // Unknown command
-          return postWebhook({ content: 'Unknown command' });
+          return deliverResponse({ content: 'Unknown command' });
         } catch (err) {
           console.error('Command processing error:', err);
-          return postWebhook({ content: 'An error occurred processing the command' });
+          return deliverResponse({ content: 'An error occurred processing the command' });
         }
       })();
 
