@@ -250,7 +250,7 @@ app.post('/api/discord-interactions', express.raw({ type: '*/*' }), async (req, 
     console.log('[Discord] Raw length:', rawBody.length, 'Parsed type:', interaction?.type);
 
     // Verify the request is from Discord (required for all interactions including PING)
-    const isValidRequest = verifyKey(
+    const isValidRequest = await verifyKey(
       rawBody,
       signature,
       timestamp,
