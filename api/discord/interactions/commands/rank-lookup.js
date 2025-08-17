@@ -64,7 +64,7 @@ async function getNFTByRank(collection, rank) {
     console.log('Database connection successful');
 
     const query = `
-      SELECT n*,
+      SELECT n.*,
              uw.discord_id as lister_discord_id,
              uw.discord_name as lister_discord_name,
              uw2.discord_id as owner_discord_id,
