@@ -9,7 +9,8 @@ Dockerfile
 solana-release
 bux-claim-minimal
 bux_claim
-buxdao-nft-sync
+buxdao-nft-sync/*
+!buxdao-nft-sync/collections.config.js
 logs
 public
 scripts
