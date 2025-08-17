@@ -44,38 +44,28 @@ const Spades = () => {
         </div>
 
         {/* Content: Screenshots and Features Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
-          {/* Screenshots - Left Column */}
-          <div className="md:col-span-2 order-1 md:order-1 h-full flex items-center justify-center">
-            <div className="relative w-full max-w-3xl mx-auto">
-              {/* Primary screenshot */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-start">
+          {/* Screenshots - Left Column (stacked) */}
+          <div className="order-1 md:order-1">
+            <div className="flex flex-col items-center gap-6">
               <img
                 src="/lobby.png"
                 alt="Lobby"
-                className="w-full rounded-xl shadow-xl ring-1 ring-purple-500/20 object-cover"
+                className="w-full max-w-3xl rounded-xl shadow-xl ring-1 ring-purple-500/20 object-cover"
               />
-              {/* Secondary screenshot offset on larger screens */}
               <img
                 src="/game.table.png"
                 alt="Game table"
-                className="hidden sm:block absolute -bottom-6 -right-6 w-[55%] rounded-xl shadow-2xl ring-1 ring-purple-500/30 object-cover hover:translate-y-[-2px] hover:translate-x-[-2px] transition-transform"
+                className="w-11/12 sm:w-4/5 rounded-xl shadow-xl ring-1 ring-purple-500/20 object-cover"
               />
-              {/* On small screens, show secondary below */}
-              <div className="sm:hidden mt-4">
-                <img
-                  src="/game.table.png"
-                  alt="Game table"
-                  className="w-full rounded-xl shadow-xl ring-1 ring-purple-500/20 object-cover"
-                />
-              </div>
             </div>
           </div>
 
           {/* Features List - Right Column */}
-          <div className="md:col-span-1 order-2 md:order-2 h-full flex items-center">
-            <div className="bg-gray-900 rounded-xl p-5 w-full shadow-lg border border-purple-700 h-full flex flex-col justify-center">
+          <div className="order-2 md:order-2 h-full">
+            <div className="bg-gray-900 rounded-xl p-6 w-full shadow-lg border border-purple-700 h-full">
               <h3 className="text-xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 mb-5 text-left">Game Features</h3>
-              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-3 text-[11px] sm:text-xs text-left">
+              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-4 text-[11px] sm:text-xs text-left">
                 {features.map((feature) => (
                   <li key={feature.title} className="flex items-start text-gray-300">
                     <feature.icon className="h-3 w-3 text-purple-400 mt-0.5 mr-2 flex-shrink-0" />
