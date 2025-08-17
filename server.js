@@ -249,13 +249,7 @@ app.post('/api/discord-interactions', express.raw({ type: '*/*' }), async (req, 
 
     console.log('[Discord] Raw length:', rawBody.length, 'Parsed type:', interaction?.type);
 
-    // If it's a PING, respond immediately to allow Discord endpoint validation
-    if (interaction?.type === 1) {
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      return res.end('{"type":1}');
-    }
-
-    // Verify the request is from Discord for all non-PING interactions
+    // Verify the request is from Discord (required for all interactions including PING)
     const isValidRequest = verifyKey(
       rawBody,
       signature,
@@ -264,6 +258,15 @@ app.post('/api/discord-interactions', express.raw({ type: '*/*' }), async (req, 
     );
 
     console.log('[Discord] Verified:', isValidRequest, 'Type:', interaction?.type, 'Cmd:', interaction?.data?.name);
+
+    // Reply to PING (type 1) only if signature is valid
+    if (interaction?.type === 1) {
+      if (!isValidRequest) {
+        return res.status(401).send('Invalid request signature');
+      }
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      return res.end('{"type":1}');
+    }
 
     if (!isValidRequest) {
       return res.status(401).send('Invalid request signature');
