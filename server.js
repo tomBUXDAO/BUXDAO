@@ -61,6 +61,15 @@ console.log('Environment check:', {
   envKeys: Object.keys(process.env).filter(key => !key.includes('SECRET'))
 });
 
+// Helpful diagnostics
+if (process.env.KOYEB_PUBLIC_DOMAIN) {
+  console.log('[Koyeb] Public domain:', process.env.KOYEB_PUBLIC_DOMAIN);
+}
+if (process.env.DISCORD_PUBLIC_KEY) {
+  const pk = process.env.DISCORD_PUBLIC_KEY;
+  console.log('[Discord] Public key (masked):', pk.slice(0, 6) + '...' + pk.slice(-6));
+}
+
 // Only proceed with other imports after environment is loaded
 import express from 'express';
 import cors from 'cors';
