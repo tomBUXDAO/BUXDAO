@@ -249,12 +249,12 @@ app.post('/api/discord-interactions', express.raw({ type: '*/*' }), async (req, 
 
     console.log('[Discord] Raw length:', rawBody.length, 'Parsed type:', interaction?.type);
 
-    // Reply to PING before verification to allow endpoint validation
+    // If it's a PING, respond immediately to allow Discord endpoint validation
     if (interaction?.type === 1) {
       return res.json({ type: 1 });
     }
 
-    // Verify the request is from Discord for all non-ping interactions
+    // Verify the request is from Discord for all non-PING interactions
     const isValidRequest = verifyKey(
       rawBody,
       signature,
