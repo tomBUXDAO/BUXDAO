@@ -14,6 +14,8 @@ RUN npm ci --omit=dev --omit=optional --ignore-scripts && npm cache clean --forc
 # Copy backend only
 COPY server.js ./server.js
 COPY api ./api
+# Copy collections config required by collections command
+COPY buxdao-nft-sync/collections.config.js ./buxdao-nft-sync/collections.config.js
 
 # Expose port (Koyeb provides PORT env var at runtime)
 ENV PORT=3001
