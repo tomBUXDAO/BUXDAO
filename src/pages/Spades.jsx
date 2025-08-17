@@ -8,6 +8,12 @@ const Spades = () => {
     return () => clearTimeout(timer);
   }, []);
 
+  const screenshots = [
+    { src: '/lobby.png', alt: 'Lobby' },
+    { src: '/game.table.png', alt: 'Game table' },
+  ];
+  const [selectedIndex, setSelectedIndex] = useState(0);
+
   // Updated features list
   const features = [
     { icon: UserIcon, title: 'Login with Discord' },
@@ -44,20 +50,32 @@ const Spades = () => {
 
       {/* Content: Screenshots and Features Grid */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
-          {/* Screenshots - Left Column (stacked) */}
-          <div>
-            <div className="flex flex-col items-center gap-8">
-              <img
-                src="/lobby.png"
-                alt="Lobby"
-                className="w-full rounded-xl shadow-xl ring-1 ring-purple-500/20 object-cover"
-              />
-              <img
-                src="/game.table.png"
-                alt="Game table"
-                className="w-full rounded-xl shadow-xl ring-1 ring-purple-500/20 object-cover"
-              />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-stretch">
+          {/* Screenshots Card (Left) */}
+          <div className="h-full">
+            <div className="bg-gray-900 rounded-xl p-3 sm:p-4 w-full shadow-lg border border-purple-700 h-full flex flex-col">
+              <div className="flex-1 min-h-0">
+                <img
+                  src={screenshots[selectedIndex].src}
+                  alt={screenshots[selectedIndex].alt}
+                  className="w-full h-full object-cover rounded-lg ring-1 ring-purple-500/20"
+                />
+              </div>
+              <div className="mt-4 grid grid-cols-2 gap-4">
+                {screenshots.map((shot, i) => (
+                  <button
+                    type="button"
+                    key={shot.alt}
+                    onClick={() => setSelectedIndex(i)}
+                    className={`relative rounded-lg overflow-hidden ring-1 ring-purple-500/20 transition ${
+                      selectedIndex === i ? 'ring-2 ring-yellow-400' : 'opacity-80 hover:opacity-100'
+                    }`}
+                    aria-label={`Show ${shot.alt}`}
+                  >
+                    <img src={shot.src} alt={shot.alt} className="w-full h-20 object-cover" />
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
