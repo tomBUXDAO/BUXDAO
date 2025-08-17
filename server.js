@@ -281,163 +281,149 @@ app.post('/api/discord-interactions', express.raw({ type: '*/*' }), async (req, 
     // Handle application commands
     if (interaction.type === 2 && interaction.data) {
       const command = interaction.data;
+      const webhookUrl = `https://discord.com/api/v10/webhooks/${interaction.application_id}/${interaction.token}`;
 
-      // Handle help command
-      if (command.name === 'help') {
+      // Helper to post follow-up message
+      const postWebhook = async (payload) => {
         try {
-          const result = await handleHelp();
-          return res.json(result);
-        } catch (error) {
-          console.error('Help command error:', error);
-          return res.json({ type: 4, data: { content: `Error: ${error.message}`, flags: 64 } });
+          await fetch(webhookUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+        } catch (err) {
+          console.error('Webhook post error:', err);
         }
-      }
+      };
 
-      // Handle mynfts command
-      if (command.name === 'mynfts') {
+      // Immediately acknowledge to prevent Discord timeouts
+      res.json({ type: 5 });
+
+      // Process command asynchronously and send follow-up
+      (async () => {
         try {
-          const userOption = command.options?.find(opt => opt.name === 'user');
-          const issuerId = interaction.member?.user?.id || interaction.user?.id;
-          let targetDiscordId, targetUsername;
-          if (userOption) {
-            targetDiscordId = userOption.value;
-            targetUsername = userOption.user?.username || userOption.user?.global_name || userOption.user?.name || 'Unknown';
-          } else {
-            targetDiscordId = issuerId;
-            targetUsername = interaction.member?.user?.username || interaction.member?.user?.global_name || interaction.user?.username || interaction.user?.global_name || 'Unknown';
+          // Handle help command
+          if (command.name === 'help') {
+            const result = await handleHelp();
+            return postWebhook(result.data || { content: 'OK' });
           }
-          const adminIds = (process.env.DISCORD_ADMIN_IDS || '').split(',').map(id => id.trim()).filter(Boolean);
-          const result = await handleMyNFTs({ targetDiscordId, targetUsername, issuerId, adminIds });
-          return res.json(result);
-        } catch (error) {
-          console.error('mynfts command error:', error);
-          return res.json({ type: 4, data: { content: `Error: ${error.message}`, flags: 64 } });
+
+          // Handle mynfts command
+          if (command.name === 'mynfts') {
+            const userOption = command.options?.find(opt => opt.name === 'user');
+            const issuerId = interaction.member?.user?.id || interaction.user?.id;
+            let targetDiscordId, targetUsername;
+            if (userOption) {
+              targetDiscordId = userOption.value;
+              targetUsername = userOption.user?.username || userOption.user?.global_name || userOption.user?.name || 'Unknown';
+            } else {
+              targetDiscordId = issuerId;
+              targetUsername = interaction.member?.user?.username || interaction.member?.user?.global_name || interaction.user?.username || interaction.user?.global_name || 'Unknown';
+            }
+            const adminIds = (process.env.DISCORD_ADMIN_IDS || '').split(',').map(id => id.trim()).filter(Boolean);
+            const result = await handleMyNFTs({ targetDiscordId, targetUsername, issuerId, adminIds });
+            return postWebhook(result.data || { content: 'OK' });
+          }
+
+          // Handle mybux command
+          if (command.name === 'mybux') {
+            const userOption = command.options?.find(opt => opt.name === 'user');
+            const issuerId = interaction.member?.user?.id || interaction.user?.id;
+            let targetDiscordId, targetUsername;
+            if (userOption) {
+              targetDiscordId = userOption.value;
+              targetUsername = userOption.user?.username || userOption.user?.global_name || userOption.user?.name || 'Unknown';
+            } else {
+              targetDiscordId = issuerId;
+              targetUsername = interaction.member?.user?.username || interaction.member?.user?.global_name || interaction.user?.username || interaction.user?.global_name || 'Unknown';
+            }
+            const adminIds = (process.env.DISCORD_ADMIN_IDS || '').split(',').map(id => id.trim()).filter(Boolean);
+            const result = await handleMyBux({ targetDiscordId, targetUsername, issuerId, adminIds });
+            return postWebhook(result.data || { content: 'OK' });
+          }
+
+          // Handle profile command
+          if (command.name === 'profile') {
+            const userOption = command.options?.find(opt => opt.name === 'user');
+            const issuerId = interaction.member?.user?.id || interaction.user?.id;
+            let targetDiscordId, targetUsername;
+            if (userOption) {
+              targetDiscordId = userOption.value;
+              targetUsername = userOption.user?.username || userOption.user?.global_name || userOption.user?.name || 'Unknown';
+            } else {
+              targetDiscordId = issuerId;
+              targetUsername = interaction.member?.user?.username || interaction.member?.user?.global_name || interaction.user?.username || interaction.user?.global_name || 'Unknown';
+            }
+            const adminIds = (process.env.DISCORD_ADMIN_IDS || '').split(',').map(id => id.trim()).filter(Boolean);
+            const result = await handleProfile({ targetDiscordId, targetUsername, issuerId, adminIds });
+            return postWebhook(result.data || { content: 'OK' });
+          }
+
+          // Handle collections command
+          if (command.name === 'collections') {
+            const collectionOption = command.options?.find(opt => opt.name === 'collection');
+            if (!collectionOption) {
+              return postWebhook({ content: 'No collection selected' });
+            }
+            const result = await handleCollections({ collectionSymbol: collectionOption.value });
+            return postWebhook(result.data || { content: 'OK' });
+          }
+
+          // Handle addclaim command
+          if (command.name === 'addclaim') {
+            const userOption = command.options?.find(opt => opt.name === 'user');
+            const amountOption = command.options?.find(opt => opt.name === 'amount');
+            if (!userOption || !amountOption) {
+              return postWebhook({ content: 'Missing user or amount' });
+            }
+            const discordId = userOption.value;
+            const username = userOption.user?.username || userOption.user?.global_name || userOption.user?.name || 'Unknown';
+            const amount = amountOption.value;
+            const issuerId = interaction.member?.user?.id || interaction.user?.id;
+            const adminIds = (process.env.DISCORD_ADMIN_IDS || '').split(',').map(id => id.trim()).filter(Boolean);
+            const result = await handleAddClaim({ discordId, username, amount, issuerId, adminIds });
+            return postWebhook(result.data || { content: 'OK' });
+          }
+
+          // Handle NFT command
+          if (command.name === 'nft') {
+            const subcommand = command.options?.[0];
+            if (!subcommand) {
+              return postWebhook({ content: 'Please provide a collection and token ID' });
+            }
+            const collection = subcommand.name;
+            const tokenId = subcommand.options?.[0]?.value;
+            if (!tokenId) {
+              return postWebhook({ content: 'Please provide a token ID' });
+            }
+            const result = await handleNFTLookup(`${collection}.${tokenId}`);
+            return postWebhook(result.data || { content: 'OK' });
+          }
+
+          // Handle rank command
+          if (command.name === 'rank') {
+            const subcommand = command.options?.[0];
+            if (!subcommand) {
+              return postWebhook({ content: 'Please provide a collection and rank number' });
+            }
+            const collection = subcommand.name;
+            const rank = subcommand.options?.[0]?.value;
+            if (!rank) {
+              return postWebhook({ content: 'Please provide a rank number' });
+            }
+            const result = await handleRankLookup(`${collection}.${rank}`);
+            return postWebhook(result.data || { content: 'OK' });
+          }
+
+          // Unknown command
+          return postWebhook({ content: 'Unknown command' });
+        } catch (err) {
+          console.error('Command processing error:', err);
+          return postWebhook({ content: 'An error occurred processing the command' });
         }
-      }
+      })();
 
-      // Handle mybux command
-      if (command.name === 'mybux') {
-        try {
-          const userOption = command.options?.find(opt => opt.name === 'user');
-          const issuerId = interaction.member?.user?.id || interaction.user?.id;
-          let targetDiscordId, targetUsername;
-          if (userOption) {
-            targetDiscordId = userOption.value;
-            targetUsername = userOption.user?.username || userOption.user?.global_name || userOption.user?.name || 'Unknown';
-          } else {
-            targetDiscordId = issuerId;
-            targetUsername = interaction.member?.user?.username || interaction.member?.user?.global_name || interaction.user?.username || interaction.user?.global_name || 'Unknown';
-          }
-          const adminIds = (process.env.DISCORD_ADMIN_IDS || '').split(',').map(id => id.trim()).filter(Boolean);
-          const result = await handleMyBux({ targetDiscordId, targetUsername, issuerId, adminIds });
-          return res.json(result);
-        } catch (error) {
-          console.error('mybux command error:', error);
-          return res.json({ type: 4, data: { content: `Error: ${error.message}`, flags: 64 } });
-        }
-      }
-
-      // Handle profile command
-      if (command.name === 'profile') {
-        try {
-          const userOption = command.options?.find(opt => opt.name === 'user');
-          const issuerId = interaction.member?.user?.id || interaction.user?.id;
-          let targetDiscordId, targetUsername;
-          if (userOption) {
-            targetDiscordId = userOption.value;
-            targetUsername = userOption.user?.username || userOption.user?.global_name || userOption.user?.name || 'Unknown';
-          } else {
-            targetDiscordId = issuerId;
-            targetUsername = interaction.member?.user?.username || interaction.member?.user?.global_name || interaction.user?.username || interaction.user?.global_name || 'Unknown';
-          }
-          const adminIds = (process.env.DISCORD_ADMIN_IDS || '').split(',').map(id => id.trim()).filter(Boolean);
-          const result = await handleProfile({ targetDiscordId, targetUsername, issuerId, adminIds });
-          return res.json(result);
-        } catch (error) {
-          console.error('profile command error:', error);
-          return res.json({ type: 4, data: { content: `Error: ${error.message}`, flags: 64 } });
-        }
-      }
-
-      // Handle collections command
-      if (command.name === 'collections') {
-        try {
-          const collectionOption = command.options?.find(opt => opt.name === 'collection');
-          if (!collectionOption) {
-            return res.json({ type: 4, data: { content: 'No collection selected', flags: 64 } });
-          }
-          const result = await handleCollections({ collectionSymbol: collectionOption.value });
-          return res.json(result);
-        } catch (error) {
-          console.error('collections command error:', error);
-          return res.json({ type: 4, data: { content: `Error: ${error.message}`, flags: 64 } });
-        }
-      }
-
-      // Handle addclaim command
-      if (command.name === 'addclaim') {
-        try {
-          const userOption = command.options?.find(opt => opt.name === 'user');
-          const amountOption = command.options?.find(opt => opt.name === 'amount');
-          if (!userOption || !amountOption) {
-            return res.json({ type: 4, data: { content: 'Missing user or amount', flags: 64 } });
-          }
-          const discordId = userOption.value;
-          const username = userOption.user?.username || userOption.user?.global_name || userOption.user?.name || 'Unknown';
-          const amount = amountOption.value;
-          const issuerId = interaction.member?.user?.id || interaction.user?.id;
-          const adminIds = (process.env.DISCORD_ADMIN_IDS || '').split(',').map(id => id.trim()).filter(Boolean);
-          const result = await handleAddClaim({ discordId, username, amount, issuerId, adminIds });
-          return res.json(result);
-        } catch (error) {
-          console.error('addclaim command error:', error);
-          return res.json({ type: 4, data: { content: `Error: ${error.message}`, flags: 64 } });
-        }
-      }
-
-      // Handle NFT command
-      if (command.name === 'nft') {
-        try {
-          const subcommand = command.options?.[0];
-          if (!subcommand) {
-            return res.json({ type: 4, data: { content: 'Please provide a collection and token ID', flags: 64 } });
-          }
-
-          const collection = subcommand.name;
-          const tokenId = subcommand.options?.[0]?.value;
-          if (!tokenId) {
-            return res.json({ type: 4, data: { content: 'Please provide a token ID', flags: 64 } });
-          }
-
-          const result = await handleNFTLookup(`${collection}.${tokenId}`);
-          return res.json(result);
-        } catch (error) {
-          console.error('NFT lookup error:', error);
-          return res.json({ type: 4, data: { content: `Error: ${error.message}`, flags: 64 } });
-        }
-      }
-
-      // Handle rank command
-      if (command.name === 'rank') {
-        try {
-          const subcommand = command.options?.[0];
-          if (!subcommand) {
-            return res.json({ type: 4, data: { content: 'Please provide a collection and rank number', flags: 64 } });
-          }
-
-          const collection = subcommand.name;
-          const rank = subcommand.options?.[0]?.value;
-          if (!rank) {
-            return res.json({ type: 4, data: { content: 'Please provide a rank number', flags: 64 } });
-          }
-
-          const result = await handleRankLookup(`${collection}.${rank}`);
-          return res.json(result);
-        } catch (error) {
-          console.error('Rank lookup error:', error);
-          return res.json({ type: 4, data: { content: `Error: ${error.message}`, flags: 64 } });
-        }
-      }
+      return; // already responded with deferred ACK
     }
 
     return res.json({ type: 4, data: { content: 'Unknown command', flags: 64 } });
