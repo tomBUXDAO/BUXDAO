@@ -13,6 +13,7 @@ import nftLookupHandler from './nft-lookup.js';
 import userHandler from './user/index.js';
 import rewardsHandler from './rewards/process-daily.js';
 import { pool, healthCheck } from './config/database.js';
+import discordInteractionsHandler from './discord-interactions.js';
 
 export default async function handler(req, res) {
   // Set CORS headers
@@ -54,6 +55,25 @@ export default async function handler(req, res) {
         database: 'error',
         error: error.message
       });
+    }
+  }
+
+  // Handle Discord interactions endpoint
+  if (req.url.startsWith('/api/discord-interactions')) {
+    try {
+      const result = await discordInteractionsHandler(req, res);
+      // If the handler returned a Fetch Response, translate it to Node response
+      if (result && typeof result === 'object' && typeof result.body !== 'undefined' && typeof result.status === 'number') {
+        const text = await result.text();
+        const contentType = result.headers?.get ? (result.headers.get('Content-Type') || 'application/json') : 'application/json';
+        res.status(result.status);
+        res.setHeader('Content-Type', contentType);
+        return res.end(text);
+      }
+      return; // Handler already wrote to res
+    } catch (err) {
+      console.error('Discord interactions handler error:', err);
+      return res.status(500).json({ error: 'Internal server error', details: err.message });
     }
   }
 
