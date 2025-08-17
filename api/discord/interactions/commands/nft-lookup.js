@@ -62,13 +62,13 @@ async function getNFTDetails(collection, tokenId) {
 
     const result = await client.query(
       `SELECT n.*, 
-              ur.discord_id as lister_discord_id,
-              ur.discord_name as lister_discord_name,
-              ur2.discord_id as owner_discord_id,
-              ur2.discord_name as owner_name
+              uw.discord_id as lister_discord_id,
+              uw.discord_name as lister_discord_name,
+              uw2.discord_id as owner_discord_id,
+              uw2.discord_name as owner_name
        FROM nft_metadata n
-       LEFT JOIN user_roles ur ON ur.wallet_address = n.original_lister
-       LEFT JOIN user_roles ur2 ON ur2.wallet_address = n.owner_wallet
+       LEFT JOIN user_wallets uw ON uw.wallet_address = n.original_lister
+       LEFT JOIN user_wallets uw2 ON uw2.wallet_address = n.owner_wallet
        WHERE n.symbol = $1 AND n.name LIKE $2`,
       [collectionConfig.symbol, `%#${tokenId}`]
     );
@@ -119,7 +119,7 @@ async function getNFTDetails(collection, tokenId) {
         ? `\`${nft.original_lister.slice(0, 4)}...${nft.original_lister.slice(-4)}\``
         : nft.owner_name
         ? nft.owner_name
-        : `\`${nft.owner_wallet.slice(0, 4)}...${nft.owner_wallet.slice(-4)}\``,
+        : `\`${(nft.owner_wallet || '').slice(0, 4)}...${(nft.owner_wallet || '').slice(-4)}\``,
       inline: true
     });
 

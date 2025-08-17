@@ -64,14 +64,14 @@ async function getNFTByRank(collection, rank) {
     console.log('Database connection successful');
 
     const query = `
-      SELECT n.*,
-             ur.discord_id as lister_discord_id,
-             ur.discord_name as lister_discord_name,
-             ur2.discord_id as owner_discord_id,
-             ur2.discord_name as owner_name
+      SELECT n*,
+             uw.discord_id as lister_discord_id,
+             uw.discord_name as lister_discord_name,
+             uw2.discord_id as owner_discord_id,
+             uw2.discord_name as owner_name
       FROM nft_metadata n
-      LEFT JOIN user_roles ur ON ur.wallet_address = n.original_lister
-      LEFT JOIN user_roles ur2 ON ur2.wallet_address = n.owner_wallet
+      LEFT JOIN user_wallets uw ON uw.wallet_address = n.original_lister
+      LEFT JOIN user_wallets uw2 ON uw2.wallet_address = n.owner_wallet
       WHERE n.symbol = $1 AND n.rarity_rank = $2
       LIMIT 1
     `;
@@ -126,7 +126,7 @@ async function getNFTByRank(collection, rank) {
         ? `\`${nft.original_lister.slice(0, 4)}...${nft.original_lister.slice(-4)}\``
         : nft.owner_name
         ? nft.owner_name
-        : `\`${nft.owner_wallet.slice(0, 4)}...${nft.owner_wallet.slice(-4)}\``,
+        : `\`${(nft.owner_wallet || '').slice(0, 4)}...${(nft.owner_wallet || '').slice(-4)}\``,
       inline: true
     };
     console.log('Owner field:', ownerField);
@@ -204,18 +204,13 @@ async function getNFTByRank(collection, rank) {
     };
   } finally {
     if (client) {
-      try {
-        await client.release();
-        console.log('Database client released');
-      } catch (releaseError) {
-        console.error('Error releasing client:', releaseError);
-      }
+      await client.release();
     }
   }
 }
 
 export async function handleRankLookup(command) {
-  if (!command || typeof command !== 'string') {
+  if (!command || typeof command !== 'string' || !command.includes('.')) {
     return {
       type: 4,
       data: {
@@ -229,34 +224,7 @@ export async function handleRankLookup(command) {
   }
 
   const [collection, rankStr] = command.split('.');
-
-  if (!collection) {
-    return {
-      type: 4,
-      data: {
-        embeds: [{
-          title: 'Error',
-          description: 'Missing collection. Available collections: ' + Object.keys(COLLECTIONS).join(', '),
-          color: 0xFF0000
-        }]
-      }
-    };
-  }
-
-  if (!rankStr) {
-    return {
-      type: 4,
-      data: {
-        embeds: [{
-          title: 'Error',
-          description: 'Missing rank. Format: collection.rank',
-          color: 0xFF0000
-        }]
-      }
-    };
-  }
-
-  const rank = parseInt(rankStr);
+  const rank = parseInt(rankStr, 10);
 
   if (isNaN(rank)) {
     return {
