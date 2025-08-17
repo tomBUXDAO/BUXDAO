@@ -213,6 +213,14 @@ app.use((req, res, next) => {
   next();
 });
 
+// Preflight/health for interactions endpoint (for any GET/HEAD checks by Discord)
+app.get('/api/discord-interactions', (req, res) => {
+  res.status(200).send('ok');
+});
+app.head('/api/discord-interactions', (req, res) => {
+  res.status(200).end();
+});
+
 // Discord Interactions endpoint (must be before body parsers to preserve raw body)
 app.post('/api/discord-interactions', express.raw({ type: '*/*' }), async (req, res) => {
   try {
