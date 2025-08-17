@@ -84,6 +84,12 @@ import { verifyKey } from 'discord-interactions';
 // Import command handlers
 import { handleNFTLookup } from './api/discord/interactions/commands/nft-lookup.js';
 import { handleRankLookup } from './api/discord/interactions/commands/rank-lookup.js';
+import { handleHelp } from './api/discord/interactions/commands/help.js';
+import { handleMyNFTs } from './api/discord/interactions/commands/mynfts.js';
+import { handleMyBux } from './api/discord/interactions/commands/mybux.js';
+import { handleCollections } from './api/discord/interactions/commands/collections.js';
+import { handleProfile } from './api/discord/interactions/commands/profile.js';
+import { handleAddClaim } from './api/discord/interactions/commands/addclaim.js';
 
 // Database import after environment is loaded
 import { pool } from './api/config/database.js';
@@ -275,6 +281,119 @@ app.post('/api/discord-interactions', express.raw({ type: '*/*' }), async (req, 
     // Handle application commands
     if (interaction.type === 2 && interaction.data) {
       const command = interaction.data;
+
+      // Handle help command
+      if (command.name === 'help') {
+        try {
+          const result = await handleHelp();
+          return res.json(result);
+        } catch (error) {
+          console.error('Help command error:', error);
+          return res.json({ type: 4, data: { content: `Error: ${error.message}`, flags: 64 } });
+        }
+      }
+
+      // Handle mynfts command
+      if (command.name === 'mynfts') {
+        try {
+          const userOption = command.options?.find(opt => opt.name === 'user');
+          const issuerId = interaction.member?.user?.id || interaction.user?.id;
+          let targetDiscordId, targetUsername;
+          if (userOption) {
+            targetDiscordId = userOption.value;
+            targetUsername = userOption.user?.username || userOption.user?.global_name || userOption.user?.name || 'Unknown';
+          } else {
+            targetDiscordId = issuerId;
+            targetUsername = interaction.member?.user?.username || interaction.member?.user?.global_name || interaction.user?.username || interaction.user?.global_name || 'Unknown';
+          }
+          const adminIds = (process.env.DISCORD_ADMIN_IDS || '').split(',').map(id => id.trim()).filter(Boolean);
+          const result = await handleMyNFTs({ targetDiscordId, targetUsername, issuerId, adminIds });
+          return res.json(result);
+        } catch (error) {
+          console.error('mynfts command error:', error);
+          return res.json({ type: 4, data: { content: `Error: ${error.message}`, flags: 64 } });
+        }
+      }
+
+      // Handle mybux command
+      if (command.name === 'mybux') {
+        try {
+          const userOption = command.options?.find(opt => opt.name === 'user');
+          const issuerId = interaction.member?.user?.id || interaction.user?.id;
+          let targetDiscordId, targetUsername;
+          if (userOption) {
+            targetDiscordId = userOption.value;
+            targetUsername = userOption.user?.username || userOption.user?.global_name || userOption.user?.name || 'Unknown';
+          } else {
+            targetDiscordId = issuerId;
+            targetUsername = interaction.member?.user?.username || interaction.member?.user?.global_name || interaction.user?.username || interaction.user?.global_name || 'Unknown';
+          }
+          const adminIds = (process.env.DISCORD_ADMIN_IDS || '').split(',').map(id => id.trim()).filter(Boolean);
+          const result = await handleMyBux({ targetDiscordId, targetUsername, issuerId, adminIds });
+          return res.json(result);
+        } catch (error) {
+          console.error('mybux command error:', error);
+          return res.json({ type: 4, data: { content: `Error: ${error.message}`, flags: 64 } });
+        }
+      }
+
+      // Handle profile command
+      if (command.name === 'profile') {
+        try {
+          const userOption = command.options?.find(opt => opt.name === 'user');
+          const issuerId = interaction.member?.user?.id || interaction.user?.id;
+          let targetDiscordId, targetUsername;
+          if (userOption) {
+            targetDiscordId = userOption.value;
+            targetUsername = userOption.user?.username || userOption.user?.global_name || userOption.user?.name || 'Unknown';
+          } else {
+            targetDiscordId = issuerId;
+            targetUsername = interaction.member?.user?.username || interaction.member?.user?.global_name || interaction.user?.username || interaction.user?.global_name || 'Unknown';
+          }
+          const adminIds = (process.env.DISCORD_ADMIN_IDS || '').split(',').map(id => id.trim()).filter(Boolean);
+          const result = await handleProfile({ targetDiscordId, targetUsername, issuerId, adminIds });
+          return res.json(result);
+        } catch (error) {
+          console.error('profile command error:', error);
+          return res.json({ type: 4, data: { content: `Error: ${error.message}`, flags: 64 } });
+        }
+      }
+
+      // Handle collections command
+      if (command.name === 'collections') {
+        try {
+          const collectionOption = command.options?.find(opt => opt.name === 'collection');
+          if (!collectionOption) {
+            return res.json({ type: 4, data: { content: 'No collection selected', flags: 64 } });
+          }
+          const result = await handleCollections({ collectionSymbol: collectionOption.value });
+          return res.json(result);
+        } catch (error) {
+          console.error('collections command error:', error);
+          return res.json({ type: 4, data: { content: `Error: ${error.message}`, flags: 64 } });
+        }
+      }
+
+      // Handle addclaim command
+      if (command.name === 'addclaim') {
+        try {
+          const userOption = command.options?.find(opt => opt.name === 'user');
+          const amountOption = command.options?.find(opt => opt.name === 'amount');
+          if (!userOption || !amountOption) {
+            return res.json({ type: 4, data: { content: 'Missing user or amount', flags: 64 } });
+          }
+          const discordId = userOption.value;
+          const username = userOption.user?.username || userOption.user?.global_name || userOption.user?.name || 'Unknown';
+          const amount = amountOption.value;
+          const issuerId = interaction.member?.user?.id || interaction.user?.id;
+          const adminIds = (process.env.DISCORD_ADMIN_IDS || '').split(',').map(id => id.trim()).filter(Boolean);
+          const result = await handleAddClaim({ discordId, username, amount, issuerId, adminIds });
+          return res.json(result);
+        } catch (error) {
+          console.error('addclaim command error:', error);
+          return res.json({ type: 4, data: { content: `Error: ${error.message}`, flags: 64 } });
+        }
+      }
 
       // Handle NFT command
       if (command.name === 'nft') {
