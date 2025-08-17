@@ -251,8 +251,8 @@ app.post('/api/discord-interactions', express.raw({ type: '*/*' }), async (req, 
 
     // If it's a PING, respond immediately to allow Discord endpoint validation
     if (interaction?.type === 1) {
-      res.set('Content-Type', 'application/json');
-      return res.status(200).send('{"type":1}');
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      return res.end('{"type":1}');
     }
 
     // Verify the request is from Discord for all non-PING interactions
