@@ -207,6 +207,11 @@ app.use((req, res, next) => {
 // Discord Interactions endpoint (must be before body parsers to preserve raw body)
 app.post('/api/discord-interactions', express.raw({ type: 'application/json' }), async (req, res) => {
   try {
+    console.log('[Discord] Interaction hit:', {
+      time: new Date().toISOString(),
+      contentType: req.headers['content-type'],
+      userAgent: req.headers['user-agent']
+    });
     const signature = req.headers['x-signature-ed25519'];
     const timestamp = req.headers['x-signature-timestamp'];
 
@@ -222,6 +227,8 @@ app.post('/api/discord-interactions', express.raw({ type: 'application/json' }),
       timestamp,
       process.env.DISCORD_PUBLIC_KEY
     );
+
+    console.log('[Discord] Verified:', isValidRequest, 'Type:', interaction?.type, 'Cmd:', interaction?.data?.name);
 
     if (!isValidRequest) {
       return res.status(401).send('Invalid request signature');
