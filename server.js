@@ -282,7 +282,7 @@ app.post('/api/discord-interactions', express.raw({ type: '*/*' }), async (req, 
     if (interaction.type === 2 && interaction.data) {
       const command = interaction.data;
 
-      // Fast-path some commands synchronously to avoid deferred UX
+      // help (sync)
       if (command.name === 'help') {
         try {
           const result = await handleHelp();
@@ -293,6 +293,7 @@ app.post('/api/discord-interactions', express.raw({ type: '*/*' }), async (req, 
         }
       }
 
+      // collections (sync)
       if (command.name === 'collections') {
         try {
           const collectionOption = command.options?.find(opt => opt.name === 'collection');
@@ -307,6 +308,7 @@ app.post('/api/discord-interactions', express.raw({ type: '*/*' }), async (req, 
         }
       }
 
+      // nft (sync)
       if (command.name === 'nft') {
         try {
           const subcommand = command.options?.[0];
@@ -326,6 +328,7 @@ app.post('/api/discord-interactions', express.raw({ type: '*/*' }), async (req, 
         }
       }
 
+      // rank (sync)
       if (command.name === 'rank') {
         try {
           const subcommand = command.options?.[0];
@@ -345,120 +348,94 @@ app.post('/api/discord-interactions', express.raw({ type: '*/*' }), async (req, 
         }
       }
 
-      // For heavier commands, use deferred flow
-      const webhookUrl = `https://discord.com/api/v10/webhooks/${interaction.application_id}/${interaction.token}`;
-
-      // Helper to deliver the result: edit original first, fallback to follow-up
-      const deliverResponse = async (payload) => {
-        const body = JSON.stringify(payload);
-        // Try editing the original deferred response
+      // mynfts (sync)
+      if (command.name === 'mynfts') {
         try {
-          const editResp = await fetch(`${webhookUrl}/messages/@original`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body
-          });
-          if (!editResp.ok) {
-            const text = await editResp.text().catch(() => '');
-            console.error('Discord edit original failed:', editResp.status, text);
-            // Fallback: create a follow-up message
-            const followResp = await fetch(webhookUrl, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body
-            });
-            if (!followResp.ok) {
-              const ft = await followResp.text().catch(() => '');
-              console.error('Discord follow-up failed:', followResp.status, ft);
-            }
+          const userOption = command.options?.find(opt => opt.name === 'user');
+          const issuerId = interaction.member?.user?.id || interaction.user?.id;
+          let targetDiscordId, targetUsername;
+          if (userOption) {
+            targetDiscordId = userOption.value;
+            targetUsername = userOption.user?.username || userOption.user?.global_name || userOption.user?.name || 'Unknown';
+          } else {
+            targetDiscordId = issuerId;
+            targetUsername = interaction.member?.user?.username || interaction.member?.user?.global_name || interaction.user?.username || interaction.user?.global_name || 'Unknown';
           }
-        } catch (err) {
-          console.error('Discord deliver response error:', err);
+          const adminIds = (process.env.DISCORD_ADMIN_IDS || '').split(',').map(id => id.trim()).filter(Boolean);
+          const result = await handleMyNFTs({ targetDiscordId, targetUsername, issuerId, adminIds });
+          return res.json(result);
+        } catch (error) {
+          console.error('mynfts command error:', error);
+          return res.json({ type: 4, data: { content: `Error: ${error.message}`, flags: 64 } });
         }
-      };
+      }
 
-      // Immediately acknowledge to prevent Discord timeouts
-      res.json({ type: 5 });
-
-      // Process command asynchronously and send the result
-      (async () => {
+      // mybux (sync)
+      if (command.name === 'mybux') {
         try {
-          // Handle mynfts command
-          if (command.name === 'mynfts') {
-            const userOption = command.options?.find(opt => opt.name === 'user');
-            const issuerId = interaction.member?.user?.id || interaction.user?.id;
-            let targetDiscordId, targetUsername;
-            if (userOption) {
-              targetDiscordId = userOption.value;
-              targetUsername = userOption.user?.username || userOption.user?.global_name || userOption.user?.name || 'Unknown';
-            } else {
-              targetDiscordId = issuerId;
-              targetUsername = interaction.member?.user?.username || interaction.member?.user?.global_name || interaction.user?.username || interaction.user?.global_name || 'Unknown';
-            }
-            const adminIds = (process.env.DISCORD_ADMIN_IDS || '').split(',').map(id => id.trim()).filter(Boolean);
-            const result = await handleMyNFTs({ targetDiscordId, targetUsername, issuerId, adminIds });
-            return deliverResponse(result.data || { content: 'OK' });
+          const userOption = command.options?.find(opt => opt.name === 'user');
+          const issuerId = interaction.member?.user?.id || interaction.user?.id;
+          let targetDiscordId, targetUsername;
+          if (userOption) {
+            targetDiscordId = userOption.value;
+            targetUsername = userOption.user?.username || userOption.user?.global_name || userOption.user?.name || 'Unknown';
+          } else {
+            targetDiscordId = issuerId;
+            targetUsername = interaction.member?.user?.username || interaction.member?.user?.global_name || interaction.user?.username || interaction.user?.global_name || 'Unknown';
           }
-
-          // Handle mybux command
-          if (command.name === 'mybux') {
-            const userOption = command.options?.find(opt => opt.name === 'user');
-            const issuerId = interaction.member?.user?.id || interaction.user?.id;
-            let targetDiscordId, targetUsername;
-            if (userOption) {
-              targetDiscordId = userOption.value;
-              targetUsername = userOption.user?.username || userOption.user?.global_name || userOption.user?.name || 'Unknown';
-            } else {
-              targetDiscordId = issuerId;
-              targetUsername = interaction.member?.user?.username || interaction.member?.user?.global_name || interaction.user?.username || interaction.user?.global_name || 'Unknown';
-            }
-            const adminIds = (process.env.DISCORD_ADMIN_IDS || '').split(',').map(id => id.trim()).filter(Boolean);
-            const result = await handleMyBux({ targetDiscordId, targetUsername, issuerId, adminIds });
-            return deliverResponse(result.data || { content: 'OK' });
-          }
-
-          // Handle profile command
-          if (command.name === 'profile') {
-            const userOption = command.options?.find(opt => opt.name === 'user');
-            const issuerId = interaction.member?.user?.id || interaction.user?.id;
-            let targetDiscordId, targetUsername;
-            if (userOption) {
-              targetDiscordId = userOption.value;
-              targetUsername = userOption.user?.username || userOption.user?.global_name || userOption.user?.name || 'Unknown';
-            } else {
-              targetDiscordId = issuerId;
-              targetUsername = interaction.member?.user?.username || interaction.member?.user?.global_name || interaction.user?.username || interaction.user?.global_name || 'Unknown';
-            }
-            const adminIds = (process.env.DISCORD_ADMIN_IDS || '').split(',').map(id => id.trim()).filter(Boolean);
-            const result = await handleProfile({ targetDiscordId, targetUsername, issuerId, adminIds });
-            return deliverResponse(result.data || { content: 'OK' });
-          }
-
-          // Handle addclaim command
-          if (command.name === 'addclaim') {
-            const userOption = command.options?.find(opt => opt.name === 'user');
-            const amountOption = command.options?.find(opt => opt.name === 'amount');
-            if (!userOption || !amountOption) {
-              return deliverResponse({ content: 'Missing user or amount' });
-            }
-            const discordId = userOption.value;
-            const username = userOption.user?.username || userOption.user?.global_name || userOption.user?.name || 'Unknown';
-            const amount = amountOption.value;
-            const issuerId = interaction.member?.user?.id || interaction.user?.id;
-            const adminIds = (process.env.DISCORD_ADMIN_IDS || '').split(',').map(id => id.trim()).filter(Boolean);
-            const result = await handleAddClaim({ discordId, username, amount, issuerId, adminIds });
-            return deliverResponse(result.data || { content: 'OK' });
-          }
-
-          // Unknown heavy command
-          return deliverResponse({ content: 'Unknown command' });
-        } catch (err) {
-          console.error('Command processing error:', err);
-          return deliverResponse({ content: 'An error occurred processing the command' });
+          const adminIds = (process.env.DISCORD_ADMIN_IDS || '').split(',').map(id => id.trim()).filter(Boolean);
+          const result = await handleMyBux({ targetDiscordId, targetUsername, issuerId, adminIds });
+          return res.json(result);
+        } catch (error) {
+          console.error('mybux command error:', error);
+          return res.json({ type: 4, data: { content: `Error: ${error.message}`, flags: 64 } });
         }
-      })();
+      }
 
-      return; // already responded
+      // profile (sync)
+      if (command.name === 'profile') {
+        try {
+          const userOption = command.options?.find(opt => opt.name === 'user');
+          const issuerId = interaction.member?.user?.id || interaction.user?.id;
+          let targetDiscordId, targetUsername;
+          if (userOption) {
+            targetDiscordId = userOption.value;
+            targetUsername = userOption.user?.username || userOption.user?.global_name || userOption.user?.name || 'Unknown';
+          } else {
+            targetDiscordId = issuerId;
+            targetUsername = interaction.member?.user?.username || interaction.member?.user?.global_name || interaction.user?.username || interaction.user?.global_name || 'Unknown';
+          }
+          const adminIds = (process.env.DISCORD_ADMIN_IDS || '').split(',').map(id => id.trim()).filter(Boolean);
+          const result = await handleProfile({ targetDiscordId, targetUsername, issuerId, adminIds });
+          return res.json(result);
+        } catch (error) {
+          console.error('profile command error:', error);
+          return res.json({ type: 4, data: { content: `Error: ${error.message}`, flags: 64 } });
+        }
+      }
+
+      // addclaim (sync)
+      if (command.name === 'addclaim') {
+        try {
+          const userOption = command.options?.find(opt => opt.name === 'user');
+          const amountOption = command.options?.find(opt => opt.name === 'amount');
+          if (!userOption || !amountOption) {
+            return res.json({ type: 4, data: { content: 'Missing user or amount', flags: 64 } });
+          }
+          const discordId = userOption.value;
+          const username = userOption.user?.username || userOption.user?.global_name || userOption.user?.name || 'Unknown';
+          const amount = amountOption.value;
+          const issuerId = interaction.member?.user?.id || interaction.user?.id;
+          const adminIds = (process.env.DISCORD_ADMIN_IDS || '').split(',').map(id => id.trim()).filter(Boolean);
+          const result = await handleAddClaim({ discordId, username, amount, issuerId, adminIds });
+          return res.json(result);
+        } catch (error) {
+          console.error('addclaim command error:', error);
+          return res.json({ type: 4, data: { content: `Error: ${error.message}`, flags: 64 } });
+        }
+      }
+
+      return res.json({ type: 4, data: { content: 'Unknown command', flags: 64 } });
     }
 
     return res.json({ type: 4, data: { content: 'Unknown command', flags: 64 } });
