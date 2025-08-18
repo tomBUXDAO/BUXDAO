@@ -61,14 +61,8 @@ async function getNFTDetails(collection, tokenId) {
     console.log('Looking up NFT:', { collection, tokenId });
 
     const result = await client.query(
-      `SELECT n.*, 
-              uw.discord_id as lister_discord_id,
-              uw.discord_name as lister_discord_name,
-              uw2.discord_id as owner_discord_id,
-              uw2.discord_name as owner_name
+      `SELECT n.*
        FROM nft_metadata n
-       LEFT JOIN user_wallets uw ON uw.wallet_address = n.original_lister
-       LEFT JOIN user_wallets uw2 ON uw2.wallet_address = n.owner_wallet
        WHERE n.symbol = $1 AND n.name LIKE $2`,
       [collectionConfig.symbol, `%#${tokenId}`]
     );
@@ -102,7 +96,6 @@ async function getNFTDetails(collection, tokenId) {
       name: nft.name,
       is_listed: nft.is_listed,
       original_lister: nft.original_lister,
-      lister_discord_id: nft.lister_discord_id,
       owner_wallet: nft.owner_wallet,
       owner_discord_id: nft.owner_discord_id
     });
@@ -162,9 +155,9 @@ async function getNFTDetails(collection, tokenId) {
           thumbnail: {
             url: `https://buxdao.com${collectionConfig.logo}`
           },
-          image: {
-            url: nft.image_url || null
-          },
+          image: nft.image_url ? {
+            url: nft.image_url.startsWith('http') ? nft.image_url : `https://buxdao.com${nft.image_url}`
+          } : undefined,
           footer: {
             text: "BUXDAO • Putting Community First"
           }

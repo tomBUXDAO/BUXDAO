@@ -41,29 +41,29 @@ const COLLECTIONS = {
 };
 
 export default async function handler(req, res) {
-  const { collection, tokenId } = req.body;
+  const { collection, tokenId, symbol: bodySymbol } = req.body;
 
-  if (!collection || !tokenId) {
+  if ((!collection && !bodySymbol) || !tokenId) {
     return res.status(400).json({
       type: 4,
       data: {
         embeds: [{
           title: 'Error',
-          description: 'Both collection and tokenId are required',
+          description: 'Symbol/collection and tokenId are required',
           color: 0xFF0000
         }]
       }
     });
   }
 
-  const collectionConfig = getCollectionBySymbol(collection);
+  const collectionConfig = getCollectionBySymbol(bodySymbol || collection);
   if (!collectionConfig) {
     return res.status(400).json({
       type: 4,
       data: {
         embeds: [{
           title: 'Error',
-          description: `Collection "${collection}" not found. Available collections: ${Object.keys(COLLECTIONS).join(', ')}`,
+          description: `Collection "${bodySymbol || collection}" not found. Available collections: ${Object.keys(COLLECTIONS).join(', ')}`,
           color: 0xFF0000
         }]
       }
@@ -76,14 +76,8 @@ export default async function handler(req, res) {
     console.log('Looking up NFT:', { collection, tokenId, symbol: collectionConfig.symbol });
 
     const result = await client.query(
-      `SELECT n.*, 
-              ur.discord_id as lister_discord_id,
-              ur.discord_name as lister_discord_name,
-              ur2.discord_id as owner_discord_id,
-              ur2.discord_name as owner_name
+      `SELECT n.*
        FROM nft_metadata n
-       LEFT JOIN user_roles ur ON ur.wallet_address = n.original_lister
-       LEFT JOIN user_roles ur2 ON ur2.wallet_address = n.owner_wallet
        WHERE n.symbol = $1 AND n.name LIKE $2`,
       [collectionConfig.symbol, `%#${tokenId}`]
     );
@@ -172,7 +166,7 @@ export default async function handler(req, res) {
           },
           image: nft.image_url ? {
             url: nft.image_url.startsWith('http') ? nft.image_url : `https://buxdao.com${nft.image_url}`
-          } : null,
+          } : undefined,
           footer: {
             text: "BUXDAO • Putting Community First"
           }

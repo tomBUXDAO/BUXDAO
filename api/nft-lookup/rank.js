@@ -103,14 +103,8 @@ export default async function handler(req, res) {
 
     // Get the NFT details directly - remove the count query
     const result = await client.query(
-      `SELECT n.*, 
-              ur.discord_id as lister_discord_id,
-              ur.discord_name as lister_discord_name,
-              ur2.discord_id as owner_discord_id,
-              ur2.discord_name as owner_name
+      `SELECT n.*
        FROM nft_metadata n
-       LEFT JOIN user_roles ur ON ur.wallet_address = n.original_lister
-       LEFT JOIN user_roles ur2 ON ur2.wallet_address = n.owner_wallet
        WHERE n.symbol = $1 
        AND n.rarity_rank = $2 
        LIMIT 1`,
@@ -204,7 +198,7 @@ export default async function handler(req, res) {
           },
           image: nft.image_url ? {
             url: nft.image_url.startsWith('http') ? nft.image_url : `https://buxdao.com${nft.image_url}`
-          } : null,
+          } : undefined,
           footer: {
             text: "BUXDAO • Putting Community First"
           }
