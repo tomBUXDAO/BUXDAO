@@ -281,6 +281,71 @@ app.post('/api/discord-interactions', express.raw({ type: '*/*' }), async (req, 
     // Handle application commands
     if (interaction.type === 2 && interaction.data) {
       const command = interaction.data;
+
+      // Fast-path some commands synchronously to avoid deferred UX
+      if (command.name === 'help') {
+        try {
+          const result = await handleHelp();
+          return res.json(result);
+        } catch (error) {
+          console.error('Help command error:', error);
+          return res.json({ type: 4, data: { content: `Error: ${error.message}`, flags: 64 } });
+        }
+      }
+
+      if (command.name === 'collections') {
+        try {
+          const collectionOption = command.options?.find(opt => opt.name === 'collection');
+          if (!collectionOption) {
+            return res.json({ type: 4, data: { content: 'No collection selected', flags: 64 } });
+          }
+          const result = await handleCollections({ collectionSymbol: collectionOption.value });
+          return res.json(result);
+        } catch (error) {
+          console.error('collections command error:', error);
+          return res.json({ type: 4, data: { content: `Error: ${error.message}`, flags: 64 } });
+        }
+      }
+
+      if (command.name === 'nft') {
+        try {
+          const subcommand = command.options?.[0];
+          if (!subcommand) {
+            return res.json({ type: 4, data: { content: 'Please provide a collection and token ID', flags: 64 } });
+          }
+          const collection = subcommand.name;
+          const tokenId = subcommand.options?.[0]?.value;
+          if (!tokenId) {
+            return res.json({ type: 4, data: { content: 'Please provide a token ID', flags: 64 } });
+          }
+          const result = await handleNFTLookup(`${collection}.${tokenId}`);
+          return res.json(result);
+        } catch (error) {
+          console.error('NFT lookup error:', error);
+          return res.json({ type: 4, data: { content: `Error: ${error.message}`, flags: 64 } });
+        }
+      }
+
+      if (command.name === 'rank') {
+        try {
+          const subcommand = command.options?.[0];
+          if (!subcommand) {
+            return res.json({ type: 4, data: { content: 'Please provide a collection and rank number', flags: 64 } });
+          }
+          const collection = subcommand.name;
+          const rank = subcommand.options?.[0]?.value;
+          if (!rank) {
+            return res.json({ type: 4, data: { content: 'Please provide a rank number', flags: 64 } });
+          }
+          const result = await handleRankLookup(`${collection}.${rank}`);
+          return res.json(result);
+        } catch (error) {
+          console.error('Rank lookup error:', error);
+          return res.json({ type: 4, data: { content: `Error: ${error.message}`, flags: 64 } });
+        }
+      }
+
+      // For heavier commands, use deferred flow
       const webhookUrl = `https://discord.com/api/v10/webhooks/${interaction.application_id}/${interaction.token}`;
 
       // Helper to deliver the result: edit original first, fallback to follow-up
@@ -318,12 +383,6 @@ app.post('/api/discord-interactions', express.raw({ type: '*/*' }), async (req, 
       // Process command asynchronously and send the result
       (async () => {
         try {
-          // Handle help command
-          if (command.name === 'help') {
-            const result = await handleHelp();
-            return deliverResponse(result.data || { content: 'OK' });
-          }
-
           // Handle mynfts command
           if (command.name === 'mynfts') {
             const userOption = command.options?.find(opt => opt.name === 'user');
@@ -375,16 +434,6 @@ app.post('/api/discord-interactions', express.raw({ type: '*/*' }), async (req, 
             return deliverResponse(result.data || { content: 'OK' });
           }
 
-          // Handle collections command
-          if (command.name === 'collections') {
-            const collectionOption = command.options?.find(opt => opt.name === 'collection');
-            if (!collectionOption) {
-              return deliverResponse({ content: 'No collection selected' });
-            }
-            const result = await handleCollections({ collectionSymbol: collectionOption.value });
-            return deliverResponse(result.data || { content: 'OK' });
-          }
-
           // Handle addclaim command
           if (command.name === 'addclaim') {
             const userOption = command.options?.find(opt => opt.name === 'user');
@@ -401,37 +450,7 @@ app.post('/api/discord-interactions', express.raw({ type: '*/*' }), async (req, 
             return deliverResponse(result.data || { content: 'OK' });
           }
 
-          // Handle NFT command
-          if (command.name === 'nft') {
-            const subcommand = command.options?.[0];
-            if (!subcommand) {
-              return deliverResponse({ content: 'Please provide a collection and token ID' });
-            }
-            const collection = subcommand.name;
-            const tokenId = subcommand.options?.[0]?.value;
-            if (!tokenId) {
-              return deliverResponse({ content: 'Please provide a token ID' });
-            }
-            const result = await handleNFTLookup(`${collection}.${tokenId}`);
-            return deliverResponse(result.data || { content: 'OK' });
-          }
-
-          // Handle rank command
-          if (command.name === 'rank') {
-            const subcommand = command.options?.[0];
-            if (!subcommand) {
-              return deliverResponse({ content: 'Please provide a collection and rank number' });
-            }
-            const collection = subcommand.name;
-            const rank = subcommand.options?.[0]?.value;
-            if (!rank) {
-              return deliverResponse({ content: 'Please provide a rank number' });
-            }
-            const result = await handleRankLookup(`${collection}.${rank}`);
-            return deliverResponse(result.data || { content: 'OK' });
-          }
-
-          // Unknown command
+          // Unknown heavy command
           return deliverResponse({ content: 'Unknown command' });
         } catch (err) {
           console.error('Command processing error:', err);
@@ -439,7 +458,7 @@ app.post('/api/discord-interactions', express.raw({ type: '*/*' }), async (req, 
         }
       })();
 
-      return; // already responded with deferred ACK
+      return; // already responded
     }
 
     return res.json({ type: 4, data: { content: 'Unknown command', flags: 64 } });
