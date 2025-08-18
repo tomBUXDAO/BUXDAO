@@ -18,27 +18,114 @@ export default async function handler(req, res) {
     client = await pool.connect();
     console.log('Fetching roles for discord_id:', discordUser.discord_id);
 
-    // Get user's roles from user_roles table
-    const query = `
-      SELECT roles
-      FROM user_roles 
-      WHERE discord_id = $1
-    `;
+    // Load full user role flags
+    const userResult = await client.query(
+      'SELECT * FROM user_roles WHERE discord_id = $1',
+      [discordUser.discord_id]
+    );
 
-    const result = await client.query(query, [discordUser.discord_id]);
-    console.log('User roles result:', result.rows[0]);
-
-    if (!result.rows[0]) {
+    if (userResult.rowCount === 0) {
       console.log('No roles found for user');
       return res.json({ roles: [] });
     }
 
-    // The roles column is already a JSONB array with all the role information
-    const roles = result.rows[0].roles || [];
-    // Flatten if nested (array of arrays)
-    const flatRoles = Array.isArray(roles[0]) ? roles[0] : roles;
-    console.log('Sending roles:', flatRoles);
-    res.json({ roles: flatRoles });
+    const userRoles = userResult.rows[0];
+
+    // Load role catalog
+    const rolesCatalogResult = await client.query('SELECT * FROM roles ORDER BY type, collection');
+    const rolesCatalog = rolesCatalogResult.rows || [];
+
+    // Helper to check eligibility based on flags/thresholds
+    const isEligible = (role) => {
+      switch (role.type) {
+        case 'holder': {
+          switch (role.collection) {
+            case 'fcked_catz':
+              return !!userRoles.fcked_catz_holder;
+            case 'money_monsters':
+              return !!userRoles.money_monsters_holder || !!userRoles.money_monsters_top_10;
+            case 'ai_bitbots':
+              return !!userRoles.ai_bitbots_holder;
+            case 'moneymonsters3d':
+              return !!userRoles.moneymonsters3d_holder || !!userRoles.money_monsters_3d_top_10;
+            case 'celebcatz':
+              return !!userRoles.celebcatz_holder;
+            case 'shxbb':
+              return !!userRoles.shxbb_holder;
+            case 'ausqrl':
+              return !!userRoles.ausqrl_holder;
+            case 'aelxaibb':
+              return !!userRoles.aelxaibb_holder;
+            case 'airb':
+              return !!userRoles.airb_holder;
+            case 'clb':
+              return !!userRoles.clb_holder;
+            case 'ddbot':
+              return !!userRoles.ddbot_holder;
+            default:
+              return false;
+          }
+        }
+        case 'whale': {
+          switch (role.collection) {
+            case 'fcked_catz':
+              return !!userRoles.fcked_catz_whale;
+            case 'money_monsters':
+              return !!userRoles.money_monsters_whale;
+            case 'ai_bitbots':
+              return !!userRoles.ai_bitbots_whale;
+            case 'moneymonsters3d':
+              return !!userRoles.moneymonsters3d_whale;
+            default:
+              return false;
+          }
+        }
+        case 'token': {
+          if (role.collection === 'bux') {
+            switch (role.name) {
+              case 'BUX Beginner':
+                return !!userRoles.bux_beginner;
+              case 'BUX Builder':
+                return !!userRoles.bux_builder;
+              case 'BUX Saver':
+                return !!userRoles.bux_saver;
+              case 'BUX Banker':
+                return !!userRoles.bux_banker;
+              default:
+                return false;
+            }
+          }
+          return false;
+        }
+        case 'special': {
+          // BUXDAO 5 etc.
+          return role.name === 'BUXDAO 5' ? !!userRoles.buxdao_5 : false;
+        }
+        default:
+          return false;
+      }
+    };
+
+    // Build response roles from catalog
+    const eligibleRoles = rolesCatalog
+      .filter(isEligible)
+      .map(role => ({
+        id: String(role.discord_role_id),
+        name: role.name,
+        type: role.type,
+        color: role.color,
+        emoji_url: role.emoji_url,
+        collection: role.collection,
+        display_name: role.display_name
+      }));
+
+    // If no eligibleRoles computed, fall back to stored JSON if present
+    if (!eligibleRoles.length && Array.isArray(userRoles.roles)) {
+      const flatStored = Array.isArray(userRoles.roles[0]) ? userRoles.roles[0] : userRoles.roles;
+      return res.json({ roles: flatStored });
+    }
+
+    return res.json({ roles: eligibleRoles });
 
   } catch (error) {
     console.error('Error fetching user roles:', error);
