@@ -66,6 +66,25 @@ export default async function handler(req, res) {
               return false;
           }
         }
+        case 'collab': {
+          // Collab roles are holder-style flags for partner collections
+          switch (role.collection) {
+            case 'shxbb':
+              return !!userRoles.shxbb_holder;
+            case 'ausqrl':
+              return !!userRoles.ausqrl_holder;
+            case 'aelxaibb':
+              return !!userRoles.aelxaibb_holder;
+            case 'airb':
+              return !!userRoles.airb_holder;
+            case 'clb':
+              return !!userRoles.clb_holder;
+            case 'ddbot':
+              return !!userRoles.ddbot_holder;
+            default:
+              return false;
+          }
+        }
         case 'whale': {
           switch (role.collection) {
             case 'fcked_catz':
