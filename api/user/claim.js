@@ -205,6 +205,25 @@ router.post('/', async (req, res) => {
     // Create transaction with transfer instruction
     const transaction = new Transaction();
     
+    // Ensure user's ATA exists; if not, add creation instruction
+    try {
+      await getAccount(
+        connection,
+        userATAAddress,
+        'confirmed',
+        TOKEN_PROGRAM_ID
+      );
+    } catch (e) {
+      transaction.add(
+        createAssociatedTokenAccountInstruction(
+          userPubkey, // payer (user signs and pays)
+          userATAAddress, // associated token account
+          userPubkey, // owner
+          BUX_MINT // mint
+        )
+      );
+    }
+    
     // Add transfer instruction with explicit program ID
     transaction.add(
       createTransferInstruction(
@@ -495,11 +514,13 @@ router.post('/finalize', async (req, res) => {
     // Now proceed with blockchain transaction
     const transaction = Transaction.from(Buffer.from(signedTransaction, 'base64'));
     
-    // Verify the transaction amount matches the claim amount
-    const transferInstruction = transaction.instructions[0];
-    if (!transferInstruction || transferInstruction.programId.toString() !== TOKEN_PROGRAM_ID.toString()) {
+    // Verify the transaction contains a token transfer instruction (support ATA creation before transfer)
+    const transferInstruction = transaction.instructions.find(
+      (ix) => ix.programId.toString() === TOKEN_PROGRAM_ID.toString()
+    );
+    if (!transferInstruction) {
       await client.query('ROLLBACK');
-      return res.status(400).json({ error: 'Invalid transaction: not a token transfer' });
+      return res.status(400).json({ error: 'Invalid transaction: no token transfer found' });
     }
 
     // Add the treasury signature
