@@ -79,7 +79,7 @@ export default async function handler(req, res) {
   }
 
   // BitBots remint endpoint
-  if (req.url === '/api/bitbots/remint' && req.method === 'POST') {
+  if (req.url.startsWith('/api/bitbots/remint')) {
     return bitbotsRemintHandler(req, res);
   }
 

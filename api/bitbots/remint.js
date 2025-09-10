@@ -8,8 +8,8 @@ import bs58 from 'bs58';
 dotenv.config();
 
 const ALLOWED_WALLETS = new Set([
-  '9756X61QRrgDUSmfJedRyG316BoK56UME6g1n81yberA', // Wolly (max 12)
-  'AcWwsEwgcEHz6rzUTXcnSksFZbETtc2JhA4jF7PKjp9T', // Owner (max 1)
+  '9756X61QRrgDUSmfJedRyG316BoK56UME6g1n81yberA',
+  'AcWwsEwgcEHz6rzUTXcnSksFZbETtc2JhA4jF7PKjp9T',
 ]);
 
 const WALLET_LIMITS = {
@@ -46,10 +46,28 @@ function loadMetadataMap() {
       const key = entry.filename.replace('missing-', '').replace('.json', '');
       fallback[parseInt(key, 10)] = entry.gateway_url;
     }
-  } catch (e) {
-    // If missing, we can derive from local files later if needed
-  }
+  } catch (e) {}
   return fallback;
+}
+
+async function readJsonBody(req) {
+  return new Promise((resolve) => {
+    try {
+      if (req.body && typeof req.body === 'object') return resolve(req.body);
+      let data = '';
+      req.on('data', chunk => { data += chunk; });
+      req.on('end', () => {
+        try {
+          const parsed = data ? JSON.parse(data) : {};
+          resolve(parsed);
+        } catch (e) {
+          resolve({});
+        }
+      });
+    } catch (e) {
+      resolve({});
+    }
+  });
 }
 
 async function mintOne({ index, metadataUri, metaplex }) {
@@ -73,12 +91,25 @@ async function mintOne({ index, metadataUri, metaplex }) {
 }
 
 export default async function handler(req, res) {
+  const ORIGIN = process.env.NODE_ENV === 'production' ? 'https://buxdao.com' : 'http://localhost:5173';
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Origin', ORIGIN);
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept');
+
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    const { wallet } = req.body || {};
+    const body = await readJsonBody(req);
+    const wallet = body.wallet;
+
     if (!wallet || typeof wallet !== 'string') {
       return res.status(400).json({ error: 'Missing wallet' });
     }
@@ -107,7 +138,6 @@ export default async function handler(req, res) {
       return res.status(403).json({ error: 'Wallet mint limit reached' });
     }
 
-    // Pick the lowest remaining index for determinism
     const index = remaining.sort((a, b) => a - b)[0];
     const metadataUri = metadataMap[index];
     if (!metadataUri) {
@@ -120,7 +150,6 @@ export default async function handler(req, res) {
 
     const result = await mintOne({ index, metadataUri, metaplex });
 
-    // Update progress
     mintedSet.add(index);
     const updated = {
       mintedIndices: Array.from(mintedSet).sort((a, b) => a - b),
