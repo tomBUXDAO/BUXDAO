@@ -14,6 +14,7 @@ import userHandler from './user/index.js';
 import rewardsHandler from './rewards/process-daily.js';
 import { pool, healthCheck } from './config/database.js';
 import discordInteractionsHandler from './discord-interactions.js';
+import bitbotsRemintHandler from './bitbots/remint.js';
 
 export default async function handler(req, res) {
   // Set CORS headers
@@ -75,6 +76,11 @@ export default async function handler(req, res) {
       console.error('Discord interactions handler error:', err);
       return res.status(500).json({ error: 'Internal server error', details: err.message });
     }
+  }
+
+  // BitBots remint endpoint
+  if (req.url === '/api/bitbots/remint' && req.method === 'POST') {
+    return bitbotsRemintHandler(req, res);
   }
 
   // Handle NFT lookup endpoint

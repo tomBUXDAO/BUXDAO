@@ -20,6 +20,7 @@ import { UserProvider } from './contexts/UserContext';
 import PageTransition from './components/PageTransition';
 import ScrollToTop from './components/ScrollToTop';
 import Poker from './pages/Poker';
+import RemintBitBots from './pages/RemintBitBots';
 
 // Import your styles
 import './index.css';
@@ -67,6 +68,11 @@ const AnimatedRoutes = () => {
         } />
         <Route path="/poker" element={
           <Poker />
+        } />
+        <Route path="/remint/bitbots" element={
+          <PageTransition>
+            <RemintBitBots />
+          </PageTransition>
         } />
       </Routes>
     </AnimatePresence>
