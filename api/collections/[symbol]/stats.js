@@ -4,17 +4,24 @@ import fetch from 'node-fetch';
 
 export default async function handler(req, res) {
   // Set CORS headers
-  const origin = process.env.NODE_ENV === 'production' 
+  const allowedOrigins = process.env.NODE_ENV === 'production' 
     ? ['https://buxdao.com', 'https://www.buxdao.com']
     : ['http://localhost:5173', 'http://localhost:3001'];
   
   const requestOrigin = req.headers?.origin;
-  if (origin.includes(requestOrigin)) {
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  if (requestOrigin && allowedOrigins.includes(requestOrigin)) {
     res.setHeader('Access-Control-Allow-Origin', requestOrigin);
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cache-Control, Pragma');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  } else if (!requestOrigin) {
+    // Allow requests with no origin (like server-to-server)
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  } else {
+    // Still set CORS headers to prevent CORS errors, but use wildcard
+    res.setHeader('Access-Control-Allow-Origin', '*');
   }
+  
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cache-Control, Pragma');
 
   // Handle OPTIONS request
   if (req.method === 'OPTIONS') {
@@ -28,6 +35,7 @@ export default async function handler(req, res) {
   // Get collection config
   const collection = getCollectionBySymbol(symbol);
   if (!collection) {
+    // Ensure CORS headers are set even on 404
     return res.status(404).json({
       error: 'Collection not found',
       details: `No configuration found for symbol: ${symbol}`
@@ -78,6 +86,7 @@ export default async function handler(req, res) {
     });
   } catch (error) {
     console.error('Error fetching stats:', error);
+    // Ensure CORS headers are set even on error
     return res.status(500).json({ 
       error: 'Failed to fetch stats',
       details: error.message

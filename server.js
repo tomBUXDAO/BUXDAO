@@ -670,6 +670,22 @@ app.use('/api/rewards', rewardsRouter);
 
 // API 404 handler (must be last)
 app.use('/api/*', (req, res) => {
+  // Set CORS headers even for 404 responses
+  const allowedOrigins = process.env.NODE_ENV === 'production'
+    ? ['https://buxdao.com', 'https://www.buxdao.com']
+    : ['http://localhost:5173', 'http://localhost:3001'];
+  
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else if (!origin) {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
+  
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept');
+  
   console.log('404 Not Found:', req.method, req.path);
   res.status(404).json({ error: 'API endpoint not found' });
 });

@@ -3,6 +3,30 @@ import { pool as client } from '../config/database.js';
 
 const router = express.Router();
 
+// CORS middleware for celebcatz routes
+router.use((req, res, next) => {
+  const allowedOrigins = process.env.NODE_ENV === 'production'
+    ? ['https://buxdao.com', 'https://www.buxdao.com']
+    : ['http://localhost:5173', 'http://localhost:3001'];
+  
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else if (!origin) {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
+  
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept');
+  
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  
+  next();
+});
+
 // Test data for development
 const TEST_IMAGES = Array.from({ length: 10 }, (_, i) => ({
   image_url: `https://buxdao.com/celebcatz/${i + 1}.jpg`,

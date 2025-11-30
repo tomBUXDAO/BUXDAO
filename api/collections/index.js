@@ -4,6 +4,31 @@ import { pool } from '../config/database.js'; // Import the pool directly
 
 const router = express.Router();
 
+// CORS middleware for collections routes
+router.use((req, res, next) => {
+  const allowedOrigins = process.env.NODE_ENV === 'production'
+    ? ['https://buxdao.com', 'https://www.buxdao.com']
+    : ['http://localhost:5173', 'http://localhost:3001'];
+  
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else if (!origin) {
+    // Allow requests with no origin
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
+  
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept');
+  
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  
+  next();
+});
+
 // Mapping of your database symbols to Magic Eden API symbols
 const magicEdenSymbolMap = {
   // Main Collections
