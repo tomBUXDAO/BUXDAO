@@ -51,7 +51,7 @@ function validateCollection(collection, requireRarity = false) {
   return config;
 }
 
-async function verifyDiscordRequest(body, signature, timestamp, clientPublicKey) {
+async function verifyDiscordRequest(rawBodyBuffer, signature, timestamp, clientPublicKey) {
   try {
     // Convert hex strings to Uint8Arrays
     const signatureUint8 = new Uint8Array(
@@ -62,9 +62,9 @@ async function verifyDiscordRequest(body, signature, timestamp, clientPublicKey)
       clientPublicKey.match(/.{2}/g).map(byte => parseInt(byte, 16))
     );
 
-    // Concatenate timestamp and body
+    // Create message from timestamp + raw body bytes
     const timestampData = new TextEncoder().encode(timestamp);
-    const bodyData = new TextEncoder().encode(body);
+    const bodyData = rawBodyBuffer instanceof Buffer ? new Uint8Array(rawBodyBuffer) : new TextEncoder().encode(rawBodyBuffer);
     const message = new Uint8Array(timestampData.length + bodyData.length);
     message.set(timestampData);
     message.set(bodyData, timestampData.length);
@@ -106,44 +106,53 @@ export default async function handler(request, response) {
     // For Node.js Serverless/Express, use headers[...] and body as Buffer
     const signature = request.headers['x-signature-ed25519'];
     const timestamp = request.headers['x-signature-timestamp'];
-    const rawBody = request.body instanceof Buffer ? request.body.toString('utf8') : JSON.stringify(request.body);
+    
+    // Keep raw body as Buffer for signature verification, but also get string version for parsing
+    const rawBodyBuffer = request.body instanceof Buffer ? request.body : Buffer.from(JSON.stringify(request.body || {}));
+    const rawBodyString = rawBodyBuffer.toString('utf8');
 
     // Log headers for debugging
-    console.log('Discord headers:', {
-      signature,
-      timestamp,
-      hasBody: !!rawBody,
-      bodyLength: rawBody.length
+    console.log('[Discord] Interaction hit:', {
+      time: new Date().toISOString(),
+      contentType: request.headers['content-type'],
+      userAgent: request.headers['user-agent'],
+      hasSig: !!signature,
+      hasTs: !!timestamp
     });
 
+    console.log('[Discord] Raw length:', rawBodyBuffer.length, 'Parsed type:', JSON.parse(rawBodyString).type);
+
     // Validate required headers
-    if (!signature || !timestamp || !rawBody) {
+    if (!signature || !timestamp || !rawBodyBuffer) {
       console.error('Missing required Discord headers:', {
         hasSignature: !!signature,
         hasTimestamp: !!timestamp,
-        hasBody: !!rawBody
+        hasBody: !!rawBodyBuffer
       });
       return new Response('Invalid request signature', { status: 401 });
     }
 
-    // Verify the request is from Discord
+    // Verify the request is from Discord using raw Buffer
     const isValidRequest = await verifyDiscordRequest(
-      rawBody,
+      rawBodyBuffer,
       signature,
       timestamp,
       process.env.DISCORD_PUBLIC_KEY
-      );
+    );
 
-      if (!isValidRequest) {
+    console.log('[Discord] Verified:', isValidRequest, 'Type:', JSON.parse(rawBodyString).type, 'Cmd:', JSON.parse(rawBodyString).data?.name);
+
+    if (!isValidRequest) {
       console.error('Discord signature verification failed');
-        return new Response('Invalid request signature', { status: 401 });
+      return new Response('Invalid request signature', { status: 401 });
     }
 
     // Parse the interaction data
-    const interaction = JSON.parse(rawBody);
+    const interaction = JSON.parse(rawBodyString);
 
     // Handle ping (PING interaction type)
     if (interaction.type === 1) {
+      console.log('[Discord] Responding to PING');
       return new Response(JSON.stringify({ type: 1 }), {
         headers: { 'Content-Type': 'application/json' }
       });
@@ -153,6 +162,8 @@ export default async function handler(request, response) {
     if (interaction.type === 2) {
       const command = interaction.data;
       const baseUrl = process.env.API_BASE_URL || 'https://buxdao.com';
+
+      console.log('[Discord] Processing command:', command.name);
 
       try {
         // Handle notify command
@@ -538,4 +549,4 @@ export default async function handler(request, response) {
       }
     }), { headers: { 'Content-Type': 'application/json' } });
   }
-} 
+}

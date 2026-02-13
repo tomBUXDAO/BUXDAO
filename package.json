@@ -8,11 +8,13 @@
     "dev:vite": "vite",
     "dev:server": "cross-env NODE_ENV=development node server.js",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "upload:images": "node scripts/upload-bitbot-images-nftstorage.js"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
-    "@solana/spl-token": "^0.4.12",
+    "@metaplex-foundation/js": "^0.20.1",
+    "@solana/spl-token": "^0.4.13",
     "@solana/wallet-adapter-base": "^0.9.23",
     "@solana/wallet-adapter-phantom": "^0.9.24",
     "@solana/wallet-adapter-react": "^0.15.35",
@@ -33,7 +35,6 @@
     "crypto-browserify": "^3.12.0",
     "discord-interactions": "^4.1.1",
     "discord.js": "^14.19.3",
-    "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "express-session": "^1.18.1",
     "form-data": "^4.0.2",
@@ -56,16 +57,23 @@
     "util": "^0.12.5"
   },
   "devDependencies": {
+    "@metaplex-foundation/mpl-token-metadata": "^3.4.0",
+    "@metaplex-foundation/umi": "^1.2.0",
+    "@metaplex-foundation/umi-bundle-defaults": "^1.2.0",
     "@types/mocha": "^10.0.10",
     "@vitejs/plugin-react": "^4.3.4",
+    "@web3-storage/w3up-client": "^17.3.0",
     "autoprefixer": "^10.4.20",
     "concurrently": "^9.1.0",
     "cross-env": "^7.0.3",
+    "dotenv": "^17.2.1",
+    "nft.storage": "^7.2.0",
     "postcss": "^8.4.49",
     "postcss-preset-env": "^10.1.2",
     "tailwindcss": "^3.4.16",
     "ts-mocha": "^10.0.0",
     "typescript": "^5.7.3",
-    "vite": "^5.4.11"
+    "vite": "^5.4.11",
+    "web3.storage": "^4.5.5"
   }
 }

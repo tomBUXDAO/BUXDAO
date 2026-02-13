@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 
-const API_BASE = import.meta.env.PROD ? 'https://buxdao.com' : 'http://localhost:3000';
+const API_BASE = (import.meta.env.VITE_API_BASE && import.meta.env.VITE_API_BASE.trim()) || window.location.origin;
 
 export default function RemintBitBots() {
   const { publicKey, connected } = useWallet();
